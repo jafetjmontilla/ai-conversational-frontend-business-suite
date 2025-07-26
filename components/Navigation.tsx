@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Menu, X, User, Settings, LogOut } from 'lucide-react';
 import { SimpleThemeToggle } from './SimpleThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Button } from './ui/button';
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,6 +32,9 @@ export const Navigation = () => {
             <a href="/theme-demo" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Temas
             </a>
+            <a href="/radix-demo" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              Radix UI
+            </a>
             <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Servicios
             </a>
@@ -46,44 +51,36 @@ export const Navigation = () => {
             <SimpleThemeToggle />
 
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={toggleMenu}
-                  className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 p-2 rounded-md transition-colors"
-                >
-                  <User size={20} />
-                  <span className="hidden sm:block text-sm font-medium">
-                    {user.displayName || user.email}
-                  </span>
-                </button>
-
-                {/* Dropdown menu */}
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700">
-                    <a
-                      href="#"
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <User size={16} />
-                      <span>Perfil</span>
-                    </a>
-                    <a
-                      href="#"
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <Settings size={16} />
-                      <span>Configuración</span>
-                    </a>
-                    <button
-                      onClick={logout}
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      <span>Cerrar sesión</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <User size={20} />
+                    <span className="hidden sm:block text-sm font-medium">
+                      {user.displayName || user.email}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="flex items-center space-x-2">
+                    <User size={16} />
+                    <span>Perfil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-center space-x-2">
+                    <Settings size={16} />
+                    <span>Configuración</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="flex items-center space-x-2 text-red-600 dark:text-red-400"
+                  >
+                    <LogOut size={16} />
+                    <span>Cerrar sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-2">
                 <a
@@ -126,6 +123,12 @@ export const Navigation = () => {
                 className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
               >
                 Temas
+              </a>
+              <a
+                href="/radix-demo"
+                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+              >
+                Radix UI
               </a>
               <a
                 href="#"
