@@ -1,6 +1,6 @@
 # Pestilo Frontend
 
-Aplicación web frontend para Pestilo - Bienestar y Cuidado Personal, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
+Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
 
 ## 🚀 Características
 
