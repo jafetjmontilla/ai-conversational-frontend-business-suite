@@ -1,0 +1,90 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+build/
+
+# Archivos compilados
+dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# Variables de entorno
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos del sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos temporales
+tmp/
+temp/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Archivos de cache
+.cache/
+.parcel-cache/
+.next/cache/
+
+# Archivos de TypeScript
+*.tsbuildinfo
+
+# Archivos de Tailwind CSS
+*.css.map
+
+# Archivos de imágenes optimizadas
+public/images/optimized/
+
+# Archivos de PWA
+public/sw.js
+public/workbox-*.js
+
+# Archivos de análisis de bundle
+.next/analyze/
+
+# Archivos de testing
+.nyc_output/
+coverage/
+
+# Archivos de Storybook
+storybook-static/
+
+# Archivos de Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Archivos de Playwright
+test-results/
+playwright-report/
+
+# Archivos de respaldo
+*.bak
+*.backup 
