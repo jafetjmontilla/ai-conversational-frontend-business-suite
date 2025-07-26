@@ -1,15 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, Activity, Moon, Sun, ChevronRight, Play } from 'lucide-react';
+import { Heart, Activity, Moon, Sun, ChevronRight, Play, LogOut, User } from 'lucide-react';
 import { getRutinas, getEstadisticasBienestar, Rutina, EstadisticasBienestar } from '../lib/Fetching';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthContainer } from '../components/auth/AuthContainer';
 
 export default function Home() {
+  const { user, authUser, loading: authLoading, logout } = useAuth();
   const [usuarioId] = useState('1'); // Usuario de ejemplo
   const [rutinas, setRutinas] = useState<Rutina[]>([]);
   const [estadisticas, setEstadisticas] = useState<EstadisticasBienestar | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,8 +35,13 @@ export default function Home() {
       }
     };
 
-    fetchData();
-  }, [usuarioId]);
+    // Solo cargar datos si el usuario está autenticado
+    if (user && !authLoading) {
+      fetchData();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [usuarioId, user, authLoading]);
 
   const categorias = [
     { nombre: 'Ejercicio', icono: Activity, color: 'bg-blue-500', descripcion: 'Rutinas de actividad física' },
@@ -41,7 +50,12 @@ export default function Home() {
     { nombre: 'Sueño', icono: Moon, color: 'bg-purple-500', descripcion: 'Optimización del descanso' }
   ];
 
-  if (loading) {
+  // Mostrar pantalla de autenticación si no está autenticado
+  if (!authLoading && !user) {
+    return <AuthContainer onAuthSuccess={() => setShowAuth(false)} />;
+  }
+
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-wellness-50 to-primary-50 flex items-center justify-center">
         <div className="text-center">
@@ -83,10 +97,34 @@ export default function Home() {
               <span className="text-xl font-bold text-gray-900">Pestilo</span>
             </div>
 
-            {/* Login */}
-            <button className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              Iniciar Sesión
-            </button>
+            {/* User Menu */}
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="flex items-center space-x-2">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-700">
+                    {user.displayName || user.email}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </div>
         </div>
 
