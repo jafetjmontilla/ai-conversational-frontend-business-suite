@@ -35,6 +35,9 @@ export const Navigation = () => {
             <a href="/radix-demo" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Radix UI
             </a>
+            <a href="/progress" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              Progreso
+            </a>
             <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Servicios
             </a>
@@ -129,6 +132,12 @@ export const Navigation = () => {
                 className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
               >
                 Radix UI
+              </a>
+              <a
+                href="/progress"
+                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
+              >
+                Progreso
               </a>
               <a
                 href="#"

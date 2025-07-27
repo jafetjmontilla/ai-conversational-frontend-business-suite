@@ -2,47 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { Heart, Activity, Moon, Sun, ChevronRight, Play, LogOut, User } from 'lucide-react';
-import { getRutinas, getEstadisticasBienestar, Rutina, EstadisticasBienestar } from '../lib/Fetching';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthContainer } from '../components/auth/AuthContainer';
 import { Navigation } from '../components/Navigation';
 
 export default function Home() {
-  const { user, authUser, loading: authLoading, logout } = useAuth();
-  const [usuarioId] = useState('1'); // Usuario de ejemplo
-  const [rutinas, setRutinas] = useState<Rutina[]>([]);
-  const [estadisticas, setEstadisticas] = useState<EstadisticasBienestar | null>(null);
+  const { authUser, logout } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [rutinasData, statsData] = await Promise.all([
-          getRutinas(),
-          getEstadisticasBienestar(usuarioId)
-        ]);
-
-        setRutinas(rutinasData);
-        setEstadisticas(statsData);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Error al cargar los datos');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Solo cargar datos si el usuario está autenticado
-    if (user && !authLoading) {
-      fetchData();
-    } else if (!authLoading) {
-      setLoading(false);
-    }
-  }, [usuarioId, user, authLoading]);
+    setLoading(false);
+  }, [])
 
   const categorias = [
     { nombre: 'Ejercicio', icono: Activity, color: 'bg-blue-500', descripcion: 'Rutinas de actividad física' },
@@ -51,43 +20,9 @@ export default function Home() {
     { nombre: 'Sueño', icono: Moon, color: 'bg-purple-500', descripcion: 'Optimización del descanso' }
   ];
 
-  // Mostrar pantalla de autenticación si no está autenticado
-  if (!authLoading && !user) {
-    return <AuthContainer onAuthSuccess={() => setShowAuth(false)} />;
-  }
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-wellness-50 to-primary-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Cargando Pestilo...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-wellness-50 to-primary-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-lg mb-4">⚠️</div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-wellness-50 to-primary-50 dark:from-gray-900 dark:to-gray-800">
       <Navigation />
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -100,7 +35,6 @@ export default function Home() {
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">Pestilo</span>
             </div>
-
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
@@ -117,7 +51,6 @@ export default function Home() {
             </div>
           </div>
         </header>
-
         {/* Hero Section */}
         <section className="text-center mb-16">
           <div className="relative">
@@ -130,7 +63,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             Transforma tu vida con{' '}
             <span className="bg-gradient-to-r from-primary-600 to-wellness-600 bg-clip-text text-transparent">
@@ -141,7 +73,6 @@ export default function Home() {
             Tu compañero digital para el bienestar y cuidado personal.
             Rutinas personalizadas, seguimiento de progreso y consejos expertos.
           </p>
-
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center">
               <Play className="w-5 h-5 mr-2" />
@@ -152,34 +83,25 @@ export default function Home() {
             </button>
           </div>
         </section>
-
-        {/* Estadísticas */}
-        {estadisticas && (
-          <section className="mb-16">
-            <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
-              Tu Progreso de Bienestar
+        {/* Call to Action para Progreso */}
+        <section className="mb-16">
+          <div className="bg-gradient-to-r from-primary-50 to-wellness-50 dark:from-primary-900/20 dark:to-wellness-900/20 rounded-2xl p-8 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              ¿Quieres ver tu progreso?
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-                <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{estadisticas.totalRutinasCompletadas}</div>
-                <div className="text-gray-600 dark:text-gray-400">Rutinas Completadas</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-                <div className="text-2xl font-bold text-wellness-600 dark:text-wellness-400">{estadisticas.tiempoTotalDedicado} min</div>
-                <div className="text-gray-600 dark:text-gray-400">Tiempo Total</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{estadisticas.rutinasEstaSemana}</div>
-                <div className="text-gray-600 dark:text-gray-400">Esta Semana</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{Math.round(estadisticas.promedioTiempoPorRutina)} min</div>
-                <div className="text-gray-600 dark:text-gray-400">Promedio/Rutina</div>
-              </div>
-            </div>
-          </section>
-        )}
-
+            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
+              Descubre cómo has evolucionado en tu camino hacia el bienestar.
+              Visualiza tus logros y mantén la motivación.
+            </p>
+            <a
+              href="/progress"
+              className="inline-flex items-center bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
+            >
+              Ver Mi Progreso
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </a>
+          </div>
+        </section>
         {/* Categorías de Bienestar */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
@@ -204,37 +126,7 @@ export default function Home() {
             })}
           </div>
         </section>
-
-        {/* Rutinas Recientes */}
-        <section>
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">
-            Rutinas Recientes
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rutinas.slice(0, 6).map((rutina) => (
-              <div key={rutina.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${rutina.categoria === 'ejercicio' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
-                    rutina.categoria === 'meditacion' ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200' :
-                      rutina.categoria === 'nutricion' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                        'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
-                    }`}>
-                    {rutina.categoria}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{rutina.duracion} min</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{rutina.nombre}</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">{rutina.descripcion}</p>
-                <button className="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 rounded-lg font-medium transition-colors flex items-center justify-center">
-                  <Play className="w-4 h-4 mr-2" />
-                  Comenzar
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
       </main>
-
       {/* Footer */}
       <footer className="bg-gray-900 dark:bg-gray-950 text-white py-12 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
