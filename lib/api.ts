@@ -1,58 +1,78 @@
-import axios from 'axios';
+// Tipos para las respuestas de la API
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+}
 
-// Configuración base de axios
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://96.126.110.203:2000',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+export interface CustomClaimsData {
+  uid: string;
+  email: string | null;
+  customClaims: any;
+  role: string;
+  plan: string;
+}
 
-// Interceptor para agregar token de autenticación
-api.interceptors.request.use(
-  async (config) => {
-    // Obtener token de Firebase si está disponible
-    if (typeof window !== 'undefined') {
-      try {
-        const { getAuth } = await import('firebase/auth');
-        const auth = getAuth();
-        const user = auth.currentUser;
+// Configuración de la API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
 
-        if (user) {
-          try {
-            const token = await user.getIdToken();
-            config.headers.Authorization = `Bearer ${token}`;
-          } catch (error) {
-            console.error('Error al obtener token:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error al importar Firebase auth:', error);
-      }
+// Función para hacer llamadas a la API
+async function apiCall<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  try {
+    const url = `${API_BASE_URL}${endpoint}`;
+
+    const defaultOptions: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    const response = await fetch(url, defaultOptions);
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Error en la petición',
+        error: data.error
+      };
     }
 
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+    return {
+      success: true,
+      message: data.message || 'Operación exitosa',
+      data: data.data
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: 'Error de conexión con el servidor',
+      error: error.message
+    };
   }
-);
+}
 
-// Interceptor para manejar errores
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
+// Función para asignar custom claims a un usuario
+export const assignCustomClaims = async (
+  uid: string,
+  role: string = 'Cliente',
+  plan: string = 'gratuito'
+): Promise<ApiResponse<CustomClaimsData>> => {
+  return apiCall<CustomClaimsData>('/api/auth/assign-custom-claims', {
+    method: 'POST',
+    body: JSON.stringify({ uid, role, plan })
+  });
+};
 
-    // Manejar errores de autenticación
-    if (error.response?.status === 401) {
-      console.log('Token expirado o inválido');
-      // Aquí podrías redirigir al login o refrescar el token
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-export default api; 
+// Función para obtener información de custom claims de un usuario
+export const getCustomClaims = async (uid: string): Promise<ApiResponse<CustomClaimsData>> => {
+  return apiCall<CustomClaimsData>(`/api/auth/custom-claims/${uid}`, {
+    method: 'GET'
+  });
+}; 

@@ -10,8 +10,10 @@ import {
   signOutUser,
   getIdToken,
   AuthUser,
-  AuthResponse
+  AuthResponse,
+  auth
 } from '../lib/firebase';
+import { assignCustomClaims } from '../lib/api';
 
 // Tipos para el contexto
 interface AuthContextType {
@@ -35,21 +37,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // Función para convertir User de Firebase a AuthUser
-  const convertToAuthUser = (user: User): AuthUser => ({
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    emailVerified: user.emailVerified,
-    providerId: user.providerData[0]?.providerId || 'password'
-  });
+  const convertToAuthUser = async (user: User): Promise<AuthUser> => {
+    // Obtener el token para acceder a los custom claims
+    const token = await user.getIdToken(true); // Force refresh to get latest claims
+
+    // Decodificar el token para obtener los custom claims
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    const decodedToken = JSON.parse(jsonPayload);
+
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      emailVerified: user.emailVerified,
+      providerId: user.providerData[0]?.providerId || 'password',
+      customClaims: decodedToken.role || decodedToken.plan ? {
+        role: decodedToken.role,
+        plan: decodedToken.plan
+      } : undefined
+    };
+  };
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((user) => {
+    const unsubscribe = onAuthStateChange(async (user) => {
       setUser(user);
       if (user) {
-        setAuthUser(convertToAuthUser(user));
+        const authUser = await convertToAuthUser(user);
+        setAuthUser(authUser);
       } else {
         setAuthUser(null);
       }
@@ -63,7 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string): Promise<AuthResponse> => {
     const response = await signInWithEmail(email, password);
     if (response.success && response.user) {
-      setAuthUser(response.user);
+      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const authUser = await convertToAuthUser(currentUser);
+        setAuthUser(authUser);
+      } else {
+        setAuthUser(response.user);
+      }
     }
     return response;
   };
@@ -72,7 +100,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInGoogle = async (): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
     if (response.success && response.user) {
-      setAuthUser(response.user);
+      // Verificar si es un usuario nuevo (primer login) y asignar custom claims
+      try {
+        const customClaimsResponse = await assignCustomClaims(
+          response.user.uid,
+          'Cliente', // Rol por defecto para nuevos usuarios
+          'gratuito' // Plan por defecto para nuevos usuarios
+        );
+
+        if (customClaimsResponse.success) {
+          console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
+        } else {
+          console.warn('Error al asignar custom claims:', customClaimsResponse.message);
+        }
+      } catch (error) {
+        console.error('Error al asignar custom claims:', error);
+      }
+
+      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const authUser = await convertToAuthUser(currentUser);
+        setAuthUser(authUser);
+      } else {
+        setAuthUser(response.user);
+      }
     }
     return response;
   };
@@ -81,7 +133,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, password: string): Promise<AuthResponse> => {
     const response = await registerWithEmail(email, password);
     if (response.success && response.user) {
-      setAuthUser(response.user);
+      // Asignar custom claims al usuario recién registrado
+      try {
+        const customClaimsResponse = await assignCustomClaims(
+          response.user.uid,
+          'Cliente', // Rol por defecto para nuevos usuarios
+          'gratuito' // Plan por defecto para nuevos usuarios
+        );
+
+        if (customClaimsResponse.success) {
+          console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
+        } else {
+          console.warn('Error al asignar custom claims:', customClaimsResponse.message);
+        }
+      } catch (error) {
+        console.error('Error al asignar custom claims:', error);
+      }
+
+      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const authUser = await convertToAuthUser(currentUser);
+        setAuthUser(authUser);
+      } else {
+        setAuthUser(response.user);
+      }
     }
     return response;
   };

@@ -43,6 +43,10 @@ export interface AuthUser {
   photoURL: string | null;
   emailVerified: boolean;
   providerId: string;
+  customClaims?: {
+    role?: string;
+    plan?: string;
+  };
 }
 
 export interface AuthResponse {

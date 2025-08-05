@@ -1,4 +1,12 @@
-import api from './api';
+import axios from 'axios';
+
+// Configuración de axios para la API
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // Tipos para las respuestas
 export interface Rutina {
