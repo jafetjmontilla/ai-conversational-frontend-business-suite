@@ -87,13 +87,13 @@ export const Navigation = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <a
-                  href="#"
+                  href="/login"
                   className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Iniciar sesión
                 </a>
                 <a
-                  href="#"
+                  href="/register"
                   className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Registrarse
