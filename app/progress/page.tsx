@@ -5,9 +5,7 @@ import { Heart, Activity, Moon, Sun, TrendingUp, Calendar, Clock, Target } from 
 import { getEstadisticasBienestar, EstadisticasBienestar } from '../../lib/Fetching';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navigation } from '../../components/Navigation';
-import { Progress } from '../../components/ui/progress';
-import { Button } from '../../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+
 
 export default function ProgressPage() {
   const { user, authUser, loading: authLoading } = useAuth();
@@ -15,6 +13,7 @@ export default function ProgressPage() {
   const [estadisticas, setEstadisticas] = useState<EstadisticasBienestar | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('ejercicio');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,7 +153,12 @@ export default function ProgressPage() {
                     <span>Rutinas completadas</span>
                     <span>{stats.rutinasEstaSemana} / {stats.objetivoSemanal}</span>
                   </div>
-                  <Progress value={(stats.rutinasEstaSemana / stats.objetivoSemanal) * 100} className="w-full" />
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(stats.rutinasEstaSemana / stats.objetivoSemanal) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-4 text-sm">
                   <div className="flex items-center space-x-1">
@@ -194,133 +198,177 @@ export default function ProgressPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             Progreso por Categoría
           </h2>
-          <Tabs defaultValue="ejercicio" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="ejercicio" className="flex items-center gap-2">
+          <div className="w-full">
+            <div className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('ejercicio')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'ejercicio'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+              >
                 <Activity className="h-4 w-4" />
                 Ejercicio
-              </TabsTrigger>
-              <TabsTrigger value="meditacion" className="flex items-center gap-2">
+              </button>
+              <button
+                onClick={() => setActiveTab('meditacion')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'meditacion'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+              >
                 <Heart className="h-4 w-4" />
                 Meditación
-              </TabsTrigger>
-              <TabsTrigger value="nutricion" className="flex items-center gap-2">
+              </button>
+              <button
+                onClick={() => setActiveTab('nutricion')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'nutricion'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+              >
                 <Sun className="h-4 w-4" />
                 Nutrición
-              </TabsTrigger>
-              <TabsTrigger value="sueno" className="flex items-center gap-2">
+              </button>
+              <button
+                onClick={() => setActiveTab('sueno')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'sueno'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+              >
                 <Moon className="h-4 w-4" />
                 Sueño
-              </TabsTrigger>
-            </TabsList>
+              </button>
+            </div>
 
-            <TabsContent value="ejercicio" className="mt-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Ejercicio</h4>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Rutinas de cardio</span>
-                      <span>15 / 20</span>
+            <div className="mt-6">
+              {activeTab === 'ejercicio' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Ejercicio</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Rutinas de cardio</span>
+                        <span>15 / 20</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '75%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={75} className="w-full" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Rutinas de fuerza</span>
-                      <span>12 / 15</span>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Rutinas de fuerza</span>
+                        <span>12 / 15</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '80%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={80} className="w-full" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Flexibilidad</span>
-                      <span>8 / 10</span>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Flexibilidad</span>
+                        <span>8 / 10</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '80%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={80} className="w-full" />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="meditacion" className="mt-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Meditación</h4>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Sesiones completadas</span>
-                      <span>18 / 25</span>
+              {activeTab === 'meditacion' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Meditación</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Sesiones completadas</span>
+                        <span>18 / 25</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '72%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={72} className="w-full" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Minutos totales</span>
-                      <span>540 / 750</span>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Minutos totales</span>
+                        <span>540 / 750</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '72%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={72} className="w-full" />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="nutricion" className="mt-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Nutrición</h4>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Días saludables</span>
-                      <span>22 / 30</span>
+              {activeTab === 'nutricion' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso de Nutrición</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Días saludables</span>
+                        <span>22 / 30</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '73%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={73} className="w-full" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Hidratación</span>
-                      <span>28 / 30</span>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Hidratación</span>
+                        <span>28 / 30</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '93%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={93} className="w-full" />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              )}
 
-            <TabsContent value="sueno" className="mt-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso del Sueño</h4>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Horas de sueño</span>
-                      <span>7.5 / 8</span>
+              {activeTab === 'sueno' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Progreso del Sueño</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Horas de sueño</span>
+                        <span>7.5 / 8</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '94%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={94} className="w-full" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Calidad del sueño</span>
-                      <span>85%</span>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span>Calidad del sueño</span>
+                        <span>85%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="bg-primary-600 h-2 rounded-full transition-all duration-300" style={{ width: '85%' }}></div>
+                      </div>
                     </div>
-                    <Progress value={85} className="w-full" />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Acciones */}
         <section className="text-center">
           <div className="space-y-4">
-            <Button size="lg" className="bg-primary-600 hover:bg-primary-700">
+            <button className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
               Ver Rutinas Disponibles
-            </Button>
+            </button>
             <div>
-              <Button variant="outline" size="lg">
+              <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 px-8 py-3 rounded-lg font-medium transition-colors">
                 Exportar Reporte
-              </Button>
+              </button>
             </div>
           </div>
         </section>
