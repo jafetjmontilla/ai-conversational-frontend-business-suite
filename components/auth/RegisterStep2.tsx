@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Phone, User, ArrowLeft, Check } from 'lucide-react';
+import { Phone, ArrowLeft, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { assignCustomClaims } from '../../lib/api';
+import { fetchApiV1, queries } from '@/lib/Fetching';
 
 interface RegisterStep2Props {
   userData: { email: string; password: string; name: string };
@@ -70,11 +70,14 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
 
       if (response.success && response.user) {
         // Asignar custom claims con el rol seleccionado
-        const customClaimsResponse = await assignCustomClaims(
-          response.user.uid,
-          selectedRole,
-          'free' // Plan por defecto
-        );
+        const customClaimsResponse = await fetchApiV1({
+          query: queries.assignCustomClaims,
+          variables: {
+            uid: response.user.uid,
+            role: selectedRole,
+            plan: 'free'
+          }
+        });
 
         if (customClaimsResponse.success) {
           console.log('Usuario registrado y custom claims asignados:', customClaimsResponse.data);

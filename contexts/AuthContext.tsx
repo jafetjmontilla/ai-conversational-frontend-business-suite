@@ -13,7 +13,7 @@ import {
   AuthResponse,
   auth
 } from '../lib/firebase';
-import { assignCustomClaims } from '../lib/api';
+import { fetchApiV1, queries } from '@/lib/Fetching';
 
 // Tipos para el contexto
 interface AuthContextType {
@@ -103,11 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('response.user', response.user,);
       // Verificar si es un usuario nuevo (primer login) y asignar custom claims
       try {
-        const customClaimsResponse = await assignCustomClaims(
-          response.user.uid,
-          'client', // Default role for new users
-          'free' // Default plan for new users
-        );
+        const customClaimsResponse = await fetchApiV1({
+          query: queries.assignCustomClaims,
+          variables: {
+            uid: response.user.uid,
+            role: 'client',
+            plan: 'free'
+          }
+        });
 
         if (customClaimsResponse.success) {
           console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
@@ -136,12 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (response.success && response.user) {
       // Asignar custom claims al usuario recién registrado
       try {
-        const customClaimsResponse = await assignCustomClaims(
-          response.user.uid,
-          'client', // Default role for new users
-          'free' // Default plan for new users
-        );
-
+        const customClaimsResponse = await fetchApiV1({
+          query: queries.assignCustomClaims,
+          variables: {
+            uid: response.user.uid,
+            role: 'client',
+            plan: 'free'
+          }
+        });
         if (customClaimsResponse.success) {
           console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
         } else {
