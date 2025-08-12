@@ -14,8 +14,9 @@ export interface CustomClaimsData {
   plan: string;
 }
 
-// Configuración de la API
+// Configuración de la API (REST legacy) y GraphQL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+import { graphqlMutation } from './Fetching';
 
 // Función para hacer llamadas a la API
 async function apiCall<T>(
@@ -61,18 +62,73 @@ async function apiCall<T>(
 // Función para asignar custom claims a un usuario
 export const assignCustomClaims = async (
   uid: string,
-  role: string = 'Cliente',
-  plan: string = 'gratuito'
+  role: string = 'client',
+  plan: string = 'free'
 ): Promise<ApiResponse<CustomClaimsData>> => {
-  return apiCall<CustomClaimsData>('/api/auth/assign-custom-claims', {
-    method: 'POST',
-    body: JSON.stringify({ uid, role, plan })
-  });
+  const mutation = `
+    mutation AssignCustomClaims($args: AssignCustomClaimsInput!) {
+      assignCustomClaims(args: $args) {
+        success
+        message
+        data {
+          uid
+          email
+          role
+          plan
+          assignedAt
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await graphqlMutation(mutation, { args: { uid, role, plan } });
+    const res = data.assignCustomClaims;
+    return {
+      success: res.success,
+      message: res.message,
+      data: res.data
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: 'Error de conexión con el servidor',
+      error: error.message
+    } as any;
+  }
 };
 
 // Función para obtener información de custom claims de un usuario
 export const getCustomClaims = async (uid: string): Promise<ApiResponse<CustomClaimsData>> => {
-  return apiCall<CustomClaimsData>(`/api/auth/custom-claims/${uid}`, {
-    method: 'GET'
-  });
-}; 
+  const query = `
+    query CustomClaims($uid: ID!) {
+      customClaims(uid: $uid) {
+        success
+        message
+        data {
+          uid
+          email
+          role
+          plan
+          assignedAt
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await graphqlMutation(query, { uid });
+    const res = data.customClaims;
+    return {
+      success: res.success,
+      message: res.message,
+      data: res.data
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: 'Error de conexión con el servidor',
+      error: error.message
+    } as any;
+  }
+};

@@ -6,13 +6,10 @@ export {
   type PermissionConfig
 } from './useAllowed';
 
-// Hooks especializados
+// Hooks especializados (se mantienen solo los generales)
 export {
-  useRoutinePermissions,
-  useExercisePermissions,
-  useProgressPermissions,
   useConfigPermissions,
   useExportPermissions,
   useSupportPermissions,
   useEmailPermissions
-} from './useAllowed'; 
+} from './useAllowed';

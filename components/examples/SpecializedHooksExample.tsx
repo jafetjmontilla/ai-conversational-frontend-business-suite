@@ -2,9 +2,6 @@
 
 import React from 'react';
 import {
-  useRoutinePermissions,
-  useExercisePermissions,
-  useProgressPermissions,
   useConfigPermissions,
   useExportPermissions,
   useSupportPermissions,
@@ -13,9 +10,7 @@ import {
 
 export const SpecializedHooksExample: React.FC = () => {
   // Hooks especializados
-  const routinePerms = useRoutinePermissions();
-  const exercisePerms = useExercisePermissions();
-  const progressPerms = useProgressPermissions();
+  // Removed routine/exercise/progress specialized hooks
   const configPerms = useConfigPermissions();
   const exportPerms = useExportPermissions();
   const supportPerms = useSupportPermissions();
@@ -29,104 +24,7 @@ export const SpecializedHooksExample: React.FC = () => {
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Permisos de Rutinas */}
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h3 className="text-lg font-semibold text-green-800 mb-3">
-              🏃‍♂️ Permisos de Rutinas
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>Crear rutinas:</span>
-                <span className={routinePerms.canCreate() ? 'text-green-600' : 'text-red-600'}>
-                  {routinePerms.canCreate() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Editar rutinas:</span>
-                <span className={routinePerms.canEdit() ? 'text-green-600' : 'text-red-600'}>
-                  {routinePerms.canEdit() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Eliminar rutinas:</span>
-                <span className={routinePerms.canDelete() ? 'text-green-600' : 'text-red-600'}>
-                  {routinePerms.canDelete() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Rutinas ilimitadas:</span>
-                <span className={routinePerms.canUnlimited() ? 'text-green-600' : 'text-red-600'}>
-                  {routinePerms.canUnlimited() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Acceso premium:</span>
-                <span className={routinePerms.hasPremiumAccess() ? 'text-green-600' : 'text-red-600'}>
-                  {routinePerms.hasPremiumAccess() ? '✓' : '✗'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Permisos de Ejercicios */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3">
-              💪 Permisos de Ejercicios
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>Acceder a ejercicios:</span>
-                <span className={exercisePerms.canAccess() ? 'text-green-600' : 'text-red-600'}>
-                  {exercisePerms.canAccess() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Ejercicios premium:</span>
-                <span className={exercisePerms.canAccessPremium() ? 'text-green-600' : 'text-red-600'}>
-                  {exercisePerms.canAccessPremium() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Acceso premium:</span>
-                <span className={exercisePerms.hasPremiumAccess() ? 'text-green-600' : 'text-red-600'}>
-                  {exercisePerms.hasPremiumAccess() ? '✓' : '✗'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Permisos de Progreso */}
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <h3 className="text-lg font-semibold text-purple-800 mb-3">
-              📊 Permisos de Progreso
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>Ver progreso:</span>
-                <span className={progressPerms.canView() ? 'text-green-600' : 'text-red-600'}>
-                  {progressPerms.canView() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Progreso avanzado:</span>
-                <span className={progressPerms.canViewAdvanced() ? 'text-green-600' : 'text-red-600'}>
-                  {progressPerms.canViewAdvanced() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Estadísticas detalladas:</span>
-                <span className={progressPerms.canViewDetailedStats() ? 'text-green-600' : 'text-red-600'}>
-                  {progressPerms.canViewDetailedStats() ? '✓' : '✗'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Acceso premium:</span>
-                <span className={progressPerms.hasPremiumAccess() ? 'text-green-600' : 'text-red-600'}>
-                  {progressPerms.hasPremiumAccess() ? '✓' : '✗'}
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* Removed routine/exercise/progress sections */}
 
           {/* Permisos de Configuración */}
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
@@ -223,24 +121,6 @@ export const SpecializedHooksExample: React.FC = () => {
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h4 className="font-semibold text-gray-800 mb-3">Acciones Disponibles</h4>
           <div className="flex flex-wrap gap-3">
-            {routinePerms.canCreate() && (
-              <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
-                Crear Rutina
-              </button>
-            )}
-
-            {exercisePerms.canAccessPremium() && (
-              <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
-                Ejercicios Premium
-              </button>
-            )}
-
-            {progressPerms.canViewDetailedStats() && (
-              <button className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors">
-                Estadísticas Detalladas
-              </button>
-            )}
-
             {configPerms.canAdvancedConfig() && (
               <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors">
                 Configuración Avanzada

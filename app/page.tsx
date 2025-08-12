@@ -83,25 +83,7 @@ export default function Home() {
             </button>
           </div>
         </section>
-        {/* Call to Action para Progreso */}
-        <section className="mb-16">
-          <div className="bg-gradient-to-r from-primary-50 to-wellness-50 dark:from-primary-900/20 dark:to-wellness-900/20 rounded-2xl p-8 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              ¿Quieres ver tu progreso?
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
-              Descubre cómo has evolucionado en tu camino hacia el bienestar.
-              Visualiza tus logros y mantén la motivación.
-            </p>
-            <a
-              href="/progress"
-              className="inline-flex items-center bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-colors"
-            >
-              Ver Mi Progreso
-              <ChevronRight className="w-5 h-5 ml-2" />
-            </a>
-          </div>
-        </section>
+        {/* Removed Progress CTA */}
         {/* Categorías de Bienestar */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">

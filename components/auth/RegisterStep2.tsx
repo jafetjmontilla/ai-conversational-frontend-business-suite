@@ -11,25 +11,25 @@ interface RegisterStep2Props {
   onSuccess: () => void;
 }
 
-type Role = 'Cliente' | 'Profesional' | 'Administrador';
+type Role = 'client' | 'professional' | 'admin';
 
 const roleOptions = [
   {
-    value: 'Cliente' as Role,
+    value: 'client' as Role,
     title: 'Cliente',
     description: 'Usuario que busca mejorar su bienestar personal',
     icon: '👤',
     features: ['Acceso a rutinas básicas', 'Seguimiento de progreso', 'Ejercicios disponibles']
   },
   {
-    value: 'Profesional' as Role,
+    value: 'professional' as Role,
     title: 'Profesional',
     description: 'Entrenador o profesional del fitness',
     icon: '💪',
     features: ['Crear y gestionar rutinas', 'Acceso a ejercicios premium', 'Estadísticas avanzadas']
   },
   {
-    value: 'Administrador' as Role,
+    value: 'admin' as Role,
     title: 'Administrador',
     description: 'Gestión completa del sistema',
     icon: '⚙️',
@@ -39,7 +39,7 @@ const roleOptions = [
 
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
   const { register } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Role>('Cliente');
+  const [selectedRole, setSelectedRole] = useState<Role>('client');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -73,7 +73,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         const customClaimsResponse = await assignCustomClaims(
           response.user.uid,
           selectedRole,
-          'gratuito' // Plan por defecto
+          'free' // Plan por defecto
         );
 
         if (customClaimsResponse.success) {
@@ -134,8 +134,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
                   key={role.value}
                   onClick={() => setSelectedRole(role.value)}
                   className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.value
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                     }`}
                 >
                   {selectedRole === role.value && (

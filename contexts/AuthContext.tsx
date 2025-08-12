@@ -100,12 +100,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInGoogle = async (): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
     if (response.success && response.user) {
+      console.log('response.user', response.user,);
       // Verificar si es un usuario nuevo (primer login) y asignar custom claims
       try {
         const customClaimsResponse = await assignCustomClaims(
           response.user.uid,
-          'Cliente', // Rol por defecto para nuevos usuarios
-          'gratuito' // Plan por defecto para nuevos usuarios
+          'client', // Default role for new users
+          'free' // Default plan for new users
         );
 
         if (customClaimsResponse.success) {
@@ -137,8 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const customClaimsResponse = await assignCustomClaims(
           response.user.uid,
-          'Cliente', // Rol por defecto para nuevos usuarios
-          'gratuito' // Plan por defecto para nuevos usuarios
+          'client', // Default role for new users
+          'free' // Default plan for new users
         );
 
         if (customClaimsResponse.success) {

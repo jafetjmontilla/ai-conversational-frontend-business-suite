@@ -32,9 +32,7 @@ export const Navigation = () => {
             <a href="/theme-demo" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Temas
             </a>
-            <a href="/progress" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Progreso
-            </a>
+            {/* Removed progress navigation */}
             <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Servicios
             </a>
@@ -132,12 +130,7 @@ export const Navigation = () => {
                 Temas
               </a>
 
-              <a
-                href="/progress"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Progreso
-              </a>
+              {/* Removed progress navigation (mobile) */}
               <a
                 href="#"
                 className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"

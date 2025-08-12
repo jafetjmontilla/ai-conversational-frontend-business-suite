@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getIdToken } from './firebase';
 
 // Configuración de axios para la API
 const api = axios.create({
@@ -8,23 +9,33 @@ const api = axios.create({
   },
 });
 
+// Interceptor para adjuntar el token en Authorization
+api.interceptors.request.use(async (config) => {
+  try {
+    const token = await getIdToken();
+    if (token) {
+      config.headers = {
+        ...(config.headers || {}),
+        Authorization: `Bearer ${token}`,
+      } as any;
+    }
+  } catch {
+    // sin token
+  }
+  return config;
+});
+
 // Tipos para las respuestas
-export interface Rutina {
+export interface Routine {
   id: string;
-  nombre: string;
-  descripcion: string;
-  duracion: number;
-  categoria: string;
-  fechaCreacion: string;
+  name: string;
+  description: string;
+  duration: number;
+  category: string;
+  createdAt: string;
 }
 
-export interface EstadisticasBienestar {
-  totalRutinasCompletadas: number;
-  tiempoTotalDedicado: number;
-  rutinasEstaSemana: number;
-  categoriaFavorita: string;
-  promedioTiempoPorRutina: number;
-}
+// Removed wellness stats related to routines/progress
 
 // Función para hacer consultas GraphQL
 const graphqlQuery = async (query: string, variables?: any) => {
@@ -40,66 +51,17 @@ const graphqlQuery = async (query: string, variables?: any) => {
   }
 };
 
-// Obtener todas las rutinas
-export const getRutinas = async (): Promise<Rutina[]> => {
-  const query = `
-    query {
-      rutinas {
-        id
-        nombre
-        descripcion
-        duracion
-        categoria
-        fechaCreacion
-      }
-    }
-  `;
-
-  const data = await graphqlQuery(query);
-  return data.rutinas;
-};
-
-// Obtener estadísticas de bienestar
-export const getEstadisticasBienestar = async (usuarioId: string): Promise<EstadisticasBienestar> => {
-  const query = `
-    query GetEstadisticas($usuarioId: ID!) {
-      estadisticasBienestar(usuarioId: $usuarioId) {
-        totalRutinasCompletadas
-        tiempoTotalDedicado
-        rutinasEstaSemana
-        categoriaFavorita
-        promedioTiempoPorRutina
-      }
-    }
-  `;
-
-  const data = await graphqlQuery(query, { usuarioId });
-  return data.estadisticasBienestar;
-};
-
-// Crear nueva rutina
-export const crearRutina = async (input: {
-  nombre: string;
-  descripcion: string;
-  duracion: number;
-  categoria: string;
-  usuarioId: string;
-}): Promise<Rutina> => {
-  const query = `
-    mutation CrearRutina($input: CrearRutinaInput!) {
-      crearRutina(input: $input) {
-        id
-        nombre
-        descripcion
-        duracion
-        categoria
-        fechaCreacion
-      }
-    }
-  `;
-
-  const data = await graphqlQuery(query, { input });
-  return data.crearRutina;
+export const graphqlMutation = async (mutation: string, variables?: any) => {
+  try {
+    const response = await api.post('/graphql', {
+      query: mutation,
+      variables,
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('GraphQL Mutation Error:', error);
+    throw error;
+  }
 };
 
 // Verificar salud de la API
