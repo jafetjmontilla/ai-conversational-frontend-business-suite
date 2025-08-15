@@ -1,158 +1,203 @@
 'use client';
 
-import { useState } from 'react';
-import { Menu, X, User, Settings, LogOut } from 'lucide-react';
+import { Menu, User, Settings, LogOut } from 'lucide-react';
 import { SimpleThemeToggle } from './SimpleThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  NavigationMenu as ShadNavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu';
 
 export const Navigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
-
+  const userLabel = user?.displayName || user?.email || 'Usuario';
+  const userInitial = (userLabel || 'U').charAt(0).toUpperCase();
+  console.log(user);
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <nav className="bg-background shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-primary-600 dark:text-primary-400">
+            <h1 className="text-xl font-bold text-primary">
               Pestilo
             </h1>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="/" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Inicio
-            </a>
-            <a href="/theme-demo" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Temas
-            </a>
-            {/* Removed progress navigation */}
-            <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Servicios
-            </a>
-            <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Acerca de
-            </a>
-            <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Contacto
-            </a>
+            <ShadNavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link href="/" className={navigationMenuTriggerStyle()}>
+                      Inicio
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link href="/theme-demo" className={navigationMenuTriggerStyle()}>
+                      Temas
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link href="#" className={navigationMenuTriggerStyle()}>
+                      Servicios
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link href="#" className={navigationMenuTriggerStyle()}>
+                      Acerca de
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link href="#" className={navigationMenuTriggerStyle()}>
+                      Contacto
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </ShadNavigationMenu>
           </div>
 
-          {/* Right side - Theme toggle and user menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <SimpleThemeToggle />
 
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={toggleUserMenu}
-                  className="flex items-center space-x-2 p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                >
-                  <User size={20} />
-                  <span className="hidden sm:block text-sm font-medium">
-                    {user.displayName || user.email}
-                  </span>
-                </button>
-
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                    <div className="py-1">
-                      <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
-                        Mi Cuenta
-                      </div>
-                      <button className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <User size={16} />
-                        <span>Perfil</span>
-                      </button>
-                      <button className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <Settings size={16} />
-                        <span>Configuración</span>
-                      </button>
-                      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                      <button
-                        onClick={logout}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <LogOut size={16} />
-                        <span>Cerrar sesión</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 px-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback>{userInitial}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:block text-sm font-medium">
+                      {userLabel}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <User className="mr-2" size={16} />
+                    <span>Perfil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2" size={16} />
+                    <span>Configuración</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-red-600 dark:text-red-400 focus:text-red-600">
+                    <LogOut className="mr-2" size={16} />
+                    <span>Cerrar sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-2">
-                <a
+                <Link
                   href="/login"
-                  className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:text-primary transition-colors"
                 >
                   Iniciar sesión
-                </a>
-                <a
-                  href="/register"
-                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Registrarse
-                </a>
+                </Link>
+                <Button asChild>
+                  <Link href="/register">Registrarse</Link>
+                </Button>
               </div>
             )}
 
-            {/* Mobile menu button */}
-            <button
-              onClick={toggleMenu}
-              className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-            >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu size={20} />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="px-0">
+                <div className="px-4 py-4">
+                  <h2 className="text-lg font-semibold">Menú</h2>
+                </div>
+                <Separator />
+                <div className="px-2 pt-2 pb-3 space-y-1">
+                  <Link
+                    href="/"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Inicio
+                  </Link>
+                  <Link
+                    href="/theme-demo"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Temas
+                  </Link>
+                  <Link
+                    href="#"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Servicios
+                  </Link>
+                  <Link
+                    href="#"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Acerca de
+                  </Link>
+                  <Link
+                    href="#"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Contacto
+                  </Link>
+                </div>
+                <Separator />
+                <div className="px-2 pt-2 pb-4">
+                  {user ? (
+                    <Button variant="destructive" className="w-full" onClick={logout}>
+                      <LogOut className="mr-2" size={16} /> Cerrar sesión
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button asChild variant="outline" className="flex-1">
+                        <Link href="/login">Iniciar sesión</Link>
+                      </Button>
+                      <Button asChild className="flex-1">
+                        <Link href="/register">Registrarse</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-              <a
-                href="/"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Inicio
-              </a>
-              <a
-                href="/theme-demo"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Temas
-              </a>
-
-              {/* Removed progress navigation (mobile) */}
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Servicios
-              </a>
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Acerca de
-              </a>
-              <a
-                href="#"
-                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 block px-3 py-2 rounded-md text-base font-medium transition-colors"
-              >
-                Contacto
-              </a>
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );
-}; 
+};
