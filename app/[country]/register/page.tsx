@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
-import { RegisterStep1 } from '../../components/auth/RegisterStep1';
-import { RegisterStep2 } from '../../components/auth/RegisterStep2';
+import { useAuth } from '@/contexts/AuthContext';
+import { RegisterStep1 } from '@/components/auth/RegisterStep1';
+import { RegisterStep2 } from '@/components/auth/RegisterStep2';
 
 type Step = 1 | 2;
 

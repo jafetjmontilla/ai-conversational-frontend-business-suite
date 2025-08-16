@@ -1,4 +1,4 @@
-import { apiV1, Fetching } from "./api";
+import { apiJaihomV1, apiV1, Fetching } from "./api";
 
 interface conector {
   api: Fetching
@@ -8,6 +8,10 @@ interface conector {
 }
 export const fetchApiV1: CallableFunction = async ({ query, type, variables }: conector): Promise<any> => {
   return await conector({ api: apiV1, query, variables, type })
+}
+
+export const fetchApiJaihomV1: CallableFunction = async ({ query, type, variables }: conector): Promise<any> => {
+  return await conector({ api: apiJaihomV1, query, variables, type })
 }
 
 const conector: CallableFunction = async ({ api, query = ``, variables = {}, type = "json", }: conector): Promise<any> => {
@@ -178,5 +182,13 @@ export const queries = {
       }
     }
   }`,
-
+  getGeoInfo: `query getGeoInfo {
+    getGeoInfo {
+      acceptLanguage
+      connectingIp
+      ipcountry
+      loop
+      referer
+    }
+  }`
 }

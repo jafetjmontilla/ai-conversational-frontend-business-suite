@@ -2,8 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
-import { useAllowed } from '../../lib/hooks/useAllowed';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAllowed } from '@/lib/hooks/useAllowed';
 
 export default function DashboardPage() {
   const { authUser, loading, logout } = useAuth();

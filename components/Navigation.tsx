@@ -3,6 +3,7 @@
 import { Menu, User, Settings, LogOut } from 'lucide-react';
 import { SimpleThemeToggle } from './SimpleThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { useCountry } from '@/components/providers/CountryProvider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,10 +31,11 @@ import {
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
+  const { countryCode } = useCountry();
 
   const userLabel = user?.displayName || user?.email || 'Usuario';
   const userInitial = (userLabel || 'U').charAt(0).toUpperCase();
-  console.log(user);
+  console.log({ user });
   return (
     <nav className="bg-background shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,14 +51,14 @@ export const Navigation = () => {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
-                    <Link href="/" className={navigationMenuTriggerStyle()}>
+                    <Link href={`/${countryCode}`} className={navigationMenuTriggerStyle()}>
                       Inicio
                     </Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
-                    <Link href="/theme-demo" className={navigationMenuTriggerStyle()}>
+                    <Link href={`/${countryCode}/theme-demo`} className={navigationMenuTriggerStyle()}>
                       Temas
                     </Link>
                   </NavigationMenuLink>
@@ -122,13 +124,13 @@ export const Navigation = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link
-                  href="/login"
+                  href={`/${countryCode}/login`}
                   className="px-3 py-2 rounded-md text-sm font-medium hover:text-primary transition-colors"
                 >
                   Iniciar sesión
                 </Link>
                 <Button asChild>
-                  <Link href="/register">Registrarse</Link>
+                  <Link href={`/${countryCode}/register`}>Registrarse</Link>
                 </Button>
               </div>
             )}
@@ -146,13 +148,13 @@ export const Navigation = () => {
                 <Separator />
                 <div className="px-2 pt-2 pb-3 space-y-1">
                   <Link
-                    href="/"
+                    href={`/${countryCode}`}
                     className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     Inicio
                   </Link>
                   <Link
-                    href="/theme-demo"
+                    href={`/${countryCode}/theme-demo`}
                     className="block px-3 py-2 rounded-md text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     Temas
@@ -185,10 +187,10 @@ export const Navigation = () => {
                   ) : (
                     <div className="flex gap-2">
                       <Button asChild variant="outline" className="flex-1">
-                        <Link href="/login">Iniciar sesión</Link>
+                        <Link href={`/${countryCode}/login`}>Iniciar sesión</Link>
                       </Button>
                       <Button asChild className="flex-1">
-                        <Link href="/register">Registrarse</Link>
+                        <Link href={`/${countryCode}/register`}>Registrarse</Link>
                       </Button>
                     </div>
                   )}

@@ -8,6 +8,13 @@ const instanceApiV1 = axios.create({
   },
 });
 
+const instanceApiJaihomV1 = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_JAIHOM_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Interceptor para adjuntar el token en Authorization
 instanceApiV1.interceptors.request.use(async (config) => {
   try {
@@ -41,5 +48,11 @@ export const checkApiHealth = async (): Promise<boolean> => {
 export const apiV1: Fetching = {
   graphql: async (data: object): Promise<AxiosResponse> => {
     return await instanceApiV1.post("/graphql", data, {})
+  },
+}
+
+export const apiJaihomV1: Fetching = {
+  graphql: async (data: object): Promise<AxiosResponse> => {
+    return await instanceApiJaihomV1.post("/graphql", data, {})
   },
 }

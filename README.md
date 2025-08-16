@@ -169,6 +169,23 @@ lib/
 - ✅ **Manejo de errores** centralizado
 - ✅ **Tipos TypeScript** compartidos
 
+## 🌍 Internacionalización por país (rutas con sufijo)
+
+- **Detección automática de país por headers**: El middleware inspecciona el header `Accept-Language` para inferir la región preferida del usuario y redirigir a la ruta con el sufijo de país correspondiente. Si no se puede determinar, se usa un país por defecto (`DEFAULT_COUNTRY`).
+- **Redirecciones basadas en cookies**: Se persiste la preferencia en la cookie `preferred-country` para futuras visitas. Si la cookie existe y es válida, se prioriza sobre el header.
+- **Validación de países soportados**: Solo se aceptan códigos incluidos en `SUPPORTED_COUNTRIES`. Si el primer segmento de la URL no corresponde a un país soportado, se retorna 404.
+
+### Estructura de rutas
+- Home por país: `/{country}` (ej.: `/ar`, `/us`, `/mx`)
+- Secciones: `/{country}/dashboard`, `/{country}/login`, `/{country}/register`, `/{country}/theme-demo`
+
+### Middleware
+- Archivo: `middleware.ts`
+- Funciones clave: detección de país, validación y redirección, persistencia de cookie.
+
+### Pendiente
+- Incluir un selector de país en la sección de Configuraciones cuando esté disponible, para permitir cambiar manualmente la región desde la UI.
+
 ## 🤝 Contribución
 
 1. Fork el proyecto
