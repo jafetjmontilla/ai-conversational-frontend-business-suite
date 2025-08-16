@@ -1,7 +1,8 @@
 'use client';
 
-import { ThemeToggle, SimpleThemeToggle } from './ThemeToggle';
+import { ThemeToggle } from './ThemeToggle';
 import { useThemeContext } from '../contexts/ThemeContext';
+import { SimpleThemeToggle } from './SimpleThemeToggle';
 
 export const ThemeDemo = () => {
   const { theme, isDark, isLight, isSystem } = useThemeContext();

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuShortcut } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuShortcut, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { LucideIcon } from 'lucide-react';
 import { Check } from 'lucide-react';
 
@@ -20,9 +20,10 @@ export interface DropdownProps {
   selected?: string;
   align?: 'start' | 'end' | 'center';
   buttonClassName?: string;
+  header?: React.ReactNode;
 }
 
-export default function Dropdown({ icon: Icon, text, items, selected, align = 'end', buttonClassName }: DropdownProps) {
+export default function Dropdown({ icon: Icon, text, items, selected, align = 'end', buttonClassName, header }: DropdownProps) {
   const renderText = () => {
     if (text == null) return null;
     if (typeof text === 'string') return <span className="text-sm">{text}</span>;
@@ -37,6 +38,11 @@ export default function Dropdown({ icon: Icon, text, items, selected, align = 'e
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="min-w-[10rem] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md rounded-md p-1">
+        {header
+          ? (
+            <><DropdownMenuLabel>{header}</DropdownMenuLabel><DropdownMenuSeparator /></>
+          )
+          : null}
         {items.map((item) => {
           const isSelected = selected !== undefined && item.value === selected;
           return (

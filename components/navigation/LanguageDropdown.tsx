@@ -28,7 +28,6 @@ export default function LanguageDropdown() {
 
   return (
     <Dropdown icon={Languages} text={<span className="uppercase">{current}</span>} items={items} selected={current} />
-
   );
 }
 

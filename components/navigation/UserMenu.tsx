@@ -38,7 +38,7 @@ export default function UserMenu({ userLabel, userInitial, onLogout }: UserMenuP
   ];
 
   return (
-    <Dropdown text={text} items={items} />
+    <Dropdown text={text} items={items} header={t('navigation:myAccount')} />
   );
 }
 

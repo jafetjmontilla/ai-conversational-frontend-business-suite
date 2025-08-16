@@ -7,7 +7,6 @@ export default function ThemeDemoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-wellness-50 to-primary-50 dark:from-gray-900 dark:to-gray-800">
       <Navigation />
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -17,9 +16,7 @@ export default function ThemeDemoPage() {
             Demostración del sistema de temas claro y oscuro de Pestilo
           </p>
         </div>
-
         <ThemeDemo />
-
         <div className="mt-8 text-center">
           <a
             href="/"
