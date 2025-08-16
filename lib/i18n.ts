@@ -82,7 +82,14 @@ const resources = {
       "profile": "Perfil",
       "settings": "Configuración",
       "help": "Ayuda",
-      "about": "Acerca de"
+      "about": "Acerca de",
+      "themes": "Temas",
+      "services": "Servicios",
+      "contact": "Contacto",
+      "menu": "Menú",
+      "myAccount": "Mi Cuenta",
+      "login": "Iniciar sesión",
+      "register": "Registrarse"
     }
   },
   en: {
@@ -164,7 +171,14 @@ const resources = {
       "profile": "Profile",
       "settings": "Settings",
       "help": "Help",
-      "about": "About"
+      "about": "About",
+      "themes": "Themes",
+      "services": "Services",
+      "contact": "Contact",
+      "menu": "Menu",
+      "myAccount": "My account",
+      "login": "Sign in",
+      "register": "Sign up"
     }
   }
 };

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { NavigationMenu as ShadNavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
 
 export interface MainNavLinksProps { basePath: string; }
@@ -11,12 +12,13 @@ export interface NavigationProps {
 }
 
 export default function MainNavLinks({ basePath }: MainNavLinksProps) {
+  const { t } = useTranslation(['navigation']);
   const items: NavigationProps['items'] = [
-    { href: `${basePath}`, label: 'Inicio' },
-    { href: `${basePath}/theme-demo`, label: 'Temas' },
-    { href: `${basePath}/services`, label: 'Servicios' },
-    { href: `${basePath}/about`, label: 'Acerca de' },
-    { href: `${basePath}/contact`, label: 'Contacto' },
+    { href: `${basePath}`, label: t('navigation:home') },
+    { href: `${basePath}/theme-demo`, label: t('navigation:themes') },
+    { href: `${basePath}/services`, label: t('navigation:services') },
+    { href: `${basePath}/about`, label: t('navigation:about') },
+    { href: `${basePath}/contact`, label: t('navigation:contact') },
   ];
 
   return (
