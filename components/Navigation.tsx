@@ -6,36 +6,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '@/components/providers/CountryProvider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+import { useTranslation } from 'react-i18next';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  NavigationMenu as ShadNavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
+import { NavigationMenu as ShadNavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
+import { LanguageSelector } from './highLevelComponents/LanguageSelector';
 
 export const Navigation = () => {
   const { user, logout } = useAuth();
   const { countryCode } = useCountry();
-
+  const { i18n } = useTranslation();
   const userLabel = user?.displayName || user?.email || 'Usuario';
   const userInitial = (userLabel || 'U').charAt(0).toUpperCase();
   console.log({ user });
+
   return (
     <nav className="bg-background shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -45,7 +31,6 @@ export const Navigation = () => {
               Pestilo
             </h1>
           </div>
-
           <div className="hidden md:flex items-center space-x-4">
             <ShadNavigationMenu>
               <NavigationMenuList>
@@ -87,10 +72,9 @@ export const Navigation = () => {
               </NavigationMenuList>
             </ShadNavigationMenu>
           </div>
-
           <div className="flex items-center space-x-2">
             <SimpleThemeToggle />
-
+            <LanguageSelector />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -134,7 +118,6 @@ export const Navigation = () => {
                 </Button>
               </div>
             )}
-
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">

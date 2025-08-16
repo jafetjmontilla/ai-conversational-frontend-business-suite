@@ -7,6 +7,7 @@ const resources = {
     common: {
       "welcome": "Bienvenido",
       "loading": "Cargando...",
+      "connecting": "Conectando...",
       "error": "Error",
       "success": "Éxito",
       "cancel": "Cancelar",
@@ -28,7 +29,9 @@ const resources = {
       "language": "Idioma",
       "theme": "Tema",
       "darkMode": "Modo oscuro",
-      "lightMode": "Modo claro"
+      "lightMode": "Modo claro",
+      "orContinueWith": "O continúa con",
+      "orRegisterWith": "O regístrate con"
     },
     auth: {
       "login": {
@@ -40,20 +43,37 @@ const resources = {
         "forgotPassword": "¿Olvidaste tu contraseña?",
         "submit": "Iniciar sesión",
         "noAccount": "¿No tienes una cuenta?",
-        "signUp": "Regístrate"
+        "signUp": "Regístrate",
+        "errors": {
+          "unexpected": "Error inesperado al iniciar sesión",
+          "unexpectedGoogle": "Error inesperado al iniciar sesión con Google"
+        }
       },
       "register": {
         "title": "Crear cuenta",
         "subtitle": "Únete a Pestilo hoy",
+        "step1Subtitle": "Paso 1 de 2: Información básica",
+        "fullName": "Nombre Completo",
+        "fullNamePlaceholder": "Tu nombre completo",
         "firstName": "Nombre",
         "lastName": "Apellido",
         "email": "Correo electrónico",
         "password": "Contraseña",
         "confirmPassword": "Confirmar contraseña",
+        "passwordHint": "Mínimo 6 caracteres",
         "termsAndConditions": "Acepto los términos y condiciones",
         "submit": "Crear cuenta",
         "hasAccount": "¿Ya tienes una cuenta?",
-        "signIn": "Inicia sesión"
+        "signIn": "Inicia sesión",
+        "errors": {
+          "nameRequired": "El nombre es requerido",
+          "emailRequired": "El email es requerido",
+          "emailExists": "Este email ya está registrado. Por favor, inicia sesión o usa otro email.",
+          "passwordMismatch": "Las contraseñas no coinciden",
+          "passwordMin": "La contraseña debe tener al menos 6 caracteres",
+          "unexpected": "Error inesperado al registrar usuario",
+          "unexpectedGoogle": "Error inesperado al registrar con Google"
+        }
       }
     },
     navigation: {
@@ -69,6 +89,7 @@ const resources = {
     common: {
       "welcome": "Welcome",
       "loading": "Loading...",
+      "connecting": "Connecting...",
       "error": "Error",
       "success": "Success",
       "cancel": "Cancel",
@@ -90,7 +111,9 @@ const resources = {
       "language": "Language",
       "theme": "Theme",
       "darkMode": "Dark mode",
-      "lightMode": "Light mode"
+      "lightMode": "Light mode",
+      "orContinueWith": "Or continue with",
+      "orRegisterWith": "Or sign up with"
     },
     auth: {
       "login": {
@@ -102,20 +125,37 @@ const resources = {
         "forgotPassword": "Forgot your password?",
         "submit": "Sign in",
         "noAccount": "Don't have an account?",
-        "signUp": "Sign up"
+        "signUp": "Sign up",
+        "errors": {
+          "unexpected": "Unexpected error while signing in",
+          "unexpectedGoogle": "Unexpected error while signing in with Google"
+        }
       },
       "register": {
         "title": "Create account",
         "subtitle": "Join Pestilo today",
+        "step1Subtitle": "Step 1 of 2: Basic information",
+        "fullName": "Full name",
+        "fullNamePlaceholder": "Your full name",
         "firstName": "First name",
         "lastName": "Last name",
         "email": "Email",
         "password": "Password",
         "confirmPassword": "Confirm password",
+        "passwordHint": "Minimum 6 characters",
         "termsAndConditions": "I accept the terms and conditions",
         "submit": "Create account",
         "hasAccount": "Already have an account?",
-        "signIn": "Sign in"
+        "signIn": "Sign in",
+        "errors": {
+          "nameRequired": "Name is required",
+          "emailRequired": "Email is required",
+          "emailExists": "This email is already registered. Please sign in or use another email.",
+          "passwordMismatch": "Passwords do not match",
+          "passwordMin": "Password must be at least 6 characters",
+          "unexpected": "Unexpected error while signing up",
+          "unexpectedGoogle": "Unexpected error while signing up with Google"
+        }
       }
     },
     navigation: {

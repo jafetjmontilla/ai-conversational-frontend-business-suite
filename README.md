@@ -197,3 +197,78 @@ lib/
 ## 📄 Licencia
 
 MIT License - ver archivo [LICENSE](LICENSE) para detalles. 
+
+## 🧱 Patrón: Componentes de Alto Nivel (HLC) con props estructuradas
+
+- **Qué es**: crear un componente contenedor que resuelva la interacción/estilos y reciba "props estructuradas" (evita prop drilling desordenado y repetición de `className`).
+- **Beneficios**: consistencia visual, reusabilidad, menor código repetido, mejor DX.
+- **Dónde aplicarlo**: Dropdowns, menús de usuario, selectores (idioma/tema/país), barras de herramientas, acciones masivas, etc.
+
+### Ejemplo: Dropdown de idioma
+
+```tsx
+import Dropdown, { StructuredDropdownItem } from '@/components/Dropdown';
+import { Languages } from 'lucide-react';
+
+const currentLang = 'es'; // o 'en'
+
+const languageItems: StructuredDropdownItem[] = [
+  {
+    value: 'es',
+    label: (
+      <span className="flex items-center"><span className="mr-2">🇪🇸</span><span>Español</span></span>
+    ),
+    onSelect: () => change('es'),
+  },
+  {
+    value: 'en',
+    label: (
+      <span className="flex items-center"><span className="mr-2">🇺🇸</span><span>English</span></span>
+    ),
+    onSelect: () => change('en'),
+  },
+];
+
+<Dropdown
+  icon={Languages}            // Icono del botón
+  text={<span className="uppercase">{currentLang}</span>} // Texto del botón
+  items={languageItems}       // Opciones estructuradas
+  selected={currentLang}      // Opción seleccionada (opcional)
+/>
+```
+
+Notas:
+- Los estilos base de `DropdownMenuContent` y `DropdownMenuItem` están centralizados en `components/ui/dropdown-menu.tsx` para heredar tema/hover sin repetir clases.
+- Prefiere pasar `items` como arreglo de `{ value, label, onSelect, disabled? }`.
+- Evita duplicar estilos en cada uso; si hace falta una variante, exponerla como prop en el HLC.
+
+## 🧩 Estilo de código: "código conciso/denso"
+
+- **Importaciones**: agrupar dentro de llaves en una sola línea.
+- **Funciones**: no dejar líneas en blanco internas; excepción permitida justo antes de `return` si mejora legibilidad.
+- **Componentes funcionales**: en el `return ( ... )` no dejar líneas en blanco entre nodos.
+
+Ejemplos:
+
+```ts
+// ✅ Importaciones en una sola línea
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+
+// ✅ Función sin líneas en blanco internas (salvo antes del return)
+function doSomething(a: number, b: number) {
+  const sum = a + b;
+  if (sum < 0) return 0;
+
+  return sum;
+}
+
+// ✅ Componentes funcionales: separar la lógica en funciones/secciones; en el JSX del return no dejes líneas en blanco
+export const Widget = () => {
+  return (
+    <div>
+      <span>Hola</span>
+      <button>Aceptar</button>
+    </div>
+  );
+};
+```

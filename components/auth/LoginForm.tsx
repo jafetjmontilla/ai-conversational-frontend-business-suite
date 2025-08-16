@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -12,6 +13,7 @@ interface LoginFormProps {
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
   const { signIn, signInGoogle } = useAuth();
+  const { t } = useTranslation(['auth', 'common']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +33,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         setError(response.message);
       }
     } catch (err) {
-      setError('Error inesperado al iniciar sesión');
+      setError(t('auth:login.errors.unexpected'));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         setError(response.message);
       }
     } catch (err) {
-      setError('Error inesperado al iniciar sesión con Google');
+      setError(t('auth:login.errors.unexpectedGoogle'));
     } finally {
       setLoading(false);
     }
@@ -58,8 +60,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
   return (
     <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
       <div className="text-center p-8">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar Sesión</h2>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">Bienvenido de vuelta a Pestilo</p>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{t('auth:login.title')}</h2>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">{t('auth:login.subtitle')}</p>
       </div>
       <div className="p-8 space-y-6">
         {error && (
@@ -70,7 +72,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
 
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">Correo Electrónico</label>
+            <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:login.email')}</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
@@ -87,7 +89,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
+            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:login.password')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
@@ -116,7 +118,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {loading ? t('common:loading') : t('auth:login.submit')}
           </button>
         </form>
 
@@ -126,9 +128,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
               <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                O continúa con
-              </span>
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">{t('common:orContinueWith')}</span>
             </div>
           </div>
 
@@ -138,18 +138,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
             className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
           >
             <FcGoogle className="h-4 w-4 mr-2" />
-            {loading ? 'Conectando...' : 'Google'}
+            {loading ? t('common:connecting') : 'Google'}
           </button>
         </div>
 
         <div className="text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-300">¿No tienes una cuenta? </span>
+          <span className="text-gray-600 dark:text-gray-300">{t('auth:login.noAccount')} </span>
           <button
             onClick={onSwitchToRegister}
             disabled={loading}
             className="text-blue-600 dark:text-blue-400 hover:underline font-medium disabled:opacity-50"
           >
-            Regístrate aquí
+            {t('auth:login.signUp')}
           </button>
         </div>
       </div>

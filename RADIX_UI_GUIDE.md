@@ -219,3 +219,45 @@ const [open, setOpen] = useState(false);
 ## Conclusión
 
 Radix UI proporciona una base sólida para componentes accesibles y profesionales en Pestilo. La implementación actual cubre los casos de uso más comunes y está preparada para escalar con nuevas funcionalidades. 
+
+### Estilo de código: "código conciso/denso"
+
+- Importaciones de Radix y UI internas en una sola línea cuando sea posible.
+- Evitar líneas en blanco dentro de funciones; se permite una antes de `return` si mejora la lectura.
+- En `return` de componentes, no intercalar líneas en blanco entre nodos.
+
+Esto ayuda a mantener consistencia, densidad y lectura skimmable en componentes de UI con mucha composición.
+
+---
+
+## Patrón recomendado: High-Level Components (HLC) con props estructuradas
+
+- Objetivo: encapsular lógica y estilos frecuentes (Radix + Tailwind) y exponer una API declarativa basada en objetos estructurados.
+- Ventajas: consistencia, menos duplicación de `className`, y fácil estandarización.
+
+### Ejemplo: Dropdown genérico (`components/Dropdown.tsx`)
+
+```tsx
+<Dropdown
+  icon={Languages}
+  text={currentLang}
+  items={languageItems}
+  selected={currentLang}
+/>
+```
+
+Estructura de item:
+
+```ts
+type StructuredDropdownItem = {
+  value: string;
+  label: React.ReactNode; // libertad para banderas, iconos, etc.
+  onSelect: () => void;
+  disabled?: boolean;
+}
+```
+
+Buenas prácticas:
+- Estilos base centralizados en `components/ui/dropdown-menu.tsx` (fondo, borde, hover/focus acorde al tema).
+- Evitar asignar `className` ad-hoc en cada uso; en su lugar, agregar props de variante al HLC si se requieren.
+- Reutilizar este patrón para menús de usuario, acciones masivas, y selectores (idioma/tema/país).

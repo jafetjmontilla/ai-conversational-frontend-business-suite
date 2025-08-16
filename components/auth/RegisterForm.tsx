@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
@@ -12,6 +13,7 @@ interface RegisterFormProps {
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onSuccess }) => {
   const { register, signInGoogle } = useAuth();
+  const { t } = useTranslation(['auth', 'common']);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,13 +30,13 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
 
     // Validaciones
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('auth:register.errors.passwordMismatch'));
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setError(t('auth:register.errors.passwordMin'));
       setLoading(false);
       return;
     }
@@ -47,7 +49,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
         setError(response.message);
       }
     } catch (err) {
-      setError('Error inesperado al registrar usuario');
+      setError(t('auth:register.errors.unexpected'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
         setError(response.message);
       }
     } catch (err) {
-      setError('Error inesperado al registrar con Google');
+      setError(t('auth:register.errors.unexpectedGoogle'));
     } finally {
       setLoading(false);
     }
@@ -75,8 +77,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
     <div className="w-full max-w-md mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h2>
-          <p className="text-gray-600">Únete a Pestilo y comienza tu viaje de bienestar</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('auth:register.title')}</h2>
+          <p className="text-gray-600">{t('auth:register.subtitle')}</p>
         </div>
 
         {error && (
@@ -87,9 +89,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
 
         <form onSubmit={handleEmailRegister} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre Completo
-            </label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">{t('auth:register.fullName')}</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -98,7 +98,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Tu nombre completo"
+                placeholder={t('auth:register.fullNamePlaceholder')}
                 required
                 disabled={loading}
               />
@@ -106,9 +106,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico
-            </label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">{t('auth:register.email')}</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -125,9 +123,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña
-            </label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">{t('auth:register.password')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -150,13 +146,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            <p className="mt-1 text-xs text-gray-500">Mínimo 6 caracteres</p>
+            <p className="mt-1 text-xs text-gray-500">{t('auth:register.passwordHint')}</p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmar Contraseña
-            </label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">{t('auth:register.confirmPassword')}</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -185,7 +179,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
             disabled={loading}
             className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+            {loading ? t('common:loading') : t('auth:register.submit')}
           </button>
         </form>
 
@@ -195,7 +189,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">O regístrate con</span>
+              <span className="px-2 bg-white text-gray-500">{t('common:orRegisterWith')}</span>
             </div>
           </div>
 
@@ -205,19 +199,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onS
             className="mt-4 w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <FcGoogle className="h-5 w-5 mr-2" />
-            {loading ? 'Conectando...' : 'Google'}
+            {loading ? t('common:connecting') : 'Google'}
           </button>
         </div>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            ¿Ya tienes una cuenta?{' '}
+            {t('auth:register.hasAccount')}{' '}
             <button
               onClick={onSwitchToLogin}
               className="text-green-600 hover:text-green-700 font-medium"
               disabled={loading}
             >
-              Inicia sesión aquí
+              {t('auth:register.signIn')}
             </button>
           </p>
         </div>
