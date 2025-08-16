@@ -3,18 +3,24 @@ import { DEFAULT_COUNTRY, SUPPORTED_COUNTRIES } from './lib/countries';
 
 // Función para detectar el país preferido del usuario
 function getPreferredCountry(request: NextRequest): string {
-  // 1. Verificar si hay un país guardado en cookies
+  // 1. Usar geolocalización si está disponible (ISO-2)
+  const geoCountry = request.geo?.country?.toLowerCase();
+  if (geoCountry && SUPPORTED_COUNTRIES.includes(geoCountry)) {
+    return geoCountry;
+  }
+
+  // 2. Verificar si hay un país guardado en cookies
   const countryFromCookie = request.cookies.get('preferred-country')?.value;
   if (countryFromCookie && SUPPORTED_COUNTRIES.includes(countryFromCookie)) {
     return countryFromCookie;
   }
 
-  // 2. Detectar por el header Accept-Language
+  // 3. Detectar por el header Accept-Language
   const acceptLanguage = request.headers.get('accept-language');
   if (acceptLanguage) {
     // Mapeo simple de idiomas a países por defecto
     const languageToCountry: Record<string, string> = {
-      'es': 've', // Español -> Venezuela (por defecto)
+      'es': DEFAULT_COUNTRY, // Español -> País por defecto del proyecto
       'en': 'us', // Inglés -> Estados Unidos (por defecto)
       'es-VE': 've',
       'es-MX': 'mx',
@@ -35,11 +41,15 @@ function getPreferredCountry(request: NextRequest): string {
     }
 
     // Buscar por idioma base
-    if (acceptLanguage.toLowerCase().includes('es')) return 've';
-    if (acceptLanguage.toLowerCase().includes('en')) return 'us';
+    if (acceptLanguage.toLowerCase().includes('es')) {
+      return languageToCountry['es']
+    };
+    if (acceptLanguage.toLowerCase().includes('en')) {
+      return languageToCountry['en']
+    };
   }
 
-  // 3. País por defecto
+  // 4. País por defecto
   return DEFAULT_COUNTRY;
 }
 
