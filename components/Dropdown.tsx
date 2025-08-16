@@ -23,12 +23,17 @@ export interface DropdownProps {
 }
 
 export default function Dropdown({ icon: Icon, text, items, selected, align = 'end', buttonClassName }: DropdownProps) {
+  const renderText = () => {
+    if (text == null) return null;
+    if (typeof text === 'string') return <span className="text-sm">{text}</span>;
+    return text;
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className={['flex items-center gap-2 px-2', buttonClassName].filter(Boolean).join(' ')}>
           {Icon ? <Icon size={16} /> : null}
-          {text ? <span className="text-sm">{text}</span> : null}
+          {renderText()}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="min-w-[10rem] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md rounded-md p-1">
