@@ -12,11 +12,7 @@ export const metadata: Metadata = {
   description: 'Tu compañero digital para una vida más saludable y equilibrada',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children, }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} bg-background text-foreground transition-colors duration-200`}>

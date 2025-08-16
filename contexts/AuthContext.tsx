@@ -2,17 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import {
-  onAuthStateChange,
-  signInWithEmail,
-  signInWithGoogle,
-  registerWithEmail,
-  signOutUser,
-  getIdToken,
-  AuthUser,
-  AuthResponse,
-  auth
-} from '../lib/firebase';
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, AuthUser, AuthResponse, auth } from '../lib/firebase';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 
 // Tipos para el contexto

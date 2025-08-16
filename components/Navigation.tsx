@@ -19,7 +19,6 @@ export const Navigation = () => {
   const { t } = useTranslation(['navigation']);
   const userLabel = user?.displayName || user?.email || 'Usuario';
   const userInitial = (userLabel || 'U').charAt(0).toUpperCase();
-  console.log({ user });
 
   return (
     <nav className="bg-background shadow-sm border-b">
