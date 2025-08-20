@@ -5,7 +5,7 @@ module.exports = {
 		'./components/**/*.{js,ts,jsx,tsx,mdx}',
 		'./app/**/*.{js,ts,jsx,tsx,mdx}',
 	],
-	darkMode: 'class',
+	darkMode: ['class', 'class'],
 	theme: {
 		extend: {
 			colors: {
@@ -20,8 +20,8 @@ module.exports = {
 					'700': '#0369a1',
 					'800': '#075985',
 					'900': '#0c4a6e',
-					DEFAULT: 'oklch(var(--primary))',
-					foreground: 'oklch(var(--primary-foreground))'
+					DEFAULT: 'var(--primary)',
+					foreground: 'var(--primary-foreground)'
 				},
 				wellness: {
 					'50': '#f0fdf4',
@@ -35,41 +35,51 @@ module.exports = {
 					'800': '#166534',
 					'900': '#14532d'
 				},
-				background: 'oklch(var(--background))',
-				foreground: 'oklch(var(--foreground))',
+				background: 'var(--background)',
+				foreground: 'var(--foreground)',
 				card: {
-					DEFAULT: 'oklch(var(--card))',
-					foreground: 'oklch(var(--card-foreground))'
+					DEFAULT: 'var(--card)',
+					foreground: 'var(--card-foreground)'
 				},
 				popover: {
-					DEFAULT: 'oklch(var(--popover))',
-					foreground: 'oklch(var(--popover-foreground))'
+					DEFAULT: 'var(--popover)',
+					foreground: 'var(--popover-foreground)'
 				},
 				secondary: {
-					DEFAULT: 'oklch(var(--secondary))',
-					foreground: 'oklch(var(--secondary-foreground))'
+					DEFAULT: 'var(--secondary)',
+					foreground: 'var(--secondary-foreground)'
 				},
 				muted: {
-					DEFAULT: 'oklch(var(--muted))',
-					foreground: 'oklch(var(--muted-foreground))'
+					DEFAULT: 'var(--muted)',
+					foreground: 'var(--muted-foreground)'
 				},
 				accent: {
-					DEFAULT: 'oklch(var(--accent))',
-					foreground: 'oklch(var(--accent-foreground))'
+					DEFAULT: 'var(--accent)',
+					foreground: 'var(--accent-foreground)'
 				},
 				destructive: {
-					DEFAULT: 'oklch(var(--destructive))',
-					foreground: 'oklch(var(--destructive-foreground))'
+					DEFAULT: 'var(--destructive)',
+					foreground: 'var(--destructive-foreground)'
 				},
-				border: 'oklch(var(--border))',
-				input: 'oklch(var(--input))',
-				ring: 'oklch(var(--ring))',
+				border: 'var(--border)',
+				input: 'var(--input)',
+				ring: 'var(--ring)',
 				chart: {
-					'1': 'oklch(var(--chart-1))',
-					'2': 'oklch(var(--chart-2))',
-					'3': 'oklch(var(--chart-3))',
-					'4': 'oklch(var(--chart-4))',
-					'5': 'oklch(var(--chart-5))'
+					'1': 'var(--chart-1)',
+					'2': 'var(--chart-2)',
+					'3': 'var(--chart-3)',
+					'4': 'var(--chart-4)',
+					'5': 'var(--chart-5)'
+				},
+				sidebar: {
+					DEFAULT: 'var(--sidebar)',
+					foreground: 'var(--sidebar-foreground)',
+					primary: 'var(--sidebar-primary)',
+					primaryForeground: 'var(--sidebar-primary-foreground)',
+					accent: 'var(--sidebar-accent)',
+					accentForeground: 'var(--sidebar-accent-foreground)',
+					border: 'var(--sidebar-border)',
+					ring: 'var(--sidebar-ring)'
 				}
 			},
 			fontFamily: {
@@ -82,6 +92,16 @@ module.exports = {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			sidebar: {
+				DEFAULT: 'var(--sidebar)',
+				foreground: 'var(--sidebar-foreground)',
+				primary: 'var(--sidebar-primary)',
+				primaryForeground: 'var(--sidebar-primary-foreground)',
+				accent: 'var(--sidebar-accent)',
+				accentForeground: 'var(--sidebar-accent-foreground)',
+				border: 'var(--sidebar-border)',
+				ring: 'var(--sidebar-ring)'
 			}
 		}
 	},
