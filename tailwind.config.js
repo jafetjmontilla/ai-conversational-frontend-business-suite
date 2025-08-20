@@ -72,14 +72,16 @@ module.exports = {
 					'5': 'var(--chart-5)'
 				},
 				sidebar: {
-					DEFAULT: 'var(--sidebar)',
+					DEFAULT: 'var(--sidebar-background)',
 					foreground: 'var(--sidebar-foreground)',
 					primary: 'var(--sidebar-primary)',
 					primaryForeground: 'var(--sidebar-primary-foreground)',
 					accent: 'var(--sidebar-accent)',
-					accentForeground: 'var(--sidebar-accent-foreground)',
+					accentForeground: '--sidebar-accent-foreground',
 					border: 'var(--sidebar-border)',
-					ring: 'var(--sidebar-ring)'
+					ring: 'var(--sidebar-ring)',
+					'primary-foreground': 'var(--sidebar-primary-foreground)',
+					'accent-foreground': 'var(--sidebar-accent-foreground)'
 				}
 			},
 			fontFamily: {

@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation';
 import { isValidCountry, getLanguageFromCountry } from '@/lib/countries';
 import { CountryProvider } from '@/components/providers/CountryProvider';
 import Sidebar from '@/components/navigation/Sidebar';
+import { cookies } from "next/headers"
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from '@/components/navigation/SidebarNew';
 // import Navigation from '@/components/Navigation';
 
 interface CountryLayoutProps {
@@ -11,11 +14,10 @@ interface CountryLayoutProps {
   };
 }
 
-export default function CountryLayout({
-  children,
-  params
-}: CountryLayoutProps) {
+export default function CountryLayout({ children, params }: CountryLayoutProps) {
   const { country } = params;
+  const cookieStore = cookies()
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
 
   // Validar que el país sea válido
   if (!isValidCountry(country)) {
@@ -27,8 +29,14 @@ export default function CountryLayout({
       {/* <Navigation /> */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
-          <Sidebar basePath={`/${country}`} />
-          <main className="flex-1">{children}</main>
+          {/* <Sidebar basePath={`/${country}`} /> */}
+          <SidebarProvider defaultOpen={defaultOpen} >
+            <AppSidebar basePath={`/${country}`} />
+            <SidebarTrigger className='block md:hidden sticky top-10 left-10 z-10' />
+            <main className="flex-1">
+              {children}
+            </main>
+          </SidebarProvider>
         </div>
       </div>
     </CountryProvider>
