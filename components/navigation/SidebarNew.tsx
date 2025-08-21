@@ -10,7 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Box, Mail, Flag, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight } from 'lucide-react';
+import { Home, Box, Mail, Flag, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
 import { useTranslation } from 'react-i18next'
 import LanguageDropdown from "./LanguageDropdown"
@@ -31,6 +31,7 @@ const buildAccountItems = (t: (k: string) => string): NavItem[] => [
   { href: '/chat', label: t('navigation:chat'), icon: MessageSquare, badge: 8 },
   { href: '/users', label: t('navigation:users'), icon: Users },
   { href: '/settings', label: t('navigation:settings'), icon: Settings },
+  { href: '/theme-demo', label: t('navigation:demoComponents'), icon: FileSpreadsheet },
 ];
 
 

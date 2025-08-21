@@ -91,6 +91,7 @@ const resources = {
       "help": "Ayuda",
       "about": "Acerca de",
       "themes": "Temas",
+      "demoComponents": "Demo Componentes",
       "services": "Servicios",
       "contact": "Contacto",
       "menu": "Menú",
@@ -187,6 +188,7 @@ const resources = {
       "help": "Help",
       "about": "About",
       "themes": "Themes",
+      "demoComponents": "Demo Components",
       "services": "Services",
       "contact": "Contact",
       "menu": "Menu",
@@ -205,14 +207,14 @@ i18n
     fallbackLng: 'es',
     lng: 'es', // Idioma por defecto
     defaultNS: 'common',
-    
+
     interpolation: {
       escapeValue: false, // React ya escapa por defecto
     },
-    
+
     // Solo habilitar debug en desarrollo y en el cliente
     debug: false,
-    
+
     react: {
       useSuspense: false, // Evita problemas con SSR
     },
