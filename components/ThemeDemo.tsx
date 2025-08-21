@@ -1,15 +1,16 @@
 'use client';
 
+import { FC } from 'react';
 import { ThemeToggle } from './ThemeToggle';
 import { useThemeContext } from '../contexts/ThemeContext';
 import { SimpleThemeToggle } from './SimpleThemeToggle';
 
-export const ThemeDemo = () => {
+export const ThemeDemo: FC = () => {
   const { theme, isDark, isLight, isSystem } = useThemeContext();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <h3 className="text-lg font-semibold text-primary mb-4">
         Demostración del Sistema de Temas
       </h3>
 
@@ -31,19 +32,19 @@ export const ThemeDemo = () => {
 
         {/* Selector completo de temas */}
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Selector Completo:</h4>
+          <h4 className="font-medium text-primary mb-2">Selector Completo:</h4>
           <ThemeToggle />
         </div>
 
         {/* Selector simple */}
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Selector Simple:</h4>
+          <h4 className="font-medium text-primary mb-2">Selector Simple:</h4>
           <SimpleThemeToggle />
         </div>
 
         {/* Ejemplos de componentes */}
         <div>
-          <h4 className="font-medium text-gray-900 dark:text-white mb-2">Ejemplos de Componentes:</h4>
+          <h4 className="font-medium text-primary mb-2">Ejemplos de Componentes:</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <h5 className="font-medium text-gray-900 dark:text-white mb-2">Tarjeta de Ejemplo</h5>

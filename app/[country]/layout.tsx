@@ -5,6 +5,7 @@ import Sidebar from '@/components/navigation/Sidebar';
 import { cookies } from "next/headers"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from '@/components/navigation/SidebarNew';
+import { Navigation } from '@/components/Navigation';
 // import Navigation from '@/components/Navigation';
 
 interface CountryLayoutProps {
@@ -27,7 +28,7 @@ export default function CountryLayout({ children, params }: CountryLayoutProps) 
   return (
     <CountryProvider country={country}>
       {/* <Navigation /> */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
           {/* <Sidebar basePath={`/${country}`} /> */}
           <SidebarProvider defaultOpen={defaultOpen} >

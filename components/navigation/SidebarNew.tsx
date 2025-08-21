@@ -1,6 +1,6 @@
 "use client"
 
-import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
+import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge, SidebarMenuAction } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import previoLogo from '@/app/previoLogo3.png'
@@ -10,24 +10,27 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Box, Mail, Flag, Calendar, Users, Bell, MessageSquare, Settings, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Box, Mail, Flag, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
+import { useTranslation } from 'react-i18next'
+import LanguageDropdown from "./LanguageDropdown"
 
 type NavItem = { href: string; label: string; icon: React.ElementType; badge?: number };
 
-const personalItems: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/', label: 'Professionals', icon: Box },
-  { href: '/theme-demo', label: 'Services', icon: Mail },
-  { href: '/', label: 'Time slots', icon: Users },
-  { href: '/theme-demo', label: 'Clients', icon: Flag },
-  { href: '/', label: 'Calendar', icon: Calendar },
+const buildPersonalItems = (t: (k: string) => string): NavItem[] => [
+  { href: '/dashboard', label: t('navigation:dashboard'), icon: Home },
+  { href: '/', label: t('navigation:professionals'), icon: Box },
+  { href: '/theme-demo', label: t('navigation:services'), icon: Stars },
+  { href: '/', label: t('navigation:timeSlots'), icon: Calendar1 },
+  { href: '/theme-demo', label: t('navigation:clients'), icon: ContactRound },
+  { href: '/', label: t('navigation:calendar'), icon: Calendar },
 ];
 
-const accountItems: NavItem[] = [
-  { href: '/notifications', label: 'Notifications', icon: Bell, badge: 24 },
-  { href: '/chat', label: 'Chat', icon: MessageSquare, badge: 8 },
-  { href: '/users', label: 'Users', icon: MessageSquare },
-  { href: '/settings', label: 'Settings', icon: Settings },
+const buildAccountItems = (t: (k: string) => string): NavItem[] => [
+  { href: '/notifications', label: t('navigation:notifications'), icon: Bell, badge: 24 },
+  { href: '/chat', label: t('navigation:chat'), icon: MessageSquare, badge: 8 },
+  { href: '/users', label: t('navigation:users'), icon: Users },
+  { href: '/settings', label: t('navigation:settings'), icon: Settings },
 ];
 
 
@@ -39,6 +42,10 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
   const router = useRouter()
   const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar, } = useSidebar()
   console.log({ state, open, openMobile, isMobile })
+  const collapsed = state === "collapsed"
+  const { t } = useTranslation(['navigation'])
+  const personalItems = buildPersonalItems(t)
+  const accountItems = buildAccountItems(t)
 
   return (
     <Sidebar side="left" variant="floating" collapsible="icon" >
@@ -55,14 +62,13 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
       </Button>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild onClick={() => router.push('/')} className="hover:bg-transparent cursor-pointer">
-              <div >
-                <Image src={previoLogo} alt="Logo" width={28} height={28} className="rounded-md" />
-                <span className="font-bold text-lg">App Pulsar v1.0</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
+            <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
+              <Image src={previoLogo} alt="Logo" width={30} height={30} className="rounded-md" />
+              {state == "expanded" && <span className="font-bold text-sm">App Pulsar v1.0</span>}
+              <LanguageDropdown />
+            </div>
+          </div>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="overflow-hidden">
@@ -71,12 +77,26 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
             <SidebarMenu>
               {personalItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                    <div >
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </div>
-                  </SidebarMenuButton>
+                  {collapsed ? (
+                    <Tooltip disableHoverableContent>
+                      <TooltipTrigger asChild>
+                        <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
+                          <div>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </div>
+                        </SidebarMenuButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="center" className="px-2 py-1"><p>{item.label}</p></TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
+                      <div>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </div>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -87,18 +107,32 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
         <SidebarMenu>
           {accountItems.map((item) => (
             <SidebarMenuItem key={item.label}>
-              <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                <div >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </div>
-              </SidebarMenuButton>
+              {collapsed ? (
+                <Tooltip disableHoverableContent>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
+                      <div>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </div>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="center" className="px-2 py-1"><p>{item.label}</p></TooltipContent>
+                </Tooltip>
+              ) : (
+                <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
+                  <div>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </div>
+                </SidebarMenuButton>
+              )}
               <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
             </SidebarMenuItem>
           ))}
           <Separator className="my-2" />
           <SidebarMenuItem >
-            <SidebarMenuButton >
+            <SidebarMenuButton className="h-14">
               <Avatar className="scale-75 -translate-x-[13px]">
                 <AvatarImage src="https://github.com/shadcn.png" />
                 <AvatarFallback>NE</AvatarFallback>
@@ -108,9 +142,14 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
                 <span className="text-xs text-muted-foreground">nina.egrena@pestilo.com</span>
               </div>
             </SidebarMenuButton>
-            <SidebarMenuBadge className="cursor-default">•••</SidebarMenuBadge>
+            {/* <SidebarMenuAction className="translate-y-3">
+              <Plus />
+            </SidebarMenuAction> */}
+            <SidebarMenuBadge className="translate-y-3">
+              <SquareArrowOutUpRight className="w-4 h-4" />
+            </SidebarMenuBadge>
           </SidebarMenuItem>
-          <div className="h-6" />
+          <div className={`${state === "collapsed" ? "h-6" : "h-0"} transition-all`} />
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

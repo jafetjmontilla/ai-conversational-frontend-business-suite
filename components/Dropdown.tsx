@@ -37,7 +37,7 @@ export default function Dropdown({ icon: Icon, text, items, selected, align = 'e
           {renderText()}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="min-w-[10rem] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md rounded-md p-1">
+      <DropdownMenuContent align={align} className="min-w-[10rem] bg-background border border-gray-200 dark:border-gray-700 shadow-md rounded-md p-1">
         {header
           ? (
             <><DropdownMenuLabel>{header}</DropdownMenuLabel><DropdownMenuSeparator /></>
@@ -46,7 +46,7 @@ export default function Dropdown({ icon: Icon, text, items, selected, align = 'e
         {items.map((item) => {
           const isSelected = selected !== undefined && item.value === selected;
           return (
-            <DropdownMenuItem key={item.value} onClick={item.onSelect} disabled={item.disabled} className="rounded-sm hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 cursor-pointer">
+            <DropdownMenuItem key={item.value} onClick={item.onSelect} disabled={item.disabled} className="rounded-sm bg-background cursor-pointer">
               {item.label}
               {isSelected ? (
                 <DropdownMenuShortcut>

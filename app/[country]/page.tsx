@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Heart, Activity, Moon, Sun, ChevronRight, Play, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation } from '@/components/Navigation';
 
 export default function Home() {
   const { authUser, logout } = useAuth();
@@ -22,7 +21,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-sidebar-primary">
-      <Navigation />
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
