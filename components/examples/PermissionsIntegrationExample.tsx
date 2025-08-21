@@ -137,8 +137,8 @@ export const PermissionsIntegrationExample: React.FC = () => {
             <div
               key={plan}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedPlan === plan
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
                 }`}
               onClick={() => setSelectedPlan(plan)}
             >

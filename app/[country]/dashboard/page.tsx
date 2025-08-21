@@ -95,8 +95,8 @@ export default function DashboardPage() {
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Verificado</label>
                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${authUser.emailVerified
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
                       {authUser.emailVerified ? 'Sí' : 'No'}
                     </span>

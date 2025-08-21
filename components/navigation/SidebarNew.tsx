@@ -66,7 +66,7 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
             <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
               <Image src={previoLogo} alt="Logo" width={30} height={30} className="rounded-md" />
               {state == "expanded" && <span className="font-bold text-sm">App Pulsar v1.0</span>}
-              <LanguageDropdown />
+              {state == "expanded" && <LanguageDropdown />}
             </div>
           </div>
         </SidebarMenu>
@@ -77,26 +77,12 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
             <SidebarMenu>
               {personalItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                  {collapsed ? (
-                    <Tooltip disableHoverableContent>
-                      <TooltipTrigger asChild>
-                        <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                          <div>
-                            <item.icon />
-                            <span>{item.label}</span>
-                          </div>
-                        </SidebarMenuButton>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" align="center" className="px-2 py-1"><p>{item.label}</p></TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                      <div>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </div>
-                    </SidebarMenuButton>
-                  )}
+                  <SidebarMenuButton tooltip={item.label} asChild onClick={() => router.push(item.href)} className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""}`}>
+                    <div>
+                      <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                      <span>{item.label}</span>
+                    </div>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -107,33 +93,19 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
         <SidebarMenu>
           {accountItems.map((item) => (
             <SidebarMenuItem key={item.label}>
-              {collapsed ? (
-                <Tooltip disableHoverableContent>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                      <div>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </div>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" align="center" className="px-2 py-1"><p>{item.label}</p></TooltipContent>
-                </Tooltip>
-              ) : (
-                <SidebarMenuButton asChild onClick={() => router.push(item.href)} className="cursor-pointer">
-                  <div>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </div>
-                </SidebarMenuButton>
-              )}
+              <SidebarMenuButton tooltip={item.label} asChild onClick={() => router.push(item.href)} className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""}`}>
+                <div>
+                  <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                  <span>{item.label}</span>
+                </div>
+              </SidebarMenuButton>
               <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
             </SidebarMenuItem>
           ))}
           <Separator className="my-2" />
           <SidebarMenuItem >
             <SidebarMenuButton className="h-14">
-              <Avatar className="scale-75 -translate-x-[13px]">
+              <Avatar className="scale-[80%] -translate-x-[12px]">
                 <AvatarImage src="https://github.com/shadcn.png" />
                 <AvatarFallback>NE</AvatarFallback>
               </Avatar>
