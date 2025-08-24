@@ -1,273 +1,292 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FcGoogle } from 'react-icons/fc';
-import { Mail, Lock, Eye, EyeOff, User, Phone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 interface RegisterStep1Props {
   onNext: (userData: { email: string; password: string; name: string }) => void;
   onSwitchToLogin: () => void;
 }
 
+const formSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido'),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin }) => {
   const { signInGoogle } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   // Validar si el email ya existe
   const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-      // Intentar crear un usuario temporal para verificar si el email existe
       const { createUserWithEmailAndPassword } = await import('firebase/auth');
       const { auth } = await import('../../lib/firebase');
-
-      // Crear un usuario temporal con una contraseña temporal
       const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
       await createUserWithEmailAndPassword(auth, email, tempPassword);
-
-      // Si llegamos aquí, el email no existía, así que eliminamos el usuario temporal
       const { deleteUser } = await import('firebase/auth');
       await deleteUser(auth.currentUser!);
-
-      return false; // El email no existe
+      return false;
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
-        return true; // El email ya existe
+        return true;
       }
-      return false; // Otro error, asumimos que no existe
+      return false;
     }
   };
 
-  const handleEmailBlur = async () => {
+  const handleEmailBlur = async (email: string) => {
     if (email && email.includes('@')) {
       setIsCheckingEmail(true);
       const exists = await checkEmailExists(email);
       setIsCheckingEmail(false);
 
       if (exists) {
-        setError(t('auth:register.errors.emailExists'));
-      } else {
-        setError('');
+        form.setError('email', { message: t('auth:register.errors.emailExists') });
       }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  const onSubmit = async (data: FormData) => {
+    try {
+      const emailExists = await checkEmailExists(data.email);
+      if (emailExists) {
+        form.setError('email', { message: t('auth:register.errors.emailExists') });
+        return;
+      }
 
-    // Validaciones
-    if (!name.trim()) {
-      setError(t('auth:register.errors.nameRequired'));
-      setLoading(false);
-      return;
+      onNext({
+        email: data.email,
+        password: data.password,
+        name: data.name,
+      });
+    } catch (error) {
+      toast.error(t('auth:register.errors.unexpectedError'));
     }
-
-    if (!email.trim()) {
-      setError(t('auth:register.errors.emailRequired'));
-      setLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError(t('auth:register.errors.passwordMismatch'));
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(t('auth:register.errors.passwordMin'));
-      setLoading(false);
-      return;
-    }
-
-    // Verificar si el email ya existe
-    const emailExists = await checkEmailExists(email);
-    if (emailExists) {
-      setError(t('auth:register.errors.emailExists'));
-      setLoading(false);
-      return;
-    }
-
-    // Si todo está bien, pasar al siguiente paso
-    onNext({ email, password, name });
-    setLoading(false);
   };
 
   const handleGoogleRegister = async () => {
-    setLoading(true);
-    setError('');
-
     try {
       const response = await signInGoogle();
       if (response.success) {
-        // Si el registro con Google es exitoso, redirigir al dashboard
-        // El contexto de autenticación manejará la asignación de custom claims
         window.location.href = '/dashboard';
       } else {
-        setError(response.message);
+        toast.error(response.message);
       }
     } catch (err) {
-      setError(t('auth:register.errors.unexpectedGoogle'));
-    } finally {
-      setLoading(false);
+      toast.error(t('auth:register.errors.unexpectedGoogle'));
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-      <div className="text-center p-8">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{t('auth:register.title')}</h2>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">{t('auth:register.step1Subtitle')}</p>
-      </div>
-      <div className="p-8 space-y-6">
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
-            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:register.fullName')}</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                placeholder={t('auth:register.fullNamePlaceholder')}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:register.email')}</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={handleEmailBlur}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                placeholder="tu@email.com"
-                required
-                disabled={loading || isCheckingEmail}
-              />
-              {isCheckingEmail && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1 text-center">
+        <h2 className="text-3xl font-bold">{t('auth:register.title')}</h2>
+        <p className="text-muted-foreground">{t('auth:register.step1Subtitle')}</p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('auth:register.fullName')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        {...field}
+                        placeholder={t('auth:register.fullNamePlaceholder')}
+                        className="pl-10"
+                        disabled={form.formState.isSubmitting}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('auth:register.email')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="tu@email.com"
+                        className="pl-10"
+                        disabled={form.formState.isSubmitting || isCheckingEmail}
+                        onBlur={() => handleEmailBlur(field.value)}
+                      />
+                      {isCheckingEmail && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('auth:register.password')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        {...field}
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={t('auth:register.passwordHint')}
+                        className="pl-10 pr-10"
+                        disabled={form.formState.isSubmitting}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('auth:register.confirmPassword')}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        {...field}
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        className="pl-10 pr-10"
+                        disabled={form.formState.isSubmitting}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        disabled={form.formState.isSubmitting}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting || isCheckingEmail}
+            >
+              {form.formState.isSubmitting ? t('common:loading') : t('common:next')}
+            </Button>
+          </form>
+        </Form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:register.password')}</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                placeholder={t('auth:register.passwordHint')}
-                required
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-                disabled={loading}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-background text-muted-foreground">
+              {t('common:orContinueWith')}
+            </span>
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('auth:register.confirmPassword')}</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                placeholder="••••••••"
-                required
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-                disabled={loading}
-              >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={loading || isCheckingEmail}
-          >
-            {loading ? t('common:loading') : t('common:next')}
-          </button>
-        </form>
-
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">{t('common:orContinueWith')}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleGoogleRegister}
-            disabled={loading}
-            className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-          >
-            <FcGoogle className="h-4 w-4 mr-2" />
-            {loading ? t('common:connecting') : 'Google'}
-          </button>
         </div>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleRegister}
+          disabled={form.formState.isSubmitting}
+        >
+          <FcGoogle className="h-4 w-4 mr-2" />
+          {form.formState.isSubmitting ? t('common:connecting') : 'Google'}
+        </Button>
 
         <div className="text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-300">{t('auth:register.hasAccount')} </span>
-          <button
+          <span className="text-muted-foreground">{t('auth:register.hasAccount')} </span>
+          <Button
+            variant="link"
+            className="px-2 font-medium"
             onClick={onSwitchToLogin}
-            className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
           >
             {t('auth:register.signIn')}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
-}; 
+};

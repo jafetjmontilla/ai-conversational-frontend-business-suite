@@ -53,7 +53,7 @@
     /* Gris sutil para bordes */
     --input: 215 10% 80%;
     /* Gris claro para el fondo de inputs */
-    --ring: 215 100% 50%;
+    --ring: 300 0% 45%;
     /* Azul primario para anillos de enfoque */
 
     /* Colores del gráfico (ejemplo) */
@@ -102,7 +102,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 215 10% 20%;
     --input: 215 10% 15%;
-    --ring: 215 100% 50%;
+    --ring: 300 0% 45%;
     --chart-1: 215 100% 50%;
     --chart-2: 170 80% 45%;
     --chart-3: 50 100% 50%;

@@ -23,7 +23,7 @@ export default function RegisterPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (!loading && authUser) {
-      router.push('/dashboard');
+      router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
     }
   }, [authUser, loading, router]);
 
@@ -47,7 +47,7 @@ export default function RegisterPage() {
   };
 
   const handleStep2Complete = () => {
-    router.push('/dashboard');
+    router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
   };
 
   const handleBackToStep1 = () => {
@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
+      <div className="w-full">
         {/* Indicador de progreso */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
@@ -100,4 +100,4 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-} 
+}

@@ -54,7 +54,11 @@ export const ThemeDemo: FC = () => {
         {/* Inputs */}
         <div>
           <h4 className="font-medium text-primary mb-2">Inputs:</h4>
-          <InputSearch placeholder='Buscar' className='w-80' />
+          <div className='flex gap-2'>
+            <InputSearch placeholder='Buscar' className='w-80' />
+            <Input type='email' placeholder='email' className='w-80' />
+            <Input type='password' placeholder='password' className='w-80' />
+          </div>
         </div>
 
         {/* toggle */}
