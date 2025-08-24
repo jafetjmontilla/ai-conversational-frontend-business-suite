@@ -90,6 +90,21 @@ module.exports = {
 					'sans-serif'
 				]
 			},
+			fontSize: {
+				xs: 'calc(var(--rateFontSize) * 0.75rem)',
+				sm: 'calc(var(--rateFontSize) * 0.875rem)',
+				base: 'calc(var(--rateFontSize) * 1rem)',
+				lg: 'calc(var(--rateFontSize) * 1.125rem)',
+				xl: 'calc(var(--rateFontSize) * 1.25rem)',
+				'2xl': 'calc(var(--rateFontSize) * 1.5rem)',
+				'3xl': 'calc(var(--rateFontSize) * 1.875rem)',
+				'4xl': 'calc(var(--rateFontSize) * 2.25rem)',
+				'5xl': 'calc(var(--rateFontSize) * 3rem)',
+				'6xl': 'calc(var(--rateFontSize) * 3.75rem)',
+				'7xl': 'calc(var(--rateFontSize) * 4.5rem)',
+				'8xl': 'calc(var(--rateFontSize) * 6rem)',
+				'9xl': 'calc(var(--rateFontSize) * 8rem)'
+			},
 			borderRadius: {
 				lg: 'calc(var(--radius) + 4px)',
 				md: 'calc(var(--radius) - 0px)',

@@ -9,6 +9,7 @@
 
   /* Paleta de colores base y componentes (Tema claro) */
   :root {
+    --rateFontSize: 0.9;
     --radius: 16px;
     /* Fondo y primer plano */
     --background: 0 0% 100%;

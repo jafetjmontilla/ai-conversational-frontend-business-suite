@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegisterStep1 } from '@/components/auth/RegisterStep1';
 import { RegisterStep2 } from '@/components/auth/RegisterStep2';
+import LanguageDropdown from '@/components/navigation/LanguageDropdown';
 
 type Step = 1 | 2;
 
@@ -59,31 +60,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="absolute top-4 right-4 md:top-7 md:right-10">
+        <LanguageDropdown />
+      </div>
       <div className="w-full">
-        {/* Indicador de progreso */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
-            <div className={`flex items-center ${currentStep >= 1 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 1 ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'
-                }`}>
-                1
-              </div>
-              <span className="ml-2 text-sm font-medium">Información Básica</span>
-            </div>
-
-            <div className={`w-12 h-0.5 ${currentStep >= 2 ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-
-            <div className={`flex items-center ${currentStep >= 2 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 2 ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 dark:border-gray-600'
-                }`}>
-                2
-              </div>
-              <span className="ml-2 text-sm font-medium">Rol y Teléfono</span>
-            </div>
-          </div>
-        </div>
-
         {/* Contenido del paso actual */}
         {currentStep === 1 ? (
           <RegisterStep1
