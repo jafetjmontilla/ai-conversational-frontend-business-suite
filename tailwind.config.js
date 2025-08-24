@@ -5,7 +5,7 @@ module.exports = {
 		'./components/**/*.{js,ts,jsx,tsx,mdx}',
 		'./app/**/*.{js,ts,jsx,tsx,mdx}',
 	],
-	darkMode: ['class', 'class'],
+	darkMode: 'class',
 	theme: {
 		extend: {
 			colors: {
@@ -20,8 +20,8 @@ module.exports = {
 					'700': '#0369a1',
 					'800': '#075985',
 					'900': '#0c4a6e',
-					DEFAULT: 'var(--primary)',
-					foreground: 'var(--primary-foreground)'
+					DEFAULT: 'hsl(var(--primary))',
+					foreground: 'hsl(var(--primary-foreground))'
 				},
 				wellness: {
 					'50': '#f0fdf4',
@@ -35,35 +35,35 @@ module.exports = {
 					'800': '#166534',
 					'900': '#14532d'
 				},
-				background: 'var(--background)',
-				foreground: 'var(--foreground)',
+				background: 'hsl(var(--background))',
+				foreground: 'hsl(var(--foreground))',
 				card: {
-					DEFAULT: 'var(--card)',
-					foreground: 'var(--card-foreground)'
+					DEFAULT: 'hsl(var(--card))',
+					foreground: 'hsl(var(--card-foreground))'
 				},
 				popover: {
-					DEFAULT: 'var(--popover)',
-					foreground: 'var(--popover-foreground)'
+					DEFAULT: 'hsl(var(--popover))',
+					foreground: 'hsl(var(--popover-foreground))'
 				},
 				secondary: {
-					DEFAULT: 'var(--secondary)',
-					foreground: 'var(--secondary-foreground)'
+					DEFAULT: 'hsl(var(--secondary))',
+					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				muted: {
-					DEFAULT: 'var(--muted)',
-					foreground: 'var(--muted-foreground)'
+					DEFAULT: 'hsl(var(--muted))',
+					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: 'var(--accent)',
-					foreground: 'var(--accent-foreground)'
+					DEFAULT: 'hsl(var(--accent))',
+					foreground: 'hsl(var(--accent-foreground))'
 				},
 				destructive: {
-					DEFAULT: 'var(--destructive)',
-					foreground: 'var(--destructive-foreground)'
+					DEFAULT: 'hsl(var(--destructive))',
+					foreground: 'hsl(var(--destructive-foreground))'
 				},
-				border: 'var(--border)',
-				input: 'var(--input)',
-				ring: 'var(--ring)',
+				border: 'hsl(var(--border))',
+				input: 'hsl(var(--input))',
+				ring: 'hsl(var(--ring))',
 				chart: {
 					'1': 'var(--chart-1)',
 					'2': 'var(--chart-2)',
@@ -72,16 +72,16 @@ module.exports = {
 					'5': 'var(--chart-5)'
 				},
 				sidebar: {
-					DEFAULT: 'var(--sidebar-background)',
-					foreground: 'var(--sidebar-foreground)',
-					primary: 'var(--sidebar-primary)',
-					primaryForeground: 'var(--sidebar-primary-foreground)',
-					accent: 'var(--sidebar-accent)',
-					accentForeground: '--sidebar-accent-foreground',
-					border: 'var(--sidebar-border)',
-					ring: 'var(--sidebar-ring)',
-					'primary-foreground': 'var(--sidebar-primary-foreground)',
-					'accent-foreground': 'var(--sidebar-accent-foreground)'
+					DEFAULT: 'hsl(var(--sidebar-background))',
+					foreground: 'hsl(var(--sidebar-foreground))',
+					primary: 'hsl(var(--sidebar-primary))',
+					primaryForeground: 'hsl(var(--sidebar-primary-foreground))',
+					accent: 'hsl(var(--sidebar-accent))',
+					accentForeground: 'hsl(var(--sidebar-accent-foreground))',
+					border: 'hsl(var(--sidebar-border))',
+					ring: 'hsl(var(--sidebar-ring))',
+					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))'
 				}
 			},
 			fontFamily: {
@@ -96,14 +96,14 @@ module.exports = {
 				sm: 'calc(var(--radius) - 8px)',
 			},
 			sidebar: {
-				DEFAULT: 'var(--sidebar)',
-				foreground: 'var(--sidebar-foreground)',
-				primary: 'var(--sidebar-primary)',
-				primaryForeground: 'var(--sidebar-primary-foreground)',
-				accent: 'var(--sidebar-accent)',
-				accentForeground: 'var(--sidebar-accent-foreground)',
-				border: 'var(--sidebar-border)',
-				ring: 'var(--sidebar-ring)'
+				DEFAULT: 'hsl(var(--sidebar))',
+				foreground: 'hsl(var(--sidebar-foreground))',
+				primary: 'hsl(var(--sidebar-primary))',
+				primaryForeground: 'hsl(var(--sidebar-primary-foreground))',
+				accent: 'hsl(var(--sidebar-accent))',
+				accentForeground: 'hsl(var(--sidebar-accent-foreground))',
+				border: 'hsl(var(--sidebar-border))',
+				ring: 'hsl(var(--sidebar-ring))'
 			}
 		}
 	},

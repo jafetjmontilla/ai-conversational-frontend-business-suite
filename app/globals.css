@@ -6,78 +6,117 @@
 @tailwind utilities;
 
 @layer base {
+
+  /* Paleta de colores base y componentes (Tema claro) */
   :root {
     --radius: 16px;
-    --background: #ffffff;
-    --foreground: #001127;
-    --card: #ffffff;
-    --card-foreground: #001021;
-    --popover: #ffffff;
-    --popover-foreground: #001021;
-    --primary: #1c1917;
-    --primary-foreground: #fafaf9;
-    --secondary: #f5f5f4;
-    --secondary-foreground: #1c1917;
-    --muted: #f5f5f4;
-    --muted-foreground: #79716b;
-    /*hover bg*/
-    --accent: #e5e7eb;
-    --accent-foreground: #001021;
-    --destructive: #e7000b;
-    --border: #e7e5e4;
-    --input: #e7e5e4;
-    --ring: #a6a09b;
-    --chart-1: #f54a00;
-    --chart-2: #009689;
-    --chart-3: #104e64;
-    --chart-4: #ffba00;
-    --chart-5: #fd9a00;
-    --sidebar: #fafaf9;
-    --sidebar-foreground: #001021;
-    --sidebar-primary: #1c1917;
-    --sidebar-primary-foreground: #fafaf9;
-    /*hover bg*/
-    --sidebar-accent: #1c1917;
-    /*hover*/
-    --sidebar-accent-foreground: #f5f5f4;
-    --sidebar-border: #e7e5e4;
-    --sidebar-ring: #a6a09b;
-    --sidebar-background: #fafaf9;
+    /* Fondo y primer plano */
+    --background: 0 0% 100%;
+    /* Blanco puro */
+    --foreground: 215 100% 8%;
+    /* Color del logo, ideal para texto */
+
+    /* Componentes principales */
+    --card: 0 0% 98%;
+    /* Blanco roto para tarjetas */
+    --card-foreground: 215 100% 8%;
+    /* Texto oscuro sobre la tarjeta */
+    --popover: 0 0% 100%;
+    /* Blanco para popovers */
+    --popover-foreground: 215 100% 8%;
+    /* Texto oscuro en popovers */
+
+    /* Colores de estado */
+    --primary: 215 100% 8%;
+    /* Azul vibrante, ideal para botones de acción */
+    --primary-foreground: 0 0% 100%;
+    /* Texto blanco sobre el color primario */
+    --secondary: 215 10% 90%;
+    /* Gris claro para elementos secundarios */
+    --secondary-foreground: 215 100% 10%;
+    /* Gris oscuro para texto secundario */
+    --muted: 215 10% 95%;
+    /* Gris muy claro para fondos tenues */
+    --muted-foreground: 215 10% 40%;
+    /* Gris medio para texto tenue */
+    --accent: 215 100% 90%;
+    /* Azul muy claro para elementos de acento */
+    --accent-foreground: 215 100% 10%;
+    /* Azul oscuro para texto de acento */
+    --destructive: 0 84% 60%;
+    /* Rojo brillante para errores */
+    --destructive-foreground: 0 0% 100%;
+    /* Texto blanco sobre el color destructivo */
+
+    /* Bordes, inputs y anillos */
+    --border: 215 10% 85%;
+    /* Gris sutil para bordes */
+    --input: 215 10% 80%;
+    /* Gris claro para el fondo de inputs */
+    --ring: 215 100% 50%;
+    /* Azul primario para anillos de enfoque */
+
+    /* Colores del gráfico (ejemplo) */
+    --chart-1: 215 100% 50%;
+    --chart-2: 170 80% 45%;
+    --chart-3: 50 100% 50%;
+    --chart-4: 300 100% 50%;
+    --chart-5: 10 100% 60%;
+
+    /* Colores de la barra lateral*/
+    --sidebar: 60 5% 98%;
+    /* Color del logo, como fondo */
+    --sidebar-foreground: 215 100% 8%;
+    /* Blanco casi puro para el texto */
+    --sidebar-primary: 24 8% 10%;
+    /* El mismo azul primario */
+    --sidebar-primary-foreground: 60 5% 98%;
+    /* Texto blanco sobre el primario */
+    --sidebar-accent: 215 100% 8%;
+    /* Azul oscuro para elementos de acento */
+    --sidebar-accent-foreground: 60 5% 96%;
+    /* Texto blanco sobre acento oscuro */
+    --sidebar-border: 20 6% 90%;
+    /* Borde oscuro para separación */
+    --sidebar-ring: 24 6% 63%;
+    /* Anillo de enfoque primario */
+    --sidebar-background: 60 5% 98%;
   }
 
   .dark {
-    --background: #001021;
-    --foreground: #fafaf9;
-    --card: #1c1917;
-    --card-foreground: #fafaf9;
-    --popover: #1c1917;
-    --popover-foreground: #fafaf9;
-    --primary: #e7e5e4;
-    --primary-foreground: #1c1917;
-    --secondary: #292524;
-    --secondary-foreground: #fafaf9;
-    --muted: #292524;
-    --muted-foreground: #a6a09b;
-    --accent: #fafaf9;
-    --accent-foreground: #001021;
-    --destructive: #ff6467;
-    --border: rgba(255, 255, 255, 0.1);
-    --input: #ffffff26;
-    --ring: #79716b;
-    --chart-1: #1447e6;
-    --chart-2: #00bc7d;
-    --chart-3: #fd9a00;
-    --chart-4: #ad46ff;
-    --chart-5: #ff2056;
-    --sidebar: #1c1917;
-    --sidebar-foreground: #fafaf9;
-    --sidebar-primary: #1447e6;
-    --sidebar-primary-foreground: #fafaf9;
-    --sidebar-accent: #fafaf9;
-    --sidebar-accent-foreground: #001021;
-    --sidebar-border: rgba(255, 255, 255, 0.1);
-    --sidebar-ring: #79716b;
-    --sidebar-background: #001021;
+    --background: 215 100% 8%;
+    --foreground: 0 0% 95%;
+    --card: 215 100% 12%;
+    --card-foreground: 0 0% 90%;
+    --popover: 215 100% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 215 100% 10%;
+    --secondary: 215 10% 25%;
+    --secondary-foreground: 0 0% 80%;
+    --muted: 215 10% 15%;
+    --muted-foreground: 215 10% 60%;
+    --accent: 215 100% 30%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 10% 20%;
+    --input: 215 10% 15%;
+    --ring: 215 100% 50%;
+    --chart-1: 215 100% 50%;
+    --chart-2: 170 80% 45%;
+    --chart-3: 50 100% 50%;
+    --chart-4: 300 100% 50%;
+    --chart-5: 10 100% 60%;
+    --sidebar: 24 8% 10%;
+    --sidebar-foreground: 60 5% 98%;
+    --sidebar-primary: 227 82% 50%;
+    --sidebar-primary-foreground: 60 5% 98%;
+    --sidebar-accent: 60 5% 98%;
+    --sidebar-accent-foreground: 215 100% 8%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 42 7% 46%;
+    --sidebar-background: 215 100% 8%;
   }
 }
 
