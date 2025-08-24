@@ -19,7 +19,7 @@ export const ThemeToggle = () => {
           key={name}
           onClick={() => setTheme(name)}
           className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${theme === name
-            ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 shadow-sm'
+            ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-900 shadow-sm'
             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           title={label}

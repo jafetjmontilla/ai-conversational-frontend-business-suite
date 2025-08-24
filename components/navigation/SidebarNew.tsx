@@ -1,17 +1,14 @@
 "use client"
 
-import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge, SidebarMenuAction } from "@/components/ui/sidebar"
+import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import previoLogo from '@/app/previoLogo3.png'
 import React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Box, Mail, Flag, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip"
+import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from 'react-i18next'
 import LanguageDropdown from "./LanguageDropdown"
 
@@ -34,7 +31,6 @@ const buildAccountItems = (t: (k: string) => string): NavItem[] => [
   { href: '/theme-demo', label: t('navigation:demoComponents'), icon: FileSpreadsheet },
 ];
 
-
 export interface AppSidebarProps {
   basePath: string
 }
@@ -42,15 +38,13 @@ export interface AppSidebarProps {
 export function AppSidebar({ basePath }: AppSidebarProps) {
   const router = useRouter()
   const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar, } = useSidebar()
-  console.log({ state, open, openMobile, isMobile })
-  const collapsed = state === "collapsed"
   const { t } = useTranslation(['navigation'])
   const personalItems = buildPersonalItems(t)
   const accountItems = buildAccountItems(t)
 
   return (
     <Sidebar side="left" variant="floating" collapsible="icon" >
-      <Button variant="outline" size="icon" className='absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full' onClick={toggleSidebar} >
+      <Button variant="secondary" size="icon" className='absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full' onClick={toggleSidebar} >
         {state == "collapsed"
           ? <div className="flex">
             <ChevronRight className="w-4 h-4 translate-x-1" />
@@ -116,7 +110,7 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
               </div>
             </SidebarMenuButton>
             {/* <SidebarMenuAction className="translate-y-3">
-              <Plus />
+              <Plus />  
             </SidebarMenuAction> */}
             <SidebarMenuBadge className="translate-y-3">
               <SquareArrowOutUpRight className="w-4 h-4" />
