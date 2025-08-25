@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RegisterStep1 } from '@/components/auth/RegisterStep1';
 import { RegisterStep2 } from '@/components/auth/RegisterStep2';
 import LanguageDropdown from '@/components/navigation/LanguageDropdown';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export type Step = 1 | 2;
 
@@ -22,11 +23,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [userData, setUserData] = useState<UserData | null>(null);
-
-  useEffect(() => {
-    console.log(userData);
-  }, [userData])
-
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -50,7 +46,6 @@ export default function RegisterPage() {
   }
 
   const handleStep1Complete = (data: UserData) => {
-    console.log(100041, data);
     setUserData(data);
     setCurrentStep(2);
   };
@@ -72,22 +67,39 @@ export default function RegisterPage() {
       <div className="absolute top-4 right-4 md:top-7 md:right-10">
         <LanguageDropdown />
       </div>
-      <div className="w-full">
-        {/* Contenido del paso actual */}
+      <AnimatePresence mode="wait"  >
         {currentStep === 1 ? (
-          <RegisterStep1
-            onNext={handleStep1Complete}
-            onSwitchToLogin={handleSwitchToLogin}
-            userData={userData!}
-          />
+          <motion.div
+            key="step1" // <--- Clave única para el primer paso
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full"
+          >
+            <RegisterStep1
+              onNext={handleStep1Complete}
+              onSwitchToLogin={handleSwitchToLogin}
+              userData={userData!}
+            />
+          </motion.div>
         ) : (
-          <RegisterStep2
-            userData={userData!}
-            onBack={handleBackToStep1}
-            onSuccess={handleStep2Complete}
-          />
+          <motion.div
+            key="step2" // <--- Clave única para el segundo paso
+            initial={{ opacity: 0, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full"
+          >
+            <RegisterStep2
+              userData={userData!}
+              onBack={handleBackToStep1}
+              onSuccess={handleStep2Complete}
+            />
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

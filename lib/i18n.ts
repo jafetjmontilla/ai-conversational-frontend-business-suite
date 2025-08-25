@@ -51,6 +51,7 @@ const resources = {
         }
       },
       "register": {
+        "complete": "Completar registro",
         "google": "Google",
         "title": "Crear cuenta",
         "subtitle": "Únete a Pestilo hoy",
@@ -150,6 +151,7 @@ const resources = {
         }
       },
       "register": {
+        "complete": "Complete registration",
         "google": "Google",
         "title": "Create account",
         "subtitle": "Join Pestilo today",

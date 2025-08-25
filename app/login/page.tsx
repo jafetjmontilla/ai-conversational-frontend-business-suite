@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
 import LanguageDropdown from '@/components/navigation/LanguageDropdown';
+import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const { authUser, loading } = useAuth();
@@ -45,10 +46,17 @@ export default function LoginPage() {
         <LanguageDropdown />
       </div>
       <div className="w-full max-w-md">
-        <LoginForm
-          onSwitchToRegister={handleSwitchToRegister}
-          onSuccess={handleAuthSuccess}
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <LoginForm
+            onSwitchToRegister={handleSwitchToRegister}
+            onSuccess={handleAuthSuccess}
+          />
+        </motion.div>
       </div>
     </div>
   );
