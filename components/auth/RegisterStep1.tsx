@@ -211,7 +211,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
           disabled={form.formState.isSubmitting}
         >
           <FcGoogle className="h-4 w-4 mr-2" />
-          {form.formState.isSubmitting ? t('common:connecting') : 'Google'}
+          {form.formState.isSubmitting ? t('common:connecting') : t('auth:register.google')}
         </Button>
         <div className="text-center text-sm">
           <span className="text-muted-foreground">{t('auth:register.hasAccount')} </span>

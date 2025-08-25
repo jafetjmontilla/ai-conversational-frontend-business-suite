@@ -138,8 +138,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         <ArrowLeft className="h-4 w-4 " />
       </Button>
       <CardHeader className="space-y-1 text-center py-2">
-        <Label className="text-2xl font-bold">Completar Registro</Label>
-        <Label className="text-muted-foreground text-sm">Paso 2 de 2: Selecciona tu rol y teléfono</Label>
+        <Label className="text-2xl font-bold">{t('auth:register.step2Title')}</Label>
+        <Label className="text-muted-foreground text-sm">{t('auth:register.step2Subtitle')}</Label>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -152,23 +152,21 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
             {/* Información del usuario */}
             <Card className="space-y-1 p-2 bg-background">
               <CardHeader className="space-y-0 py-0">
-                <CardTitle>Información del Usuario</CardTitle>
+                <CardTitle>{t('auth:register.userInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-0 py-0 text-sm">
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">Nombre</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{t('auth:register.fullName')}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.name}</p>
                 </div>
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{t('auth:register.email')}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.email}</p>
                 </div>
               </CardContent>
             </Card>
-            <div className=''>
-              <FormLabel className="font-medium text-primary">
-                Selecciona tu rol
-              </FormLabel>
+            <div>
+              <FormLabel className="font-medium text-primary">{t('auth:register.role')}</FormLabel>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {roleOptions.map((role) => (
                   <div
@@ -202,7 +200,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
               </div>
             </div>
             <div>
-              <FormLabel htmlFor="phone">Número de Teléfono</FormLabel>
+              <FormLabel htmlFor="phone">{t('auth:register.phone')}</FormLabel>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <FormField
@@ -226,26 +224,19 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
                   )}
                 />
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Usaremos este número para contactarte si es necesario
-              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{t('auth:register.phoneHelp')}</p>
             </div>
             <Card className='p-2'>
               <div className="flex items-start">
                 <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-primary">
-                    Plan Gratuito Activado
-                  </h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                    Todos los usuarios nuevos comienzan con el plan gratuito.
-                    Puedes actualizar tu plan más tarde desde tu perfil.
-                  </p>
+                  <h3 className="text-sm font-medium text-primary">{t('auth:register.freePlanTitle')}</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{t('auth:register.freePlanDesc')}</p>
                 </div>
               </div>
             </Card>
             <Button type="submit" style={{ marginTop: '2rem', marginBottom: '1rem' }} className="w-full" disabled={loading} >
-              {loading ? 'Creando cuenta...' : 'Completar Registro'}
+              {loading ? t('common:creatingAccount') : t('auth:register.complete')}
             </Button>
           </form>
         </Form>

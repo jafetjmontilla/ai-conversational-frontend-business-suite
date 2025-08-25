@@ -4,11 +4,13 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAllowed } from '@/lib/hooks/useAllowed';
+import { useTranslation } from 'react-i18next';
 
 export default function DashboardPage() {
   const { authUser, loading, logout } = useAuth();
   const { getCurrentRole, getCurrentPlan } = useAllowed();
   const router = useRouter();
+  const { t } = useTranslation(['dashboard', 'common']);
 
   // Redirigir si no está autenticado
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pestilo Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard:title')}</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600 dark:text-gray-300">
@@ -71,7 +73,7 @@ export default function DashboardPage() {
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-colors"
                 onClick={handleLogout}
               >
-                Cerrar Sesión
+                {t('common:logout')}
               </button>
             </div>
           </div>
@@ -82,34 +84,34 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="text-center p-8">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              ¡Bienvenido a Pestilo!
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Tu plataforma de bienestar y cuidado personal
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{t('dashboard:welcomeTitle')}</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300">{t('dashboard:welcomeSubtitle')}</p>
           </div>
           <div className="p-8 space-y-8">
             {/* User Info Card */}
             <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información de tu Cuenta</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('dashboard:accountInfo')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
-                    <p className="text-sm text-gray-900 dark:text-white">{authUser.displayName || 'No especificado'}</p>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('dashboard:name')}</label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {authUser.displayName || 'No especificado'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                    <p className="text-sm text-gray-900 dark:text-white">{authUser.email}</p>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('dashboard:email')}</label>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {authUser.email}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Verificado</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('dashboard:emailVerified')}</label>
                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${authUser.emailVerified
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
-                      {authUser.emailVerified ? 'Sí' : 'No'}
+                      {authUser.emailVerified ? t('common:yes') : t('common:no')}
                     </span>
                   </div>
                 </div>
@@ -120,25 +122,21 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tu Rol</h3>
-                  <div className="text-2xl font-bold capitalize mb-2 text-gray-900 dark:text-white">{currentRole}</div>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    {currentRole === 'Cliente' && 'Acceso a funcionalidades básicas de bienestar'}
-                    {currentRole === 'Profesional' && 'Herramientas avanzadas para entrenadores'}
-                    {currentRole === 'Administrador' && 'Control total del sistema'}
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('dashboard:yourRole')}</h3>
+                  <div className="text-2xl font-bold capitalize mb-2 text-gray-900 dark:text-white">
+                    {currentRole}
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300">{t(`dashboard:roleDesc.${currentRole}`)}</p>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tu Plan</h3>
-                  <div className="text-2xl font-bold capitalize mb-2 text-gray-900 dark:text-white">{currentPlan}</div>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    {currentPlan === 'gratuito' && 'Plan básico con funcionalidades esenciales'}
-                    {currentPlan === 'premium' && 'Funcionalidades avanzadas y estadísticas detalladas'}
-                    {currentPlan === 'pro' && 'Acceso completo a todas las funcionalidades'}
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('dashboard:yourPlan')}</h3>
+                  <div className="text-2xl font-bold capitalize mb-2 text-gray-900 dark:text-white">
+                    {currentPlan}
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300">{t(`dashboard:planDesc.${currentPlan}`)}</p>
                 </div>
               </div>
             </div>
@@ -146,21 +144,21 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Acciones Rápidas</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('dashboard:quickActions')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <button className="h-24 flex-col bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
                     <div className="text-2xl mb-2">🏃‍♂️</div>
-                    <div className="font-medium">Crear Rutina</div>
+                    <div className="font-medium">{t('dashboard:createRoutine')}</div>
                   </button>
 
                   <button className="h-24 flex-col bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-medium rounded-md transition-colors">
                     <div className="text-2xl mb-2">📊</div>
-                    <div className="font-medium">Ver Progreso</div>
+                    <div className="font-medium">{t('dashboard:viewProgress')}</div>
                   </button>
 
                   <button className="h-24 flex-col border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-md transition-colors">
                     <div className="text-2xl mb-2">⚙️</div>
-                    <div className="font-medium">Configuración</div>
+                    <div className="font-medium">{t('dashboard:settings')}</div>
                   </button>
                 </div>
               </div>
@@ -170,7 +168,7 @@ export default function DashboardPage() {
             {process.env.NODE_ENV === 'development' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="p-6">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Debug Info (Solo Desarrollo)</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{t('dashboard:debugTitle')}</h3>
                   <pre className="text-xs overflow-auto bg-gray-100 dark:bg-gray-700 p-4 rounded text-gray-900 dark:text-white">
                     {JSON.stringify(authUser.customClaims, null, 2)}
                   </pre>
