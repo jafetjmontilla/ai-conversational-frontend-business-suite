@@ -22,44 +22,44 @@ interface RegisterStep2Props {
 
 type Role = 'client' | 'professional' | 'admin';
 
-const roleOptions = [
-  {
-    value: 'client' as Role,
-    title: 'Cliente',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'professional' as Role,
-    title: 'Profesional',
-    description: '',
-    icon: '💇🏻',
-    features: []
-  },
-  {
-    value: 'admin' as Role,
-    title: 'Administrador',
-    description: '',
-    icon: '⚙️',
-    features: []
-  }
-];
-
-const formSchema = z.object({
-  role: z.enum(['client', 'professional', 'admin']),
-  phone: z
-    .string()
-    .min(7, 'Por favor, ingresa un número de teléfono válido')
-    .refine((val) => /^[\+]?\d[\d\s-]{5,15}$/.test(val), 'Por favor, ingresa un número de teléfono válido'),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
   const { t } = useTranslation(['auth', 'common']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const roleOptions = [
+    {
+      value: 'client' as Role,
+      title: t('auth:register.client'),
+      description: '',
+      icon: '👤',
+      features: []
+    },
+    {
+      value: 'professional' as Role,
+      title: t('auth:register.professional'),
+      description: '',
+      icon: '💇🏻',
+      features: []
+    },
+    {
+      value: 'admin' as Role,
+      title: t('auth:register.admin'),
+      description: '',
+      icon: '⚙️',
+      features: []
+    }
+  ];
+
+  const formSchema = z.object({
+    role: z.enum(['client', 'professional', 'admin']),
+    phone: z
+      .string()
+      .min(7, t('auth:register.errors.phoneMin'))
+      .refine((val) => /^[\+]?\d[\d\s-]{5,15}$/.test(val), t('auth:register.errors.phoneInvalid')),
+  });
+
+  type FormValues = z.infer<typeof formSchema>;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

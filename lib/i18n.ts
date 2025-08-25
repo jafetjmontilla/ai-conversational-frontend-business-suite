@@ -39,6 +39,7 @@ const resources = {
         "title": "Iniciar sesión",
         "subtitle": "Accede a tu cuenta de Pestilo",
         "email": "Correo electrónico",
+        "emailPlaceholder": "tu@email.com",
         "password": "Contraseña",
         "rememberMe": "Recordarme",
         "forgotPassword": "¿Olvidaste tu contraseña?",
@@ -47,7 +48,9 @@ const resources = {
         "signUp": "Regístrate",
         "errors": {
           "unexpected": "Error inesperado al iniciar sesión",
-          "unexpectedGoogle": "Error inesperado al iniciar sesión con Google"
+          "unexpectedGoogle": "Error inesperado al iniciar sesión con Google",
+          "emailInvalid": "Email inválido",
+          "passwordMin": "La contraseña debe tener al menos 6 caracteres"
         }
       },
       "register": {
@@ -56,11 +59,22 @@ const resources = {
         "title": "Crear cuenta",
         "subtitle": "Únete a Pestilo hoy",
         "step1Subtitle": "Paso 1 de 2: Información básica",
+        "step2Title": "Completar Registro",
+        "step2Subtitle": "Paso 2 de 2: Selecciona tu rol y teléfono",
         "fullName": "Nombre Completo",
         "fullNamePlaceholder": "Tu nombre completo",
         "firstName": "Nombre",
         "lastName": "Apellido",
         "email": "Correo electrónico",
+        "userInfo": "Información del Usuario",
+        "phone": "Número de Teléfono",
+        "phoneHelp": "Usaremos este número para contactarte si es necesario",
+        "role": "Rol",
+        "freePlanTitle": "Plan Gratuito Activado",
+        "freePlanDesc": "Todos los usuarios nuevos comienzan con el plan gratuito. Puedes actualizar tu plan más tarde desde tu perfil.",
+        "client": "Cliente",
+        "professional": "Profesional",
+        "admin": "Administrador",
         "password": "Contraseña",
         "confirmPassword": "Confirmar contraseña",
         "passwordHint": "Mínimo 6 caracteres",
@@ -71,9 +85,11 @@ const resources = {
         "errors": {
           "nameRequired": "El nombre es requerido",
           "emailRequired": "El email es requerido",
+          "emailInvalid": "Email inválido",
           "emailExists": "Este email ya está registrado. Por favor, inicia sesión o usa otro email.",
           "passwordMismatch": "Las contraseñas no coinciden",
           "passwordMin": "La contraseña debe tener al menos 6 caracteres",
+          "phoneMin": "El teléfono debe tener al menos 7 caracteres",
           "unexpected": "Error inesperado al registrar usuario",
           "unexpectedGoogle": "Error inesperado al registrar con Google"
         }
@@ -139,6 +155,7 @@ const resources = {
         "title": "Sign in",
         "subtitle": "Access your Pestilo account",
         "email": "Email",
+        "emailPlaceholder": "your@email.com",
         "password": "Password",
         "rememberMe": "Remember me",
         "forgotPassword": "Forgot your password?",
@@ -147,7 +164,9 @@ const resources = {
         "signUp": "Sign up",
         "errors": {
           "unexpected": "Unexpected error while signing in",
-          "unexpectedGoogle": "Unexpected error while signing in with Google"
+          "unexpectedGoogle": "Unexpected error while signing in with Google",
+          "emailInvalid": "Invalid email",
+          "passwordMin": "Password must be at least 6 characters"
         }
       },
       "register": {
@@ -156,11 +175,22 @@ const resources = {
         "title": "Create account",
         "subtitle": "Join Pestilo today",
         "step1Subtitle": "Step 1 of 2: Basic information",
+        "step2Title": "Complete Registration",
+        "step2Subtitle": "Step 2 of 2: Select your role and phone",
         "fullName": "Full name",
         "fullNamePlaceholder": "Your full name",
         "firstName": "First name",
         "lastName": "Last name",
         "email": "Email",
+        "userInfo": "User Information",
+        "phone": "Phone Number",
+        "phoneHelp": "We'll use this number to contact you if necessary",
+        "role": "Role",
+        "freePlanTitle": "Free Plan Activated",
+        "freePlanDesc": "All new users start with the free plan. You can upgrade later from your profile.",
+        "client": "Client",
+        "professional": "Professional",
+        "admin": "Administrator",
         "password": "Password",
         "confirmPassword": "Confirm password",
         "passwordHint": "Minimum 6 characters",
@@ -171,9 +201,11 @@ const resources = {
         "errors": {
           "nameRequired": "Name is required",
           "emailRequired": "Email is required",
+          "emailInvalid": "Invalid email",
           "emailExists": "This email is already registered. Please sign in or use another email.",
           "passwordMismatch": "Passwords do not match",
           "passwordMin": "Password must be at least 6 characters",
+          "phoneMin": "Phone must be at least 7 characters",
           "unexpected": "Unexpected error while signing up",
           "unexpectedGoogle": "Unexpected error while signing up with Google"
         }

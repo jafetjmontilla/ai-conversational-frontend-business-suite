@@ -26,23 +26,23 @@ interface RegisterStep1Props {
   onSwitchToLogin: () => void;
 }
 
-const formSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
-});
-
-type FormData = z.infer<typeof formSchema>;
-
 export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin, userData }) => {
   const { signInGoogle } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const { theme } = useTheme();
+
+  const formSchema = z.object({
+    name: z.string().min(1, t('auth:register.errors.nameRequired')),
+    email: z.string().email(t('auth:register.errors.emailInvalid')),
+    password: z.string().min(6, t('auth:register.errors.passwordMin')),
+    confirmPassword: z.string()
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('auth:register.errors.passwordMismatch'),
+    path: ["confirmPassword"],
+  });
+
+  type FormData = z.infer<typeof formSchema>;
 
   const values = [
     {
@@ -54,7 +54,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
     {
       name: 'email',
       label: t('auth:register.email'),
-      placeholder: 'tu@email.com',
+      placeholder: t('auth:register.emailPlaceholder'),
       icon: Mail,
     },
     {

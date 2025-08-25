@@ -19,13 +19,6 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
-const formSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
   const { signIn, signInGoogle } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
@@ -33,6 +26,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { theme } = useTheme();
+  const formSchema = z.object({
+    email: z.string().email(t('auth:login.errors.emailInvalid')),
+    password: z.string().min(6, t('auth:login.errors.passwordMin')),
+  });
+
+  type FormValues = z.infer<typeof formSchema>;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -46,7 +45,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
     {
       name: 'email' as const,
       label: t('auth:login.email'),
-      placeholder: 'tu@email.com',
+      placeholder: t('auth:login.emailPlaceholder'),
       icon: Mail,
       type: 'email' as const,
     },
@@ -107,25 +106,25 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {values.map((cfg) => (
+            {values.map((value) => (
               <FormField
-                key={cfg.name}
+                key={value.name}
                 control={form.control}
-                name={cfg.name}
+                name={value.name}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{cfg.label}</FormLabel>
+                    <FormLabel>{value.label}</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <cfg.icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <value.icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <FormInput
                           {...field}
-                          type={cfg.name === 'password' ? (showPassword ? 'text' : 'password') : cfg.type}
-                          placeholder={cfg.placeholder}
-                          className={cfg.name === 'password' ? 'pl-10 pr-10' : 'pl-10'}
+                          type={value.name === 'password' ? (showPassword ? 'text' : 'password') : value.type}
+                          placeholder={value.placeholder}
+                          className={value.name === 'password' ? 'pl-10 pr-10' : 'pl-10'}
                           disabled={loading}
                         />
-                        {cfg.name === 'password' && (
+                        {value.name === 'password' && (
                           <Button
                             type="button"
                             variant="ghost"
