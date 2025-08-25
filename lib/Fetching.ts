@@ -182,6 +182,9 @@ export const queries = {
       }
     }
   }`,
+  emailExists: `query emailExists($args: EmailExistsArgs!) {
+    emailExists(args: $args)
+  }`,
   getGeoInfo: `query getGeoInfo {
     getGeoInfo {
       acceptLanguage

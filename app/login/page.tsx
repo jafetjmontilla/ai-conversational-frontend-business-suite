@@ -12,7 +12,7 @@ export default function LoginPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (!loading && authUser) {
-      router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
+      router.push('/dashboard'); // Actualizado para incluir el país por defecto
     }
   }, [authUser, loading, router]);
 
@@ -31,7 +31,7 @@ export default function LoginPage() {
   }
 
   const handleAuthSuccess = () => {
-    router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
+    router.push('/dashboard'); // Actualizado para incluir el país por defecto
   };
 
   const handleSwitchToRegister = () => {

@@ -6,7 +6,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 
 interface RegisterStep2Props {
-  userData: { email: string; password: string; name: string };
+  userData: {
+    email: string;
+    password: string;
+    name: string;
+    uid?: string; // UID opcional para usuarios pre-registrados
+  };
   onBack: () => void;
   onSuccess: () => void;
 }
@@ -65,30 +70,54 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
     }
 
     try {
-      // Registrar el usuario
-      const response = await register(userData.email, userData.password);
+      let userId;
 
-      if (response.success && response.user) {
-        // Asignar custom claims con el rol seleccionado
-        const customClaimsResponse = await fetchApiV1({
-          query: queries.assignCustomClaims,
-          variables: {
-            uid: response.user.uid,
+      // Si el usuario se registró con Google
+      if (!userData?.password) {
+        const { auth } = await import('../../lib/firebase');
+        userId = auth.currentUser?.uid;
+        if (!userId) {
+          setError('No se pudo obtener la información del usuario');
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Registrar nuevo usuario con email y contraseña
+        try {
+          const { createUserWithEmailAndPassword } = await import('firebase/auth');
+          const { auth } = await import('../../lib/firebase');
+          const userCredential = await createUserWithEmailAndPassword(auth, userData?.email, userData?.password);
+          userId = userCredential.user.uid;
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            setError('Este email ya está registrado. Por favor, vuelve al paso anterior.');
+          } else {
+            setError('Error al crear el usuario. Por favor, intenta de nuevo.');
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Asignar custom claims con el rol seleccionado
+      const customClaimsResponse = await fetchApiV1({
+        query: queries.assignCustomClaims,
+        variables: {
+          args: {
+            uid: userId,
             role: selectedRole,
             plan: 'free'
           }
-        });
-
-        if (customClaimsResponse.success) {
-          console.log('Usuario registrado y custom claims asignados:', customClaimsResponse.data);
-          onSuccess();
-        } else {
-          console.warn('Usuario registrado pero error al asignar custom claims:', customClaimsResponse.message);
-          // Aún así continuar, ya que el usuario se registró exitosamente
-          onSuccess();
         }
+      });
+
+      if (customClaimsResponse.success) {
+        onSuccess();
       } else {
-        setError(response.message || 'Error al registrar usuario');
+        console.warn('Error al asignar custom claims:', customClaimsResponse.message);
+        setError('Error al asignar permisos. Por favor, contacta a soporte.');
+        // No continuamos si hay error en los claims
+        return;
       }
     } catch (err: any) {
       setError(err.message || 'Error inesperado al registrar usuario');
@@ -117,11 +146,11 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
-                <p className="text-sm text-gray-900 dark:text-white">{userData.name}</p>
+                <p className="text-sm text-gray-900 dark:text-white">{userData?.name}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <p className="text-sm text-gray-900 dark:text-white">{userData.email}</p>
+                <p className="text-sm text-gray-900 dark:text-white">{userData?.email}</p>
               </div>
             </div>
           </div>

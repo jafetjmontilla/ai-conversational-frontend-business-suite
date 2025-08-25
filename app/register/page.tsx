@@ -7,12 +7,13 @@ import { RegisterStep1 } from '@/components/auth/RegisterStep1';
 import { RegisterStep2 } from '@/components/auth/RegisterStep2';
 import LanguageDropdown from '@/components/navigation/LanguageDropdown';
 
-type Step = 1 | 2;
+export type Step = 1 | 2;
 
 interface UserData {
   email: string;
   password: string;
   name: string;
+  uid?: string; // Opcional para usuarios de Google
 }
 
 export default function RegisterPage() {
@@ -23,8 +24,8 @@ export default function RegisterPage() {
 
   // Redirigir si ya está autenticado
   useEffect(() => {
-    if (!loading && authUser) {
-      router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
+    if (!loading && authUser?.customClaims?.role && authUser?.customClaims?.plan) {
+      router.push('/dashboard'); // Actualizado para incluir el país por defecto
     }
   }, [authUser, loading, router]);
 
@@ -38,7 +39,7 @@ export default function RegisterPage() {
   }
 
   // Si ya está autenticado, no mostrar nada (se redirigirá)
-  if (authUser) {
+  if (authUser?.customClaims?.role && authUser?.customClaims?.plan) {
     return null;
   }
 
@@ -48,7 +49,7 @@ export default function RegisterPage() {
   };
 
   const handleStep2Complete = () => {
-    router.push('/es/dashboard'); // Actualizado para incluir el país por defecto
+    router.push('/dashboard'); // Actualizado para incluir el país por defecto
   };
 
   const handleBackToStep1 = () => {

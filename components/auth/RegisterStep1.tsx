@@ -10,11 +10,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { FormInput, Input } from '@/components/ui/input';
+import { FormInput } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useTheme } from 'next-themes';
+import { fetchApiV1, queries } from '@/lib/Fetching';
+
 
 interface RegisterStep1Props {
   onNext: (userData: { email: string; password: string; name: string }) => void;
@@ -37,6 +40,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
   const { signInGoogle } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
+  const { theme } = useTheme();
 
   const values = [
     {
@@ -72,27 +76,28 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
     defaultValues: values.reduce((acc, value) => ({ ...acc, [value.name]: '' }), {}),
   });
 
-  // Validar si el email ya existe
-  const checkEmailExists = async (email: string): Promise<boolean> => {
+  // Validar si el email ya existe (backend GraphQL)
+  const checkEmailExists = async (rawEmail: string): Promise<boolean> => {
+    const email = (rawEmail || '').trim().toLowerCase();
+    if (!email) return false;
     try {
-      const { createUserWithEmailAndPassword } = await import('firebase/auth');
-      const { auth } = await import('../../lib/firebase');
-      const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
-      await createUserWithEmailAndPassword(auth, email, tempPassword);
-      const { deleteUser } = await import('firebase/auth');
-      await deleteUser(auth.currentUser!);
-      return false;
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
-        return true;
-      }
+      const exists = await fetchApiV1({
+        query: queries.emailExists,
+        variables: { args: { email } },
+        type: 'json'
+      });
+      return Boolean(exists);
+    } catch (e) {
+      console.error('Error verificando email:', e);
       return false;
     }
   };
 
   const onSubmit = async (data: FormData) => {
     try {
+      setIsCheckingEmail(true);
       const emailExists = await checkEmailExists(data.email);
+
       if (emailExists) {
         form.setError('email', { message: t('auth:register.errors.emailExists') });
         return;
@@ -104,16 +109,23 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
       });
     } catch (error) {
       toast.error(t('auth:register.errors.unexpectedError'));
+    } finally {
+      setIsCheckingEmail(false);
     }
   };
 
   const handleGoogleRegister = async () => {
     try {
       const response = await signInGoogle();
-      if (response.success) {
-        window.location.href = '/dashboard';
+      if (response.success && response.user) {
+        // Pasar al siguiente paso con los datos del usuario de Google
+        onNext({
+          email: response.user.email || '',
+          name: response.user.displayName || '',
+          password: '', // No necesitamos contraseña para auth con Google
+        });
       } else {
-        toast.error(response.message);
+        toast.error(response.message || t('auth:register.errors.unexpectedGoogle'));
       }
     } catch (err) {
       toast.error(t('auth:register.errors.unexpectedGoogle'));
@@ -144,8 +156,18 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
                           {...field}
                           placeholder={value.placeholder}
                           className="pl-10"
-                          disabled={form.formState.isSubmitting}
+                          disabled={form.formState.isSubmitting || (value.name === 'email' && isCheckingEmail)}
                           type={value?.type || 'text'}
+                          onBlur={value.name === 'email' ? async () => {
+                            setIsCheckingEmail(true);
+                            const exists = await checkEmailExists(field.value);
+                            if (exists) {
+                              form.setError('email', { message: t('auth:register.errors.emailExists') });
+                            } else {
+                              form.clearErrors('email');
+                            }
+                            setIsCheckingEmail(false);
+                          } : undefined}
                         />
                       </div>
                     </FormControl>
@@ -156,6 +178,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
             ))}
             <Button
               type="submit"
+              variant={theme === "dark" ? "outline" : "default"}
               className="w-full"
               disabled={form.formState.isSubmitting || isCheckingEmail}
             >
@@ -168,13 +191,13 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
             <Separator className="w-full" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-background text-muted-foreground">
+            <span className="px-2 bg-card text-muted-foreground">
               {t('common:orContinueWith')}
             </span>
           </div>
         </div>
         <Button
-          variant="outline"
+          variant={theme === "dark" ? "default" : "outline"}
           className="w-full"
           onClick={handleGoogleRegister}
           disabled={form.formState.isSubmitting}

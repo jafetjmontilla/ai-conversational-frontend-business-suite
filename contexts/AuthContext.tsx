@@ -87,21 +87,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Función para iniciar sesión con Google
-  const signInGoogle = async (): Promise<AuthResponse> => {
+  const signInGoogle = async (isRegister: boolean = false): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
-    if (response.success && response.user) {
-      console.log('response.user', response.user,);
+    if (response.success && response.user && isRegister) {
       // Verificar si es un usuario nuevo (primer login) y asignar custom claims
       try {
         const customClaimsResponse = await fetchApiV1({
           query: queries.assignCustomClaims,
           variables: {
-            uid: response.user.uid,
-            role: 'client',
-            plan: 'free'
+            args: {
+              uid: response.user.uid,
+              role: 'client',
+              plan: 'free'
+            }
           }
         });
-
         if (customClaimsResponse.success) {
           console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
         } else {
@@ -132,9 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const customClaimsResponse = await fetchApiV1({
           query: queries.assignCustomClaims,
           variables: {
-            uid: response.user.uid,
-            role: 'client',
-            plan: 'free'
+            args: {
+              uid: response.user.uid,
+              role: 'client',
+              plan: 'free'
+            }
           }
         });
         if (customClaimsResponse.success) {
