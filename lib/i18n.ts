@@ -35,6 +35,7 @@ const resources = {
     },
     auth: {
       "login": {
+        "google": "Google",
         "title": "Iniciar sesión",
         "subtitle": "Accede a tu cuenta de Pestilo",
         "email": "Correo electrónico",
@@ -50,6 +51,7 @@ const resources = {
         }
       },
       "register": {
+        "google": "Google",
         "title": "Crear cuenta",
         "subtitle": "Únete a Pestilo hoy",
         "step1Subtitle": "Paso 1 de 2: Información básica",
@@ -132,6 +134,7 @@ const resources = {
     },
     auth: {
       "login": {
+        "google": "Google",
         "title": "Sign in",
         "subtitle": "Access your Pestilo account",
         "email": "Email",
@@ -147,6 +150,7 @@ const resources = {
         }
       },
       "register": {
+        "google": "Google",
         "title": "Create account",
         "subtitle": "Join Pestilo today",
         "step1Subtitle": "Step 1 of 2: Basic information",

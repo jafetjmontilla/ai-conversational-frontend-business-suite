@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Phone, ArrowLeft, Check } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
@@ -59,8 +58,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
   const { t } = useTranslation(['auth', 'common']);
-  const { register } = useAuth();
-  // Manejado por react-hook-form: role, phone
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -104,7 +101,6 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
           return;
         }
       }
-
       // Asignar custom claims con el rol seleccionado
       const customClaimsResponse = await fetchApiV1({
         query: queries.assignCustomClaims,
@@ -116,7 +112,6 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
           }
         }
       });
-
       if (customClaimsResponse.success) {
         onSuccess();
       } else {

@@ -104,7 +104,6 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
     try {
       setIsCheckingEmail(true);
       const emailExists = await checkEmailExists(data.email);
-
       if (emailExists) {
         form.setError('email', { message: t('auth:register.errors.emailExists') });
         return;

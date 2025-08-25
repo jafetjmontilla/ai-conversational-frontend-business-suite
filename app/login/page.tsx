@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/auth/LoginForm';
+import LanguageDropdown from '@/components/navigation/LanguageDropdown';
 
 export default function LoginPage() {
   const { authUser, loading } = useAuth();
@@ -12,7 +13,7 @@ export default function LoginPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (!loading && authUser) {
-      router.push('/dashboard'); // Actualizado para incluir el país por defecto
+      router.push('/dashboard');
     }
   }, [authUser, loading, router]);
 
@@ -40,6 +41,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4 md:top-7 md:right-10">
+        <LanguageDropdown />
+      </div>
       <div className="w-full max-w-md">
         <LoginForm
           onSwitchToRegister={handleSwitchToRegister}
