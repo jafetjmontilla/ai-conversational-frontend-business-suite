@@ -4,14 +4,19 @@ import React, { useState } from 'react';
 import { Phone, ArrowLeft, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import * as z from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormInput } from '@/components/ui/input';
+import { UserData } from '@/app/register/page';
+import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 
 interface RegisterStep2Props {
-  userData: {
-    email: string;
-    password: string;
-    name: string;
-    uid?: string; // UID opcional para usuarios pre-registrados
-  };
+  userData: UserData;
   onBack: () => void;
   onSuccess: () => void;
 }
@@ -22,56 +27,57 @@ const roleOptions = [
   {
     value: 'client' as Role,
     title: 'Cliente',
-    description: 'Usuario que busca mejorar su bienestar personal',
+    description: '',
     icon: '👤',
-    features: ['Acceso a rutinas básicas', 'Seguimiento de progreso', 'Ejercicios disponibles']
+    features: []
   },
   {
     value: 'professional' as Role,
     title: 'Profesional',
-    description: 'Entrenador o profesional del fitness',
-    icon: '💪',
-    features: ['Crear y gestionar rutinas', 'Acceso a ejercicios premium', 'Estadísticas avanzadas']
+    description: '',
+    icon: '💇🏻',
+    features: []
   },
   {
     value: 'admin' as Role,
     title: 'Administrador',
-    description: 'Gestión completa del sistema',
+    description: '',
     icon: '⚙️',
-    features: ['Control total del sistema', 'Gestión de usuarios', 'Configuración avanzada']
+    features: []
   }
 ];
 
+const formSchema = z.object({
+  role: z.enum(['client', 'professional', 'admin']),
+  phone: z
+    .string()
+    .min(7, 'Por favor, ingresa un número de teléfono válido')
+    .refine((val) => /^[\+]?\d[\d\s-]{5,15}$/.test(val), 'Por favor, ingresa un número de teléfono válido'),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
+  const { t } = useTranslation(['auth', 'common']);
   const { register } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Role>('client');
-  const [phone, setPhone] = useState('');
+  // Manejado por react-hook-form: role, phone
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      role: 'client',
+      phone: '',
+    },
+  });
+
+  const onSubmit = async (data: FormValues) => {
+    console.log(data);
     setLoading(true);
     setError('');
-
-    // Validaciones
-    if (!phone.trim()) {
-      setError('El número de teléfono es requerido');
-      setLoading(false);
-      return;
-    }
-
-    // Validación básica de teléfono (puedes hacerla más específica)
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-      setError('Por favor, ingresa un número de teléfono válido');
-      setLoading(false);
-      return;
-    }
-
     try {
       let userId;
-
       // Si el usuario se registró con Google
       if (!userData?.password) {
         const { auth } = await import('../../lib/firebase');
@@ -105,7 +111,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         variables: {
           args: {
             uid: userId,
-            role: selectedRole,
+            role: data.role,
             plan: 'free'
           }
         }
@@ -127,133 +133,123 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-      <div className="text-center p-8">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Completar Registro</h2>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">Paso 2 de 2: Selecciona tu rol y teléfono</p>
-      </div>
-      <div className="p-8 space-y-8">
+    <Card className="w-full max-w-md mx-auto transition-all duration-300 relative">
+      <Button type="button" variant="secondary" className='absolute top-2 left-2 w-8 h-8 p-0 rounded-full' onClick={onBack} disabled={loading}>
+        <ArrowLeft className="h-4 w-4 " />
+      </Button>
+      <CardHeader className="space-y-1 text-center py-2">
+        <Label className="text-2xl font-bold">Completar Registro</Label>
+        <Label className="text-muted-foreground text-sm">Paso 2 de 2: Selecciona tu rol y teléfono</Label>
+      </CardHeader>
+      <CardContent className="space-y-4">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
             <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
           </div>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Información del usuario */}
-          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">Información del Usuario</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
-                <p className="text-sm text-gray-900 dark:text-white">{userData?.name}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <p className="text-sm text-gray-900 dark:text-white">{userData?.email}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Selección de rol */}
-          <div>
-            <label className="text-lg font-medium mb-4 block text-gray-900 dark:text-white">
-              Selecciona tu rol
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {roleOptions.map((role) => (
-                <div
-                  key={role.value}
-                  onClick={() => setSelectedRole(role.value)}
-                  className={`relative p-4 border-2 rounded-lg cursor-pointer transition-all ${selectedRole === role.value
-                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                    }`}
-                >
-                  {selectedRole === role.value && (
-                    <div className="absolute top-2 right-2">
-                      <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  )}
-
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">{role.icon}</div>
-                    <h4 className="font-medium mb-1 text-gray-900 dark:text-white">{role.title}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{role.description}</p>
-
-                    <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                      {role.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <Check className="h-3 w-3 text-blue-600 dark:text-blue-400 mr-1" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Información del usuario */}
+            <Card className="space-y-1 p-2 bg-background">
+              <CardHeader className="space-y-0 py-0">
+                <CardTitle>Información del Usuario</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-0 py-0 text-sm">
+                <div className="flex gap-2">
+                  <label className="font-medium text-gray-700 dark:text-gray-300">Nombre</label>
+                  <p className="text-gray-900 dark:text-white">{userData?.name}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Número de teléfono */}
-          <div className="space-y-2">
-            <label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">Número de Teléfono</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-                placeholder="+1 (555) 123-4567"
-                required
-                disabled={loading}
-              />
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Usaremos este número para contactarte si es necesario
-            </p>
-          </div>
-
-          {/* Plan por defecto */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
-            <div className="flex items-start">
-              <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Plan Gratuito Activado
-                </h3>
-                <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-                  Todos los usuarios nuevos comienzan con el plan gratuito.
-                  Puedes actualizar tu plan más tarde desde tu perfil.
-                </p>
+                <div className="flex gap-2">
+                  <label className="font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <p className="text-gray-900 dark:text-white">{userData?.email}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <div className=''>
+              <FormLabel className="font-medium text-primary">
+                Selecciona tu rol
+              </FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {roleOptions.map((role) => (
+                  <div
+                    key={role.value}
+                    onClick={() => form.setValue('role', role.value, { shouldValidate: true })}
+                    className={`relative p-2 border-2 rounded-lg cursor-pointer transition-all ${form.watch('role') === role.value
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                      }`}
+                  >
+                    {form.watch('role') === role.value && (
+                      <div className="absolute top-2 right-2">
+                        <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">{role.icon}</div>
+                      <h4 className="font-medium mb-1 text-gray-900 dark:text-white">{role.title}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{role.description}</p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                        {role.features.map((feature, index) => (
+                          <li key={index} className="flex items-center">
+                            <Check className="h-3 w-3 text-blue-600 dark:text-blue-400 mr-1" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-
-          {/* Botones */}
-          <div className="flex space-x-4">
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={loading}
-              className="flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Atrás
-            </button>
-
-            <button
-              type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
-            >
+            <div>
+              <FormLabel htmlFor="phone">Número de Teléfono</FormLabel>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FormInput
+                          id="phone"
+                          type="tel"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e)}
+                          className="pl-10 pr-4 py-2"
+                          placeholder="+1 (555) 123-4567"
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <FormMessage className='absolute text-xs translate-y-1.5' />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Usaremos este número para contactarte si es necesario
+              </p>
+            </div>
+            <Card className='p-2'>
+              <div className="flex items-start">
+                <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-primary">
+                    Plan Gratuito Activado
+                  </h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                    Todos los usuarios nuevos comienzan con el plan gratuito.
+                    Puedes actualizar tu plan más tarde desde tu perfil.
+                  </p>
+                </div>
+              </div>
+            </Card>
+            <Button type="submit" style={{ marginTop: '2rem', marginBottom: '1rem' }} className="w-full" disabled={loading} >
               {loading ? 'Creando cuenta...' : 'Completar Registro'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }; 

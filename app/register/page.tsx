@@ -9,10 +9,11 @@ import LanguageDropdown from '@/components/navigation/LanguageDropdown';
 
 export type Step = 1 | 2;
 
-interface UserData {
+export interface UserData {
   email: string;
-  password: string;
   name: string;
+  password: string;
+  confirmPassword?: string;
   uid?: string; // Opcional para usuarios de Google
 }
 
@@ -21,6 +22,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    console.log(userData);
+  }, [userData])
+
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -44,6 +50,7 @@ export default function RegisterPage() {
   }
 
   const handleStep1Complete = (data: UserData) => {
+    console.log(100041, data);
     setUserData(data);
     setCurrentStep(2);
   };
@@ -71,6 +78,7 @@ export default function RegisterPage() {
           <RegisterStep1
             onNext={handleStep1Complete}
             onSwitchToLogin={handleSwitchToLogin}
+            userData={userData!}
           />
         ) : (
           <RegisterStep2

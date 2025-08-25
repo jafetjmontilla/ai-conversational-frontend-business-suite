@@ -17,10 +17,12 @@ import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useTheme } from 'next-themes';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import { UserData } from '@/app/register/page';
 
 
 interface RegisterStep1Props {
-  onNext: (userData: { email: string; password: string; name: string }) => void;
+  userData: UserData;
+  onNext: (userData: UserData) => void;
   onSwitchToLogin: () => void;
 }
 
@@ -36,7 +38,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin }) => {
+export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin, userData }) => {
   const { signInGoogle } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
@@ -73,7 +75,12 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: values.reduce((acc, value) => ({ ...acc, [value.name]: '' }), {}),
+    defaultValues: values.reduce((acc, value) => {
+      if (userData?.[value.name as keyof UserData]) {
+        return { ...acc, [value.name]: userData[value.name as keyof UserData] }
+      }
+      return { ...acc, [value.name]: '' }
+    }, {}),
   });
 
   // Validar si el email ya existe (backend GraphQL)
@@ -106,6 +113,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
         email: data.email,
         password: data.password,
         name: data.name,
+        confirmPassword: data.confirmPassword,
       });
     } catch (error) {
       toast.error(t('auth:register.errors.unexpectedError'));
@@ -136,7 +144,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1 text-center py-2">
         <Label className="text-2xl font-bold">{t('auth:register.title')}</Label>
-        <Label className="text-muted-foreground">{t('auth:register.step1Subtitle')}</Label>
+        <Label className="text-muted-foreground text-sm">{t('auth:register.step1Subtitle')}</Label>
       </CardHeader>
       <CardContent className="space-y-6 pb-4">
         <Form {...form}>

@@ -12,9 +12,20 @@ export default function DashboardPage() {
 
   // Redirigir si no está autenticado
   useEffect(() => {
+    console.log(authUser);
     if (!loading && !authUser) {
       router.push('/login');
     }
+    if (authUser?.customClaims) {
+      router.push('/dashboard');
+    }
+    // if (authUser?.customClaims?.role === 'client') {
+    //   router.push('/dashboard/client');
+    // } else if (authUser?.customClaims?.role === 'professional') {
+    //   router.push('/dashboard/professional');
+    // } else if (authUser?.customClaims?.role === 'admin') {
+    //   router.push('/dashboard/admin');
+    // }
   }, [authUser, loading, router]);
 
   // Mostrar loading mientras se verifica la autenticación
