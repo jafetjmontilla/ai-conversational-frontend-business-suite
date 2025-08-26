@@ -286,7 +286,7 @@ export const PermissionsIntegrationExample: React.FC = () => {
               </div>
             )}
 
-            {hasPlan('gratuito') && (
+            {hasPlan('free') && (
               <div className="bg-blue-50 border border-blue-200 p-3 rounded">
                 <p className="text-blue-800 text-sm">
                   💡 Actualiza a Premium para acceder a ejercicios exclusivos y estadísticas avanzadas.

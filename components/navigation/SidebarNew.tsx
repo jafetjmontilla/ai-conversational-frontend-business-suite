@@ -4,41 +4,47 @@ import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGr
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import previoLogo from '@/app/previoLogo3.png'
-import React from 'react';
+import React, { FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from 'react-i18next'
 import LanguageDropdown from "./LanguageDropdown"
+import { useAllowed } from "@/lib/hooks/useAllowed"
 
-type NavItem = { href: string; label: string; icon: React.ElementType; badge?: number };
-
-const buildPersonalItems = (t: (k: string) => string): NavItem[] => [
-  { href: '/dashboard', label: t('navigation:dashboard'), icon: Home },
-  { href: '/', label: t('navigation:professionals'), icon: Box },
-  { href: '/theme-demo', label: t('navigation:services'), icon: Stars },
-  { href: '/', label: t('navigation:timeSlots'), icon: Calendar1 },
-  { href: '/theme-demo', label: t('navigation:clients'), icon: ContactRound },
-  { href: '/', label: t('navigation:calendar'), icon: Calendar },
-];
-
-const buildAccountItems = (t: (k: string) => string): NavItem[] => [
-  { href: '/notifications', label: t('navigation:notifications'), icon: Bell, badge: 24 },
-  { href: '/chat', label: t('navigation:chat'), icon: MessageSquare, badge: 8 },
-  { href: '/users', label: t('navigation:users'), icon: Users },
-  { href: '/settings', label: t('navigation:settings'), icon: Settings },
-  { href: '/theme-demo', label: t('navigation:demoComponents'), icon: FileSpreadsheet },
-];
+type NavItem = {
+  href: string;
+  label: string; icon: React.ElementType;
+  badge?: number; condition?: boolean
+};
 
 export interface AppSidebarProps {
-  basePath: string
 }
 
-export function AppSidebar({ basePath }: AppSidebarProps) {
+export const AppSidebar: FC<AppSidebarProps> = () => {
   const router = useRouter()
   const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar, } = useSidebar()
   const { t } = useTranslation(['navigation'])
+  const { hasRole } = useAllowed();
+
+  const buildPersonalItems = (t: (k: string) => string): NavItem[] => [
+    { href: '/dashboard', label: t('navigation:dashboard'), icon: Home },
+    { href: '/', label: t('navigation:professionals'), icon: Box },
+    { href: '/theme-demo', label: t('navigation:services'), icon: Stars },
+    { href: '/', label: t('navigation:timeSlots'), icon: Calendar1 },
+    { href: '/theme-demo', label: t('navigation:clients'), icon: ContactRound },
+    { href: '/', label: t('navigation:calendar'), icon: Calendar },
+  ];
+
+  const buildAccountItems = (t: (k: string) => string): NavItem[] => [
+    { href: '/notifications', label: t('navigation:notifications'), icon: Bell, badge: 24 },
+    { href: '/chat', label: t('navigation:chat'), icon: MessageSquare, badge: 8 },
+    { href: '/users', label: t('navigation:users'), icon: Users, condition: hasRole("admin") },
+    { href: '/settings', label: t('navigation:settings'), icon: Settings },
+    { href: '/theme-demo', label: t('navigation:demoComponents'), icon: FileSpreadsheet },
+  ];
+
   const personalItems = buildPersonalItems(t)
   const accountItems = buildAccountItems(t)
 
@@ -86,7 +92,8 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {accountItems.map((item) => (
+          {accountItems.map((item) =>
+            (item?.condition === undefined || item?.condition === true) &&
             <SidebarMenuItem key={item.label}>
               <SidebarMenuButton tooltip={item.label} asChild onClick={() => router.push(item.href)} className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""}`}>
                 <div>
@@ -96,7 +103,7 @@ export function AppSidebar({ basePath }: AppSidebarProps) {
               </SidebarMenuButton>
               <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
             </SidebarMenuItem>
-          ))}
+          )}
           <Separator className="my-2" />
           <SidebarMenuItem >
             <SidebarMenuButton className="h-14">

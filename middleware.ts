@@ -64,7 +64,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/favicon') ||
     pathname === '/' ||
     pathname === '/login' ||
-    pathname === '/register'
+    pathname === '/register' ||
+    pathname === '/users'
   ) {
     return NextResponse.next();
   }
@@ -77,9 +78,9 @@ export function middleware(request: NextRequest) {
   if (!SUPPORTED_COUNTRIES.includes(firstSegment)) {
     const preferredCountry = getPreferredCountry(request);
     const newPathname = `/${preferredCountry}${pathname}`;
-    
+
     const response = NextResponse.redirect(new URL(newPathname, request.url));
-    
+
     // Guardar el país en las cookies
     response.cookies.set('preferred-country', preferredCountry, {
       maxAge: 60 * 60 * 24 * 365, // 1 año
@@ -93,7 +94,7 @@ export function middleware(request: NextRequest) {
 
   // Si ya tiene un país válido, continuar y actualizar la cookie
   const response = NextResponse.next();
-  
+
   if (SUPPORTED_COUNTRIES.includes(firstSegment)) {
     response.cookies.set('preferred-country', firstSegment, {
       maxAge: 60 * 60 * 24 * 365, // 1 año

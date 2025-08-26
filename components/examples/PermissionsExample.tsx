@@ -83,8 +83,8 @@ export const PermissionsExample: React.FC = () => {
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span>Plan Gratuito:</span>
-                <span className={hasPlan('gratuito') ? 'text-green-600' : 'text-gray-400'}>
-                  {hasPlan('gratuito') ? '✓ Activo' : '✗ Inactivo'}
+                <span className={hasPlan('free') ? 'text-green-600' : 'text-gray-400'}>
+                  {hasPlan('free') ? '✓ Activo' : '✗ Inactivo'}
                 </span>
               </div>
               <div className="flex items-center justify-between">

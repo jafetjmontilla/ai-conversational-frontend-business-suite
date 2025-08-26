@@ -2,8 +2,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMemo } from 'react';
 
 // Tipos para permisos
-export type Plan = 'gratuito' | 'premium' | 'pro';
-export type Role = 'Administrador' | 'Profesional' | 'Cliente';
+export type Plan = 'free' | 'premium' | 'pro';
+export type Role = 'admin' | 'professional' | 'client';
 
 export interface Permission {
   action: string;
@@ -27,24 +27,24 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'crear',
     resource: 'rutinas',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional', 'client']
     }
   },
   'rutinas:editar': {
     action: 'editar',
     resource: 'rutinas',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional', 'client']
     }
   },
   'rutinas:eliminar': {
     action: 'eliminar',
     resource: 'rutinas',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional']
     }
   },
   'rutinas:ilimitadas': {
@@ -52,7 +52,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'rutinas',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
 
@@ -61,8 +61,8 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'acceder',
     resource: 'ejercicios',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional', 'client']
     }
   },
   'ejercicios:premium': {
@@ -70,7 +70,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'ejercicios',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'ejercicios:crear': {
@@ -78,7 +78,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'ejercicios',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
   'ejercicios:editar': {
@@ -86,7 +86,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'ejercicios',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
   'ejercicios:eliminar': {
@@ -94,7 +94,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'ejercicios',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador']
+      role: ['admin']
     }
   },
 
@@ -103,8 +103,8 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'ver',
     resource: 'progreso',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional', 'client']
     }
   },
   'progreso:avanzado': {
@@ -112,7 +112,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'progreso',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'estadisticas:detalladas': {
@@ -120,7 +120,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'estadisticas',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'estadisticas:globales': {
@@ -128,7 +128,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'estadisticas',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
 
@@ -137,8 +137,8 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      plan: ['gratuito', 'premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      plan: ['free', 'premium', 'pro'],
+      role: ['admin', 'professional', 'client']
     }
   },
   'configuracion:avanzada': {
@@ -146,7 +146,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'configuracion',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'configuracion:sistema': {
@@ -154,7 +154,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'configuracion',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador']
+      role: ['admin']
     }
   },
 
@@ -164,7 +164,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'usuarios',
     conditions: {
       plan: ['premium', 'pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
   'usuarios:crear': {
@@ -172,7 +172,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'usuarios',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador']
+      role: ['admin']
     }
   },
   'usuarios:editar': {
@@ -180,7 +180,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'usuarios',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
   'usuarios:eliminar': {
@@ -188,7 +188,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'usuarios',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador']
+      role: ['admin']
     }
   },
 
@@ -198,7 +198,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'exportar',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'exportar:reportes': {
@@ -206,7 +206,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'exportar',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
 
@@ -216,7 +216,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'soporte',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional', 'Cliente']
+      role: ['admin', 'professional', 'client']
     }
   },
   'soporte:gestionar': {
@@ -224,7 +224,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     resource: 'soporte',
     conditions: {
       plan: ['pro'],
-      role: ['Administrador', 'Profesional']
+      role: ['admin', 'professional']
     }
   },
 
@@ -266,7 +266,7 @@ export const useAllowed = () => {
       // Verificar condiciones de plan
       if (conditions?.plan) {
         // Obtener el plan del usuario desde los custom claims
-        const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'gratuito';
+        const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
         if (!conditions.plan.includes(userPlan)) {
           return false;
         }
@@ -275,7 +275,7 @@ export const useAllowed = () => {
       // Verificar condiciones de rol
       if (conditions?.role) {
         // Obtener el rol del usuario desde los custom claims
-        const userRole: Role = (authUser.customClaims?.role as Role) || 'Cliente';
+        const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
         if (!conditions.role.includes(userRole)) {
           return false;
         }
@@ -327,7 +327,7 @@ export const useAllowed = () => {
   const hasPlan = useMemo(() => {
     return (plan: Plan): boolean => {
       if (!authUser) return false;
-      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'gratuito';
+      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
       return userPlan === plan;
     };
   }, [authUser]);
@@ -336,7 +336,7 @@ export const useAllowed = () => {
   const hasAnyPlan = useMemo(() => {
     return (plans: Plan[]): boolean => {
       if (!authUser) return false;
-      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'gratuito';
+      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
       return plans.includes(userPlan);
     };
   }, [authUser]);
@@ -353,7 +353,7 @@ export const useAllowed = () => {
   const hasRole = useMemo(() => {
     return (role: Role): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role) || 'Cliente';
+      const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
       return userRole === role;
     };
   }, [authUser]);
@@ -362,7 +362,7 @@ export const useAllowed = () => {
   const hasAnyRole = useMemo(() => {
     return (roles: Role[]): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role) || 'Cliente';
+      const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
       return roles.includes(userRole);
     };
   }, [authUser]);
@@ -401,7 +401,7 @@ export const useRoutinePermissions = () => {
     canDelete: () => can('rutinas:eliminar'),
     canUnlimited: () => can('rutinas:ilimitadas'),
     hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
@@ -416,8 +416,8 @@ export const useExercisePermissions = () => {
     canEdit: () => can('ejercicios:editar'),
     canDelete: () => can('ejercicios:eliminar'),
     hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional']),
-    isAdmin: () => hasRole('Administrador')
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional']),
+    isAdmin: () => hasRole('admin')
   };
 };
 
@@ -431,7 +431,7 @@ export const useProgressPermissions = () => {
     canViewDetailedStats: () => can('estadisticas:detalladas'),
     canViewGlobalStats: () => can('estadisticas:globales'),
     hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
@@ -444,7 +444,7 @@ export const useConfigPermissions = () => {
     canAdvancedConfig: () => can('configuracion:avanzada'),
     canSystemConfig: () => can('configuracion:sistema'),
     hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
-    isAdmin: () => hasRole('Administrador')
+    isAdmin: () => hasRole('admin')
   };
 };
 
@@ -456,7 +456,7 @@ export const useExportPermissions = () => {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
     hasProPlan: () => hasPlan('pro'),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
@@ -468,7 +468,7 @@ export const useSupportPermissions = () => {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
     hasProPlan: () => hasPlan('pro'),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
@@ -481,8 +481,8 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['Administrador', 'Profesional']),
-    isAdmin: () => hasRole('Administrador')
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional']),
+    isAdmin: () => hasRole('admin')
   };
 };
 
