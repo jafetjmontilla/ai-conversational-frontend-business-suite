@@ -13,6 +13,9 @@ import { FormInput } from '@/components/ui/input';
 import { UserData } from '@/app/register/page';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthUser } from '../../lib/firebase';
+import { getAuth } from 'firebase/auth';
 
 interface RegisterStep2Props {
   userData: UserData;
@@ -23,6 +26,7 @@ interface RegisterStep2Props {
 type Role = 'client' | 'professional' | 'admin';
 
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
+  const { authUser, setAuthUser } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -70,7 +74,6 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
   });
 
   const onSubmit = async (data: FormValues) => {
-    console.log(data);
     setLoading(true);
     setError('');
     try {
@@ -113,6 +116,24 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         }
       });
       if (customClaimsResponse.success) {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        const newAuthUser = { ...currentUser, customClaims: customClaimsResponse.data } as AuthUser;
+        setAuthUser(newAuthUser);
+        const response = await fetchApiV1({
+          query: queries.createUser,
+          variables: {
+            args: {
+              name: userData?.name,
+              email: userData?.email,
+              phone: data?.phone,
+              role: data?.role,
+              photoURL: newAuthUser?.photoURL ?? undefined,
+            }
+          }
+        });
+      }
+      if (customClaimsResponse.success) {
         onSuccess();
       } else {
         console.warn('Error al asignar custom claims:', customClaimsResponse.message);
@@ -121,6 +142,9 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         return;
       }
     } catch (err: any) {
+      //borrar el usuario de firebase
+      const auth = getAuth();
+      auth.currentUser?.delete();
       setError(err.message || 'Error inesperado al registrar usuario');
     } finally {
       setLoading(false);

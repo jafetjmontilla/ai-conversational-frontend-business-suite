@@ -193,5 +193,10 @@ export const queries = {
       loop
       referer
     }
+  }`,
+  createUser: `mutation createUser($args: UserInput!) {
+    createUser(args: $args) {
+      _id
+    }
   }`
 }

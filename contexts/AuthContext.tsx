@@ -12,9 +12,9 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signInGoogle: () => Promise<AuthResponse>;
-  register: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<AuthResponse>;
   getToken: () => Promise<string | null>;
+  setAuthUser: (authUser: AuthUser) => void;
 }
 
 // Crear contexto
@@ -89,74 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Función para iniciar sesión con Google
   const signInGoogle = async (isRegister: boolean = false): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
-    if (response.success && response.user && isRegister) {
-      // Verificar si es un usuario nuevo (primer login) y asignar custom claims
-      try {
-        const customClaimsResponse = await fetchApiV1({
-          query: queries.assignCustomClaims,
-          variables: {
-            args: {
-              uid: response.user.uid,
-              role: 'client',
-              plan: 'free'
-            }
-          }
-        });
-        if (customClaimsResponse.success) {
-          console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
-        } else {
-          console.warn('Error al asignar custom claims:', customClaimsResponse.message);
-        }
-      } catch (error) {
-        console.error('Error al asignar custom claims:', error);
-      }
-
-      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const authUser = await convertToAuthUser(currentUser);
-        setAuthUser(authUser);
-      } else {
-        setAuthUser(response.user);
-      }
-    }
-    return response;
-  };
-
-  // Función para registrar usuario
-  const register = async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await registerWithEmail(email, password);
-    if (response.success && response.user) {
-      // Asignar custom claims al usuario recién registrado
-      try {
-        const customClaimsResponse = await fetchApiV1({
-          query: queries.assignCustomClaims,
-          variables: {
-            args: {
-              uid: response.user.uid,
-              role: 'client',
-              plan: 'free'
-            }
-          }
-        });
-        if (customClaimsResponse.success) {
-          console.log('Custom claims asignados exitosamente:', customClaimsResponse.data);
-        } else {
-          console.warn('Error al asignar custom claims:', customClaimsResponse.message);
-        }
-      } catch (error) {
-        console.error('Error al asignar custom claims:', error);
-      }
-
-      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const authUser = await convertToAuthUser(currentUser);
-        setAuthUser(authUser);
-      } else {
-        setAuthUser(response.user);
-      }
-    }
     return response;
   };
 
@@ -181,9 +113,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signIn,
     signInGoogle,
-    register,
     logout,
-    getToken
+    getToken,
+    setAuthUser
   };
 
   return (
