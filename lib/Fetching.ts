@@ -198,5 +198,20 @@ export const queries = {
     createUser(args: $args) {
       _id
     }
+  }`,
+  getUsers: `query getUsers {
+    getUsers {
+      _id
+      name
+      email
+      phone
+      plan
+      role
+      active
+      emailVerified
+      photoURL
+      createdAt
+      updatedAt
+    }
   }`
 }

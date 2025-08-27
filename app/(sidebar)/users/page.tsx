@@ -5,40 +5,54 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleWithBorder } from "@/components/Toggle";
-import { useMemo, useState } from "react";
+import { InputSearch } from "@/components/InputSearch";
+import { useEffect, useMemo, useState } from "react";
+import { Separator } from "@/components/ui/separator";
+import { TypographyH2, TypographyH3 } from "@/components/Typography";
+import { fetchApiV1, queries } from "@/lib/Fetching";
+import { User } from "@/lib/interfases";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
 
 export default function UsersPage() {
   const [role, setRole] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [query, setQuery] = useState<string>("");
 
-  const users = useMemo(
-    () => [
-      { login: "4everplug", email: "ffelce@4everplug.com", name: "4NET", role: "admin/editor", lastActive: "2 minutes", origin: "Main Org." },
-      { login: "ismaelg", email: "ismaeljosegonzalezavila@gmail.com", name: "Ismael Gonzalez", role: "admin/editor", lastActive: "2 days", origin: "Main Org." },
-      { login: "jafettj", email: "febmerlib@gmail.com", name: "Jafet Montilla", role: "admin/editor", lastActive: "3 months", origin: "Main Org." },
-      { login: "soporteit", email: "soporte.fournet@gmail.com", name: "Soporte IT", role: "viewer", lastActive: "27 days", origin: "Main Org." },
-    ],
-    []
-  );
+  useEffect(() => {
+    fetchApiV1({
+      query: queries.getUsers,
+      type: "json"
+    }).then((res: User[]) => {
+      setUsers(res)
+    })
+  }, [])
+
+
+
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return users.filter((u) => {
       const byRole = role ? u.role.toLowerCase().includes(role) : true;
-      const byActive = active ? u.lastActive.toLowerCase().includes(active) : true;
-      return byRole && byActive;
+      const byActive = active ? u.active.toString().includes(active) : true;
+      const byQuery = q
+        ? u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.name.toLowerCase().includes(q)
+        : true;
+      return byRole && byActive && byQuery;
     });
-  }, [users, role, active]);
+  }, [users, role, active, query]);
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <CardTitle>Users</CardTitle>
-              <CardDescription>Manage users in Grafana</CardDescription>
-            </div>
-            <Button>New user</Button>
+          <div className="flex flex-col">
+            <CardTitle>Users</CardTitle>
+            <CardDescription>Manage users</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -48,7 +62,18 @@ export default function UsersPage() {
                 <TabsTrigger value="all">All users</TabsTrigger>
                 <TabsTrigger value="org">Organization users</TabsTrigger>
               </TabsList>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="flex-1">
+                  <InputSearch
+                    placeholder="Search user by login, email, or name"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <Button>New user</Button>
+              </div>
+              {/* <div className="flex items-center gap-2">
                 <ToggleWithBorder
                   type="single"
                   items={[
@@ -67,33 +92,45 @@ export default function UsersPage() {
                   ]}
                   size="sm"
                 />
-              </div>
+              </div> */}
             </div>
-
+            <Separator className="my-4" />
             <TabsContent value="all" className="mt-4">
               <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Login</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead />
                       <TableHead>Name</TableHead>
-                      <TableHead>Belongs to</TableHead>
-                      <TableHead>Licensed role</TableHead>
-                      <TableHead>Last active</TableHead>
-                      <TableHead>Origin</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Active</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Email verified</TableHead>
+                      <TableHead>Updated at</TableHead>
+                      <TableHead>Created at</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtered.map((u) => (
-                      <TableRow key={u.login}>
-                        <TableCell>{u.login}</TableCell>
-                        <TableCell>{u.email}</TableCell>
+                      <TableRow key={u._id}>
+                        <TableCell>
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={u.photoURL as string ?? ""} />
+                            <AvatarFallback>
+                              {u.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar></TableCell>
                         <TableCell>{u.name}</TableCell>
-                        <TableCell>Main Org.</TableCell>
-                        <TableCell className="capitalize">{u.role}</TableCell>
-                        <TableCell>{u.lastActive}</TableCell>
-                        <TableCell>{u.origin}</TableCell>
+                        <TableCell>{u.email}</TableCell>
+                        <TableCell>{u.phone}</TableCell>
+                        <TableCell>{u.plan}</TableCell>
+                        <TableCell>{u.active ? "active" : "inactive"}</TableCell>
+                        <TableCell>{u.role}</TableCell>
+                        <TableCell>{u.emailVerified ? "verified" : "unverified"}</TableCell>
+                        <TableCell>{u.updatedAt}</TableCell>
+                        <TableCell>{u.createdAt}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -106,9 +143,6 @@ export default function UsersPage() {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="justify-end">
-          <Button variant="outline">Export</Button>
-        </CardFooter>
       </Card>
     </div>
   );

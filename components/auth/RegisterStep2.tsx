@@ -10,11 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormInput } from '@/components/ui/input';
-import { UserData } from '@/app/register/page';
+import { UserData } from '@/app/(public)/register/page';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthUser } from '../../lib/firebase';
+import { AuthUser } from '@/lib/firebase';
 import { getAuth } from 'firebase/auth';
 
 interface RegisterStep2Props {

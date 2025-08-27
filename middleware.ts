@@ -65,7 +65,8 @@ export function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/register' ||
-    pathname === '/users'
+    pathname === '/users' ||
+    pathname === '/settings'
   ) {
     return NextResponse.next();
   }
