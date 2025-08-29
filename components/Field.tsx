@@ -16,6 +16,7 @@ export type FieldValue = {
   icon?: string;
   color?: string;
   info?: string;
+  disabled?: boolean;
 }
 
 interface FieldProps {
@@ -52,7 +53,8 @@ export const Field = ({ value, form }: FieldProps) => {
                       } else {
                         field.onChange(selectedValue);
                       }
-                    }} >
+                    }}
+                    disabled={value.disabled} >
                     <SelectTrigger>
                       <SelectValue placeholder={value.placeholder} />
                     </SelectTrigger>
@@ -73,11 +75,13 @@ export const Field = ({ value, form }: FieldProps) => {
                       rows={4}
                       {...field}
                       value={typeof field.value === 'string' ? field.value : ''}
+                      disabled={value.disabled}
                     />
                     : <Input
                       placeholder={value.placeholder}
                       {...field}
-                      value={typeof field.value === 'string' ? field.value : ''} />
+                      value={typeof field.value === 'string' ? field.value : ''}
+                      disabled={value.disabled} />
                 }
               </FormControl>
               <FormMessage className="absolute text-xs pl-3.5 -translate-y-1" />

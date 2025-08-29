@@ -17,7 +17,7 @@ export default function SettingPage() {
   const { authUser } = useAuth();
   const { getCurrentRole, getCurrentPlan } = useAllowed();
   const { t } = useTranslation(['dashboard', 'common']);
-  const { error: businessError } = useBusiness();
+  const { currentBusiness, loading: businessLoading, error: businessError } = useBusiness();
   const [cardFocusedId, setCardFocusedId] = useState<string>();
 
   const authUserDisplay = [
@@ -68,14 +68,31 @@ export default function SettingPage() {
             cardFocusedId={cardFocusedId}
             setCardFocusedId={setCardFocusedId}
           />
-          <BranchManagement
-            cardFocusedId={cardFocusedId}
-            setCardFocusedId={setCardFocusedId}
-          />
-          <InventoryBilling
-            cardFocusedId={cardFocusedId}
-            setCardFocusedId={setCardFocusedId}
-          />
+          {!businessLoading && !currentBusiness && (
+            <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <Typography.TypographyH4>¡Bienvenido a Pestilo!</Typography.TypographyH4>
+                  <Typography.TypographyP className="text-muted-foreground mt-2">
+                    Para comenzar, crea tu primer negocio completando el formulario anterior.
+                    Una vez creado, podrás gestionar sucursales, servicios y mucho más.
+                  </Typography.TypographyP>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {currentBusiness && (
+            <>
+              <BranchManagement
+                cardFocusedId={cardFocusedId}
+                setCardFocusedId={setCardFocusedId}
+              />
+              <InventoryBilling
+                cardFocusedId={cardFocusedId}
+                setCardFocusedId={setCardFocusedId}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

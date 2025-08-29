@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { BusinessInput } from "@/lib/interfases";
 import { Field, FieldValue } from "@/components/Field";
 import { FieldSocialmedias } from "@/components/FieldSocialmedias";
 import { FieldLogo } from "@/components/FieldLogo";
@@ -21,6 +22,7 @@ import { COUNTRIES } from "@/lib/countries";
 // Esquema de validación con Zod
 const businessSchema = z.object({
   commercialName: z.string().min(1, 'El nombre comercial es requerido'),
+  slug: z.string().min(1, 'El slug es requerido').regex(/^[a-z0-9-]+$/, 'El slug debe contener solo letras minúsculas, números y guiones'),
   description: z.string().optional(),
   logo: z.string().optional(),
   phoneNumber: z.string().min(1, 'El número de teléfono es requerido'),
@@ -44,8 +46,12 @@ interface BusinessConfigurationProps {
 
 export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId }: BusinessConfigurationProps) {
   const { t } = useTranslation(['dashboard', 'common']);
-  const { currentBusiness, loading: businessLoading, error: businessError, updateBusiness, clearError } = useBusiness();
+  const { currentBusiness, loading: businessLoading, error: businessError, updateBusiness, createBusiness, clearError, checkSlugAvailable } = useBusiness();
   const [saving, setSaving] = useState(false);
+  const [slugChecking, setSlugChecking] = useState(false);
+
+  // Determinar si estamos creando o editando
+  const isCreating = !currentBusiness;
 
   const valuesBusiness: FieldValue[] = [
     {
@@ -61,6 +67,15 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
       placeholder: t('dashboard:commercialNamePlaceholder'),
       type: 'text',
       component: Input,
+    },
+    {
+      name: 'slug',
+      label: 'URL del negocio (slug)',
+      placeholder: 'mi-negocio-url',
+      type: 'text',
+      component: Input,
+      info: 'Esta será la URL única de tu negocio. Solo letras minúsculas, números y guiones.',
+      disabled: !isCreating // Solo editable al crear
     },
     {
       name: 'phoneNumber',
@@ -121,6 +136,7 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
     resolver: zodResolver(businessSchema),
     defaultValues: {
       commercialName: currentBusiness?.name || '',
+      slug: currentBusiness?.slug || '',
       description: currentBusiness?.description || '',
       logo: currentBusiness?.logo || '',
       phoneNumber: currentBusiness?.phoneNumber || '',
@@ -141,6 +157,7 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
     if (currentBusiness) {
       form.reset({
         commercialName: currentBusiness.name || '',
+        slug: currentBusiness.slug || '',
         description: currentBusiness.description || '',
         logo: currentBusiness.logo || '',
         phoneNumber: currentBusiness.phoneNumber || '',
@@ -154,22 +171,53 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
         country: currentBusiness.country || 'Venezuela',
         hasMultipleBranches: currentBusiness.isChain ?? false
       });
+    } else {
+      // Si no hay negocio actual, resetear el formulario para creación
+      form.reset({
+        commercialName: '',
+        slug: '',
+        description: '',
+        logo: '',
+        phoneNumber: '',
+        address: '',
+        socialMedia: {
+          instagram: '',
+          facebook: '',
+          whatsapp: '',
+          tiktok: ''
+        },
+        country: 'Venezuela',
+        hasMultipleBranches: false
+      });
     }
   }, [currentBusiness, form]);
 
-  // Función para guardar cambios del negocio
-  const onSubmit = async (data: BusinessFormData) => {
-    if (!currentBusiness) {
-      toast.error('No hay negocio seleccionado');
-      return;
-    }
+  // Función para validar slug único
+  const validateSlug = async (slug: string): Promise<boolean> => {
+    if (!isCreating) return true; // No validar en edición
+    if (!slug) return false;
 
+    setSlugChecking(true);
+    try {
+      const isAvailable = await checkSlugAvailable(slug);
+      return isAvailable;
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      return false;
+    } finally {
+      setSlugChecking(false);
+    }
+  };
+
+  // Función para crear o actualizar negocio
+  const onSubmit = async (data: BusinessFormData) => {
     setSaving(true);
     clearError();
 
     try {
-      const updateData = {
+      const businessData: BusinessInput = {
         name: data.commercialName,
+        slug: data.slug,
         description: data.description,
         logo: data.logo,
         phoneNumber: data.phoneNumber,
@@ -179,11 +227,37 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
         socialMedia: data.socialMedia
       };
 
-      await updateBusiness(currentBusiness._id, updateData);
-      toast.success('Información del negocio actualizada correctamente');
+      if (isCreating) {
+        // Validar slug único antes de crear
+        const isSlugAvailable = await validateSlug(data.slug);
+        if (!isSlugAvailable) {
+          toast.error('El slug ya está en uso. Por favor, elige otro.');
+          return;
+        }
+
+        const result = await createBusiness(businessData);
+        if (result) {
+          toast.success('Negocio creado correctamente');
+        } else {
+          toast.error('Error al crear el negocio');
+        }
+      } else {
+        // Actualizar negocio existente
+        if (!currentBusiness) {
+          toast.error('No hay negocio seleccionado');
+          return;
+        }
+
+        const result = await updateBusiness(currentBusiness._id, businessData);
+        if (result) {
+          toast.success('Información del negocio actualizada correctamente');
+        } else {
+          toast.error('Error al actualizar el negocio');
+        }
+      }
     } catch (error) {
       console.error('Error saving business:', error);
-      toast.error('Error al guardar la información del negocio');
+      toast.error(isCreating ? 'Error al crear el negocio' : 'Error al actualizar el negocio');
     } finally {
       setSaving(false);
     }
@@ -191,9 +265,38 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
 
   // Handler para el botón de guardar
   const handleSaveBusiness = () => {
-    console.log(100052, form.getValues());
     form.handleSubmit(onSubmit)();
   };
+
+  // Función para auto-generar slug a partir del nombre comercial
+  const generateSlugFromName = (name: string) => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[áàäâ]/g, 'a')
+      .replace(/[éèëê]/g, 'e')
+      .replace(/[íìïî]/g, 'i')
+      .replace(/[óòöô]/g, 'o')
+      .replace(/[úùüû]/g, 'u')
+      .replace(/[ñ]/g, 'n')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  // Escuchar cambios en el nombre comercial para auto-generar slug (solo en creación)
+  useEffect(() => {
+    if (isCreating) {
+      const subscription = form.watch((value, { name }) => {
+        if (name === 'commercialName' && value.commercialName && !form.getValues('slug')) {
+          const generatedSlug = generateSlugFromName(value.commercialName);
+          form.setValue('slug', generatedSlug);
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [form, isCreating]);
 
   return (
     <Card
@@ -207,15 +310,23 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Configuración del Negocio</CardTitle>
-            <CardDescription>Información básica de tu empresa</CardDescription>
+            <CardTitle>{isCreating ? 'Crear Nuevo Negocio' : 'Configuración del Negocio'}</CardTitle>
+            <CardDescription>
+              {isCreating
+                ? 'Completa la información para crear tu primer negocio'
+                : 'Información básica de tu empresa'
+              }
+            </CardDescription>
           </div>
           <Button
             onClick={handleSaveBusiness}
-            disabled={saving || businessLoading}
+            disabled={saving || businessLoading || slugChecking}
             className="flex items-center gap-2"
           >
-            {saving ? "Guardando..." : "Guardar Cambios"}
+            {saving
+              ? (isCreating ? "Creando..." : "Guardando...")
+              : (isCreating ? "Crear Negocio" : "Guardar Cambios")
+            }
           </Button>
         </div>
       </CardHeader>
