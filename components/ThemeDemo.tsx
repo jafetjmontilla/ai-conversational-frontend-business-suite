@@ -10,6 +10,7 @@ import { Toggle, ToggleWithBorder } from './Toggle';
 import { Bold, ChevronDown, Italic, Underline } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { COUNTRIES } from '@/lib/countries';
 
 export const ThemeDemo: FC = () => {
   const { theme, isDark, isLight, isSystem } = useThemeContext();
@@ -48,6 +49,16 @@ export const ThemeDemo: FC = () => {
             <div className='w-10 h-10 bg-accent-foreground text-yellow-500 text-[8px]' >accent-foreground</div>
             <div className='w-10 h-10 bg-destructive text-yellow-500 text-[8px]' >destructive</div>
             <div className='w-10 h-10 bg-destructive-foreground text-yellow-500 text-[8px]' >destructive-foreground</div>
+          </div>
+        </div>
+
+        {/* countrys */}
+        <div>
+          <h4 className="font-medium text-primary mb-2">Countrys:</h4>
+          <div className='flex gap-2'>
+            <p>
+              Me encanta la comida mexicana 🌮 y su bandera 🇲🇽.
+            </p>
           </div>
         </div>
 

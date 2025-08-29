@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '../contexts/AuthContext'
+import { BusinessProvider } from '../contexts/BusinessContext'
 import { ThemeProvider } from 'next-themes'
 import { I18nProvider } from '@/components/providers/I18nProvider'
 
@@ -19,7 +20,9 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
         <I18nProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <AuthProvider>
-              {children}
+              <BusinessProvider>
+                {children}
+              </BusinessProvider>
             </AuthProvider>
           </ThemeProvider>
         </I18nProvider>

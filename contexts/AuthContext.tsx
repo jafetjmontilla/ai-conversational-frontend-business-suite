@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       emailVerified: user.emailVerified,
       providerId: user.providerData[0]?.providerId || 'password',
       customClaims: decodedToken.role || decodedToken.plan ? {
+        _id: decodedToken._id,
         role: decodedToken.role,
         plan: decodedToken.plan
       } : undefined

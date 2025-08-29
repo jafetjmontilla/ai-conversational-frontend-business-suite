@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useTheme } from 'next-themes';
 import { fetchApiV1, queries } from '@/lib/Fetching';
-import { UserData } from '@/app/register/page';
+import { UserData } from '@/app/(public)/register/page';
 
 
 interface RegisterStep1Props {

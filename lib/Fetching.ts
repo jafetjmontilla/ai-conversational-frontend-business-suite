@@ -110,6 +110,7 @@ export interface ApiResponse<T = any> {
 }
 
 export interface CustomClaimsData {
+  _id: string;
   uid: string;
   email: string | null;
   customClaims: any;
@@ -117,46 +118,8 @@ export interface CustomClaimsData {
   plan: string;
 }
 
-// // Función para asignar custom claims a un usuario
-// export const assignCustomClaims = async (uid: string, role: string = 'client', plan: string = 'free'): Promise<ApiResponse<CustomClaimsData>> => {
-//   try {
-//     const data = await graphqlFetch(queries.assignCustomClaims, { args: { uid, role, plan } });
-//     const res = data.assignCustomClaims;
-//     return {
-//       success: res.success,
-//       message: res.message,
-//       data: res.data
-//     };
-//   } catch (error: any) {
-//     return {
-//       success: false,
-//       message: 'Error de conexión con el servidor',
-//       error: error.message
-//     } as any;
-//   }
-// };
-
-// // Función para obtener información de custom claims de un usuario
-// export const getCustomClaims = async (uid: string): Promise<ApiResponse<CustomClaimsData>> => {
-//   try {
-//     const data = await graphqlFetch(queries.getCustomClaims, { uid });
-//     const res = data.getCustomClaims;
-//     return {
-//       success: res.success,
-//       message: res.message,
-//       data: res.data
-//     };
-//   } catch (error: any) {
-//     return {
-//       success: false,
-//       message: 'Error de conexión con el servidor',
-//       error: error.message
-//     } as any;
-//   }
-// };
-
 export const queries = {
-  getCustomClaims: `query getCustomClaims($uid: ID!) {
+  getCustomClaims: `query getCustomClaims($uid: String!) {
     getCustomClaims(uid: $uid) {
       success
       message
@@ -210,6 +173,342 @@ export const queries = {
       active
       emailVerified
       photoURL
+      createdAt
+      updatedAt
+    }
+  }`,
+  // Business Queries
+  getBusiness: `query getBusiness($id: ID!) {
+    business(id: $id) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  getBusinessBySlug: `query getBusinessBySlug($slug: String!) {
+    businessBySlug(slug: $slug) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  getBusinessesByOwner: `query getBusinessesByOwner($ownerId: String!) {
+    businessesByOwner(ownerId: $ownerId) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  checkSlugAvailable: `query checkSlugAvailable($slug: String!) {
+    slugAvailable(slug: $slug)
+  }`,
+  // Business Mutations
+  createBusiness: `mutation createBusiness($args: BusinessInput!) {
+    createBusiness(args: $args) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateBusiness: `mutation updateBusiness($id: ID!, $args: BusinessInput!) {
+    updateBusiness(id: $id, args: $args) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteBusiness: `mutation deleteBusiness($id: ID!) {
+    deleteBusiness(id: $id)
+  }`,
+  addBranch: `mutation addBranch($businessId: ID!, $args: BranchInput!) {
+    addBranch(businessId: $businessId, args: $args) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateBranch: `mutation updateBranch($businessId: ID!, $branchIndex: Int!, $args: BranchInput!) {
+    updateBranch(businessId: $businessId, branchIndex: $branchIndex, args: $args) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
+      createdAt
+      updatedAt
+    }
+  }`,
+  removeBranch: `mutation removeBranch($businessId: ID!, $branchIndex: Int!) {
+    removeBranch(businessId: $businessId, branchIndex: $branchIndex) {
+      _id
+      name
+      ownerId
+      country
+      isChain
+      slug
+      logo
+      description
+      address
+      phoneNumber
+      socialMedia {
+        instagram
+        facebook
+        whatsapp
+        tiktok
+      }
+                 branches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+           activeBranches {
+             name
+             address
+             country
+             locality
+             manager
+             phoneNumber
+             isActive
+           }
+      isActive
       createdAt
       updatedAt
     }

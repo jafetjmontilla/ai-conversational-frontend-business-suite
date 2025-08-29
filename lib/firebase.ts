@@ -44,6 +44,7 @@ export interface AuthUser {
   emailVerified: boolean;
   providerId: string;
   customClaims?: {
+    _id: string;
     role?: string;
     plan?: string;
   };
