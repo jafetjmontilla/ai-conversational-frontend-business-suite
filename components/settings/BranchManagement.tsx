@@ -16,7 +16,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Users, Clock, Scissors, Calendar, AlertTriangle } from "lucide-react";
-import { BranchInput, Branch } from "@/lib/interfases";
+import { BranchInput, Branch, Professional, ProfessionalInput } from "@/lib/interfases";
+import { fetchApiV1, queries } from "@/lib/Fetching";
 import { COUNTRIES } from "@/lib/countries";
 import * as Typography from "@/components/Typography";
 
@@ -32,6 +33,28 @@ const branchSchema = z.object({
 
 type BranchFormData = z.infer<typeof branchSchema>;
 
+// Esquema de validación para profesional
+const professionalSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es requerido'),
+  lastName: z.string().min(1, 'El apellido es requerido'),
+  email: z.string().email('Email inválido'),
+  phoneNumber: z.string().optional(),
+  photo: z.string().optional(),
+  specialties: z.array(z.object({
+    name: z.string().min(1, 'El nombre de la especialidad es requerido'),
+    description: z.string().optional(),
+    isActive: z.boolean()
+  })).optional(),
+  availableSchedules: z.array(z.object({
+    dayOfWeek: z.number().min(0).max(6),
+    startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
+    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
+    isActive: z.boolean()
+  })).optional()
+});
+
+type ProfessionalFormData = z.infer<typeof professionalSchema>;
+
 interface BranchManagementProps {
   cardFocusedId?: string;
   setCardFocusedId: (id: string) => void;
@@ -46,6 +69,13 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
   const [editingBranch, setEditingBranch] = useState<{ branch: Branch; index: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Estado para profesionales
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [selectedBranchIndex, setSelectedBranchIndex] = useState<number | null>(null);
+  const [isProfessionalDialogOpen, setIsProfessionalDialogOpen] = useState(false);
+  const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
+  const [loadingProfessionals, setLoadingProfessionals] = useState(false);
+
   // Configuración del formulario
   const form = useForm<BranchFormData>({
     resolver: zodResolver(branchSchema),
@@ -56,6 +86,18 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
       locality: '',
       manager: '',
       phoneNumber: ''
+    }
+  });
+
+  // Configuración del formulario para profesionales
+  const professionalForm = useForm<ProfessionalFormData>({
+    resolver: zodResolver(professionalSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      photo: ''
     }
   });
 
@@ -77,6 +119,42 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
       case 'pro': return 5;
       default: return 1;
     }
+  };
+
+  // Función para obtener límites de profesionales según el plan
+  const getProfessionalLimits = () => {
+    const plan = getCurrentPlan();
+    switch (plan) {
+      case 'free': return 1;
+      case 'premium': return 3;
+      case 'pro': return 8;
+      default: return 1;
+    }
+  };
+
+  // Función para verificar si se puede agregar un nuevo profesional
+  const canAddProfessional = (branchIndex: number) => {
+    if (!currentBusiness) return false;
+    const currentProfessionalCount = professionals.filter(p => p.branchIndex === branchIndex).length;
+    const limit = getProfessionalLimits();
+    return currentProfessionalCount < limit;
+  };
+
+  // Función para obtener mensaje de límite de profesionales
+  const getProfessionalLimitMessage = (branchIndex: number) => {
+    const plan = getCurrentPlan();
+    const limit = getProfessionalLimits();
+    const current = professionals.filter(p => p.branchIndex === branchIndex).length;
+
+    if (plan === 'free') {
+      return `Con el plan gratuito puedes tener máximo 1 profesional por sucursal. Actualiza a Premium para tener hasta 3 profesionales.`;
+    } else if (plan === 'premium') {
+      return `Con el plan Premium puedes tener máximo 3 profesionales por sucursal (${current}/3). Actualiza a Pro para tener hasta 8 profesionales.`;
+    } else if (plan === 'pro') {
+      return `Con el plan Pro puedes tener máximo 8 profesionales por sucursal (${current}/8).`;
+    }
+
+    return `Tienes ${current} de ${limit} profesionales disponibles en esta sucursal.`;
   };
 
   // Función para verificar si se puede agregar una nueva sucursal
@@ -186,6 +264,123 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
     } catch (error) {
       console.error('Error removing branch:', error);
       toast.error('Error al eliminar la sucursal');
+    }
+  };
+
+  // Función para cargar profesionales por sucursal
+  const loadProfessionals = async (branchIndex: number) => {
+    if (!currentBusiness) return;
+
+    setLoadingProfessionals(true);
+    try {
+      const result = await fetchApiV1({
+        query: queries.getProfessionalsByBranch,
+        variables: { businessId: currentBusiness._id, branchIndex }
+      });
+
+      if (result) {
+        setProfessionals(result);
+      }
+    } catch (error) {
+      console.error('Error loading professionals:', error);
+      toast.error('Error al cargar los profesionales');
+    } finally {
+      setLoadingProfessionals(false);
+    }
+  };
+
+  // Función para abrir el diálogo de nuevo profesional
+  const handleOpenNewProfessionalDialog = (branchIndex: number) => {
+    if (!canAddProfessional(branchIndex)) {
+      toast.error(getProfessionalLimitMessage(branchIndex));
+      return;
+    }
+
+    setSelectedBranchIndex(branchIndex);
+    setEditingProfessional(null);
+    professionalForm.reset({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      photo: ''
+    });
+    setIsProfessionalDialogOpen(true);
+  };
+
+  // Función para abrir el diálogo de edición de profesional
+  const handleEditProfessional = (professional: Professional) => {
+    setEditingProfessional(professional);
+    setSelectedBranchIndex(professional.branchIndex);
+    professionalForm.reset({
+      firstName: professional.firstName,
+      lastName: professional.lastName,
+      email: professional.email,
+      phoneNumber: professional.phoneNumber || '',
+      photo: professional.photo || ''
+    });
+    setIsProfessionalDialogOpen(true);
+  };
+
+  // Función para guardar profesional (crear o actualizar)
+  const onSubmitProfessional = async (data: ProfessionalFormData) => {
+    if (!currentBusiness || selectedBranchIndex === null) return;
+
+    setSaving(true);
+    try {
+      const professionalData: ProfessionalInput = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        photo: data.photo
+      };
+
+      if (editingProfessional) {
+        // Actualizar profesional existente
+        await fetchApiV1({
+          query: queries.updateProfessional,
+          variables: { id: editingProfessional._id, args: professionalData }
+        });
+        toast.success('Profesional actualizado correctamente');
+      } else {
+        // Crear nuevo profesional
+        await fetchApiV1({
+          query: queries.createProfessional,
+          variables: {
+            businessId: currentBusiness._id,
+            branchIndex: selectedBranchIndex,
+            args: professionalData
+          }
+        });
+        toast.success('Profesional creado correctamente');
+      }
+
+      setIsProfessionalDialogOpen(false);
+      setEditingProfessional(null);
+      // Recargar profesionales para la sucursal
+      await loadProfessionals(selectedBranchIndex);
+    } catch (error) {
+      console.error('Error saving professional:', error);
+      toast.error(editingProfessional ? 'Error al actualizar el profesional' : 'Error al crear el profesional');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Función para eliminar profesional
+  const handleDeleteProfessional = async (professional: Professional) => {
+    try {
+      await fetchApiV1({
+        query: queries.deleteProfessional,
+        variables: { id: professional._id }
+      });
+      toast.success('Profesional eliminado correctamente');
+      // Recargar profesionales para la sucursal
+      await loadProfessionals(professional.branchIndex);
+    } catch (error) {
+      console.error('Error deleting professional:', error);
+      toast.error('Error al eliminar el profesional');
     }
   };
 
@@ -461,18 +656,256 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Profesionales</CardTitle>
-                <CardDescription>Agrega, edita y elimina empleados de tus sucursales</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Selecciona una sucursal para gestionar sus profesionales</p>
-                </div>
-              </CardContent>
-            </Card>
+            {!branches || branches.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Typography.TypographyH4>No hay sucursales</Typography.TypographyH4>
+                    <Typography.TypographyP className="text-muted-foreground mt-2">
+                      Necesitas crear al menos una sucursal antes de agregar profesionales.
+                    </Typography.TypographyP>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {branches.map((branch, branchIndex) => (
+                  <Card key={branchIndex}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{branch.name}</CardTitle>
+                          <CardDescription>
+                            {branch.address}, {branch.locality}
+                            <div className="mt-1">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${canAddProfessional(branchIndex)
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                }`}>
+                                {getProfessionalLimitMessage(branchIndex)}
+                              </span>
+                            </div>
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => loadProfessionals(branchIndex)}
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingProfessionals}
+                          >
+                            {loadingProfessionals ? "Cargando..." : "Cargar"}
+                          </Button>
+                          <Button
+                            onClick={() => handleOpenNewProfessionalDialog(branchIndex)}
+                            disabled={businessLoading || !canAddProfessional(branchIndex)}
+                            className="flex items-center gap-2"
+                            size="sm"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Agregar Profesional
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {professionals.filter(p => p.branchIndex === branchIndex).length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No hay profesionales en esta sucursal</p>
+                          {canAddProfessional(branchIndex) && (
+                            <Button
+                              onClick={() => handleOpenNewProfessionalDialog(branchIndex)}
+                              className="mt-4"
+                              size="sm"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Agregar Primer Profesional
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {professionals
+                            .filter(p => p.branchIndex === branchIndex)
+                            .map((professional) => (
+                              <Card key={professional._id} className="relative">
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      {professional.photo ? (
+                                        <img
+                                          src={professional.photo}
+                                          alt={professional.fullName}
+                                          className="w-10 h-10 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                          <Users className="h-5 w-5 text-gray-500" />
+                                        </div>
+                                      )}
+                                      <div>
+                                        <CardTitle className="text-base">{professional.fullName}</CardTitle>
+                                        <CardDescription className="text-sm">{professional.email}</CardDescription>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEditProfessional(professional)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDeleteProfessional(professional)}
+                                        disabled={businessLoading}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                  {professional.phoneNumber && (
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-muted-foreground">Teléfono:</span>
+                                      <span className="font-medium">{professional.phoneNumber}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Especialidades:</span>
+                                    <span className="font-medium">
+                                      {professional.activeSpecialties.length || 'Sin especialidades'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Horarios:</span>
+                                    <span className="font-medium">
+                                      {professional.activeSchedules.length || 'Sin horarios'}
+                                    </span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Diálogo para crear/editar profesional */}
+            <Dialog open={isProfessionalDialogOpen} onOpenChange={setIsProfessionalDialogOpen}>
+              <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProfessional ? 'Editar Profesional' : 'Nuevo Profesional'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingProfessional
+                      ? 'Modifica la información del profesional.'
+                      : 'Completa la información para crear un nuevo profesional.'
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...professionalForm}>
+                  <form onSubmit={professionalForm.handleSubmit(onSubmitProfessional)} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={professionalForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nombre</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Juan" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={professionalForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Apellido</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Pérez" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={professionalForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="juan@ejemplo.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={professionalForm.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Teléfono (opcional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+58 414 123 4567" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={professionalForm.control}
+                      name="photo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Foto (URL opcional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://ejemplo.com/foto.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsProfessionalDialogOpen(false)}
+                        disabled={saving}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={saving}>
+                        {saving
+                          ? (editingProfessional ? 'Actualizando...' : 'Creando...')
+                          : (editingProfessional ? 'Actualizar' : 'Crear')
+                        }
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="schedules" className="space-y-4">

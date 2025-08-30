@@ -68,3 +68,60 @@ export interface BranchInput {
   manager: string;
   phoneNumber?: string;
 }
+
+export interface Specialty {
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface AvailableSchedule {
+  dayOfWeek: number; // 0-6 (domingo a sábado)
+  startTime: string; // formato HH:mm
+  endTime: string;   // formato HH:mm
+  isActive: boolean;
+}
+
+export interface Professional {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  photo?: string;
+  specialties: Specialty[];
+  availableSchedules: AvailableSchedule[];
+  businessId: string;
+  branchIndex: number;
+  userId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  fullName: string;
+  activeSpecialties: Specialty[];
+  activeSchedules: AvailableSchedule[];
+}
+
+export interface ProfessionalInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  photo?: string;
+  specialties?: SpecialtyInput[];
+  availableSchedules?: AvailableScheduleInput[];
+  userId?: string;
+}
+
+export interface SpecialtyInput {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface AvailableScheduleInput {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive?: boolean;
+}

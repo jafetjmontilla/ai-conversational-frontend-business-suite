@@ -512,5 +512,229 @@ export const queries = {
       createdAt
       updatedAt
     }
+  }`,
+
+  // Professional Queries
+  getProfessionalsByBranch: `query getProfessionalsByBranch($businessId: ID!, $branchIndex: Int!) {
+    getProfessionalsByBranch(businessId: $businessId, branchIndex: $branchIndex) {
+      _id
+      firstName
+      lastName
+      email
+      phoneNumber
+      photo
+      specialties {
+        name
+        description
+        isActive
+      }
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      businessId
+      branchIndex
+      userId
+      isActive
+      createdAt
+      updatedAt
+      fullName
+      activeSpecialties {
+        name
+        description
+        isActive
+      }
+      activeSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+    }
+  }`,
+
+  getProfessional: `query getProfessional($id: ID!) {
+    getProfessional(id: $id) {
+      _id
+      firstName
+      lastName
+      email
+      phoneNumber
+      photo
+      specialties {
+        name
+        description
+        isActive
+      }
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      businessId
+      branchIndex
+      userId
+      isActive
+      createdAt
+      updatedAt
+      fullName
+      activeSpecialties {
+        name
+        description
+        isActive
+      }
+      activeSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+    }
+  }`,
+
+  getProfessionalsByBusiness: `query getProfessionalsByBusiness($businessId: ID!) {
+    getProfessionalsByBusiness(businessId: $businessId) {
+      _id
+      firstName
+      lastName
+      email
+      phoneNumber
+      photo
+      specialties {
+        name
+        description
+        isActive
+      }
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      businessId
+      branchIndex
+      userId
+      isActive
+      createdAt
+      updatedAt
+      fullName
+      activeSpecialties {
+        name
+        description
+        isActive
+      }
+      activeSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+    }
+  }`,
+
+  // Professional Mutations
+  createProfessional: `mutation createProfessional($businessId: ID!, $branchIndex: Int!, $args: ProfessionalInput!) {
+    createProfessional(businessId: $businessId, branchIndex: $branchIndex, args: $args) {
+      _id
+      firstName
+      lastName
+      email
+      phoneNumber
+      photo
+      specialties {
+        name
+        description
+        isActive
+      }
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      businessId
+      branchIndex
+      userId
+      isActive
+      createdAt
+      updatedAt
+      fullName
+    }
+  }`,
+
+  updateProfessional: `mutation updateProfessional($id: ID!, $args: ProfessionalInput!) {
+    updateProfessional(id: $id, args: $args) {
+      _id
+      firstName
+      lastName
+      email
+      phoneNumber
+      photo
+      specialties {
+        name
+        description
+        isActive
+      }
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      businessId
+      branchIndex
+      userId
+      isActive
+      createdAt
+      updatedAt
+      fullName
+    }
+  }`,
+
+  deleteProfessional: `mutation deleteProfessional($id: ID!) {
+    deleteProfessional(id: $id)
+  }`,
+
+  updateProfessionalSpecialties: `mutation updateProfessionalSpecialties($id: ID!, $specialties: [SpecialtyInput!]!) {
+    updateProfessionalSpecialties(id: $id, specialties: $specialties) {
+      _id
+      firstName
+      lastName
+      fullName
+      specialties {
+        name
+        description
+        isActive
+      }
+      activeSpecialties {
+        name
+        description
+        isActive
+      }
+    }
+  }`,
+
+  updateProfessionalSchedules: `mutation updateProfessionalSchedules($id: ID!, $schedules: [AvailableScheduleInput!]!) {
+    updateProfessionalSchedules(id: $id, schedules: $schedules) {
+      _id
+      firstName
+      lastName
+      fullName
+      availableSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+      activeSchedules {
+        dayOfWeek
+        startTime
+        endTime
+        isActive
+      }
+    }
   }`
 }
