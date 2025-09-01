@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { FcGoogle } from 'react-icons/fc';
 import { Mail, Lock, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,17 +28,17 @@ interface RegisterStep1Props {
 
 export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin, userData }) => {
   const { signInGoogle } = useAuth();
-  const { t } = useTranslation(['auth', 'common']);
+
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const { theme } = useTheme();
 
   const formSchema = z.object({
-    name: z.string().min(1, t('auth:register.errors.nameRequired')),
-    email: z.string().email(t('auth:register.errors.emailInvalid')),
-    password: z.string().min(6, t('auth:register.errors.passwordMin')),
+    name: z.string().min(1, 'El nombre es requerido'),
+    email: z.string().email('Email inválido'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
     confirmPassword: z.string()
   }).refine((data) => data.password === data.confirmPassword, {
-    message: t('auth:register.errors.passwordMismatch'),
+    message: 'Las contraseñas no coinciden',
     path: ["confirmPassword"],
   });
 
@@ -47,26 +47,26 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
   const values = [
     {
       name: 'name',
-      label: t('auth:register.fullName'),
-      placeholder: t('auth:register.fullNamePlaceholder'),
+      label: 'Nombre completo',
+      placeholder: 'Tu nombre completo',
       icon: User,
     },
     {
       name: 'email',
-      label: t('auth:register.email'),
-      placeholder: t('auth:register.emailPlaceholder'),
+      label: 'Email',
+      placeholder: 'tu@email.com',
       icon: Mail,
     },
     {
       name: 'password',
-      label: t('auth:register.password'),
-      placeholder: t('auth:register.passwordHint'),
+      label: 'Contraseña',
+      placeholder: 'Mínimo 6 caracteres',
       icon: Lock,
       type: 'password',
     },
     {
       name: 'confirmPassword',
-      label: t('auth:register.confirmPassword'),
+      label: 'Confirmar contraseña',
       placeholder: '••••••••',
       icon: Lock,
       type: 'password',
@@ -105,7 +105,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
       setIsCheckingEmail(true);
       const emailExists = await checkEmailExists(data.email);
       if (emailExists) {
-        form.setError('email', { message: t('auth:register.errors.emailExists') });
+        form.setError('email', { message: 'Este email ya está registrado' });
         return;
       }
       onNext({
@@ -115,7 +115,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
         confirmPassword: data.confirmPassword,
       });
     } catch (error) {
-      toast.error(t('auth:register.errors.unexpectedError'));
+      toast.error('Error inesperado');
     } finally {
       setIsCheckingEmail(false);
     }
@@ -132,18 +132,18 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
           password: '', // No necesitamos contraseña para auth con Google
         });
       } else {
-        toast.error(response.message || t('auth:register.errors.unexpectedGoogle'));
+        toast.error(response.message || 'Error inesperado con Google');
       }
     } catch (err) {
-      toast.error(t('auth:register.errors.unexpectedGoogle'));
+      toast.error('Error inesperado con Google');
     }
   };
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1 text-center py-2">
-        <Label className="text-2xl font-bold">{t('auth:register.title')}</Label>
-        <Label className="text-muted-foreground text-sm">{t('auth:register.step1Subtitle')}</Label>
+        <Label className="text-2xl font-bold">{'Crear cuenta'}</Label>
+        <Label className="text-muted-foreground text-sm">{'Ingresa tu información personal'}</Label>
       </CardHeader>
       <CardContent className="space-y-6 pb-4">
         <Form {...form}>
@@ -169,7 +169,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
                             setIsCheckingEmail(true);
                             const exists = await checkEmailExists(field.value);
                             if (exists) {
-                              form.setError('email', { message: t('auth:register.errors.emailExists') });
+                              form.setError('email', { message: 'Este email ya está registrado' });
                             } else {
                               form.clearErrors('email');
                             }
@@ -189,7 +189,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
               className="w-full"
               disabled={form.formState.isSubmitting || isCheckingEmail}
             >
-              {form.formState.isSubmitting ? t('common:loading') : t('common:next')}
+              {form.formState.isSubmitting ? 'Cargando...' : 'Siguiente'}
             </Button>
           </form>
         </Form>
@@ -199,7 +199,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="px-2 bg-card text-muted-foreground">
-              {t('common:orContinueWith')}
+              {'O continúa con'}
             </span>
           </div>
         </div>
@@ -210,16 +210,16 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
           disabled={form.formState.isSubmitting}
         >
           <FcGoogle className="h-4 w-4 mr-2" />
-          {form.formState.isSubmitting ? t('common:connecting') : t('auth:register.google')}
+          {form.formState.isSubmitting ? 'Conectando...' : 'Google'}
         </Button>
         <div className="text-center text-sm">
-          <span className="text-muted-foreground">{t('auth:register.hasAccount')} </span>
+          <span className="text-muted-foreground">{'¿Ya tienes una cuenta?'} </span>
           <Button
             variant="link"
             className="px-2 font-medium"
             onClick={onSwitchToLogin}
           >
-            {t('auth:register.signIn')}
+            {'Inicia sesión'}
           </Button>
         </div>
       </CardContent>

@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FormInput } from '@/components/ui/input';
 import { UserData } from '@/app/(public)/register/page';
 import { Label } from '@/components/ui/label';
-import { useTranslation } from 'react-i18next';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthUser } from '@/lib/firebase';
 import { getAuth } from 'firebase/auth';
@@ -27,28 +27,28 @@ type Role = 'client' | 'professional' | 'admin';
 
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
   const { authUser, setAuthUser } = useAuth();
-  const { t } = useTranslation(['auth', 'common']);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const roleOptions = [
     {
       value: 'client' as Role,
-      title: t('auth:register.client'),
+      title: 'Cliente',
       description: '',
       icon: '👤',
       features: []
     },
     {
       value: 'professional' as Role,
-      title: t('auth:register.professional'),
+      title: 'Profesional',
       description: '',
       icon: '💇🏻',
       features: []
     },
     {
       value: 'admin' as Role,
-      title: t('auth:register.admin'),
+      title: 'Administrador',
       description: '',
       icon: '⚙️',
       features: []
@@ -59,8 +59,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
     role: z.enum(['client', 'professional', 'admin']),
     phone: z
       .string()
-      .min(7, t('auth:register.errors.phoneMin'))
-      .refine((val) => /^[\+]?\d[\d\s-]{5,15}$/.test(val), t('auth:register.errors.phoneInvalid')),
+      .min(7, 'El teléfono debe tener al menos 7 dígitos')
+      .refine((val) => /^[\+]?\d[\d\s-]{5,15}$/.test(val), 'Formato de teléfono inválido'),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -157,8 +157,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         <ArrowLeft className="h-4 w-4 " />
       </Button>
       <CardHeader className="space-y-1 text-center py-2">
-        <Label className="text-2xl font-bold">{t('auth:register.step2Title')}</Label>
-        <Label className="text-muted-foreground text-sm">{t('auth:register.step2Subtitle')}</Label>
+        <Label className="text-2xl font-bold">{'Completar registro'}</Label>
+        <Label className="text-muted-foreground text-sm">{'Selecciona tu rol y agrega información adicional'}</Label>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -171,21 +171,21 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
             {/* Información del usuario */}
             <Card className="space-y-1 p-2 bg-background">
               <CardHeader className="space-y-0 py-0">
-                <CardTitle>{t('auth:register.userInfo')}</CardTitle>
+                <CardTitle>{'Información del usuario'}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-0 py-0 text-sm">
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">{t('auth:register.fullName')}</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Nombre completo'}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.name}</p>
                 </div>
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">{t('auth:register.email')}</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Email'}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.email}</p>
                 </div>
               </CardContent>
             </Card>
             <div>
-              <FormLabel className="font-medium text-primary">{t('auth:register.role')}</FormLabel>
+              <FormLabel className="font-medium text-primary">{'Rol'}</FormLabel>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {roleOptions.map((role) => (
                   <div
@@ -219,7 +219,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
               </div>
             </div>
             <div>
-              <FormLabel htmlFor="phone">{t('auth:register.phone')}</FormLabel>
+              <FormLabel htmlFor="phone">{'Teléfono'}</FormLabel>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <FormField
@@ -243,19 +243,19 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
                   )}
                 />
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{t('auth:register.phoneHelp')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{'Incluye el código de país (ej: +56912345678)'}</p>
             </div>
             <Card className='p-2'>
               <div className="flex items-start">
                 <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-primary">{t('auth:register.freePlanTitle')}</h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{t('auth:register.freePlanDesc')}</p>
+                  <h3 className="text-sm font-medium text-primary">{'Plan Gratuito'}</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{'Comenzarás con un plan gratuito que podrás mejorar más adelante'}</p>
                 </div>
               </div>
             </Card>
             <Button type="submit" style={{ marginTop: '2rem', marginBottom: '1rem' }} className="w-full" disabled={loading} >
-              {loading ? t('common:creatingAccount') : t('auth:register.complete')}
+              {loading ? 'Creando cuenta...' : 'Completar registro'}
             </Button>
           </form>
         </Form>

@@ -1,111 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DEFAULT_COUNTRY, SUPPORTED_COUNTRIES } from './lib/countries';
-
-// Función para detectar el país preferido del usuario
-function getPreferredCountry(request: NextRequest): string {
-  // 1. Usar geolocalización si está disponible (ISO-2)
-  const geoCountry = request.geo?.country?.toLowerCase();
-  if (geoCountry && SUPPORTED_COUNTRIES.includes(geoCountry)) {
-    return geoCountry;
-  }
-
-  // 2. Verificar si hay un país guardado en cookies
-  const countryFromCookie = request.cookies.get('preferred-country')?.value;
-  if (countryFromCookie && SUPPORTED_COUNTRIES.includes(countryFromCookie)) {
-    return countryFromCookie;
-  }
-
-  // 3. Detectar por el header Accept-Language
-  const acceptLanguage = request.headers.get('accept-language');
-  if (acceptLanguage) {
-    // Mapeo simple de idiomas a países por defecto
-    const languageToCountry: Record<string, string> = {
-      'es': DEFAULT_COUNTRY, // Español -> País por defecto del proyecto
-      'en': 'us', // Inglés -> Estados Unidos (por defecto)
-      'es-VE': 've',
-      'es-MX': 'mx',
-      'es-CO': 'co',
-      'es-AR': 'ar',
-      'es-CL': 'cl',
-      'es-PE': 'pe',
-      'en-US': 'us',
-      'en-CA': 'ca',
-      'en-GB': 'gb',
-    };
-
-    // Buscar coincidencias exactas primero
-    for (const [lang, country] of Object.entries(languageToCountry)) {
-      if (acceptLanguage.toLowerCase().includes(lang.toLowerCase())) {
-        return country;
-      }
-    }
-
-    // Buscar por idioma base
-    if (acceptLanguage.toLowerCase().includes('es')) {
-      return languageToCountry['es']
-    };
-    if (acceptLanguage.toLowerCase().includes('en')) {
-      return languageToCountry['en']
-    };
-  }
-
-  // 4. País por defecto
-  return DEFAULT_COUNTRY;
-}
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Ignorar archivos estáticos, API routes y rutas de autenticación
+  // Ignorar archivos estáticos y API routes
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') ||
     pathname.includes('.') ||
-    pathname.startsWith('/favicon') ||
-    pathname === '/' ||
-    pathname === '/login' ||
-    pathname === '/register' ||
-    pathname === '/users' ||
-    pathname === '/settings'
+    pathname.startsWith('/favicon')
   ) {
     return NextResponse.next();
   }
 
-  // Verificar si la ruta ya incluye un país válido
-  const segments = pathname.split('/').filter(Boolean);
-  const firstSegment = segments[0];
-
-  // Si es una ruta protegida (no es login/register) y no tiene país
-  if (!SUPPORTED_COUNTRIES.includes(firstSegment)) {
-    const preferredCountry = getPreferredCountry(request);
-    const newPathname = `/${preferredCountry}${pathname}`;
-
-    const response = NextResponse.redirect(new URL(newPathname, request.url));
-
-    // Guardar el país en las cookies
-    response.cookies.set('preferred-country', preferredCountry, {
-      maxAge: 60 * 60 * 24 * 365, // 1 año
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    });
-
-    return response;
-  }
-
-  // Si ya tiene un país válido, continuar y actualizar la cookie
-  const response = NextResponse.next();
-
-  if (SUPPORTED_COUNTRIES.includes(firstSegment)) {
-    response.cookies.set('preferred-country', firstSegment, {
-      maxAge: 60 * 60 * 24 * 365, // 1 año
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    });
-  }
-
-  return response;
+  // Continuar con la solicitud normal
+  return NextResponse.next();
 }
 
 export const config = {

@@ -10,7 +10,7 @@ import { Toggle, ToggleWithBorder } from './Toggle';
 import { Bold, ChevronDown, Italic, Underline } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { COUNTRIES } from '@/lib/countries';
+
 
 export const ThemeDemo: FC = () => {
   const { theme, isDark, isLight, isSystem } = useThemeContext();

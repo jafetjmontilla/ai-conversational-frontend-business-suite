@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useBusiness } from "@/contexts/BusinessContext";
-import { useTranslation } from "react-i18next";
+
 import { useAllowed } from "@/lib/hooks/useAllowed";
 import { useState, useEffect } from "react";
 import { useForm } from 'react-hook-form';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Users, Clock, Scissors, Calendar, AlertTriangle } from "lucide-react";
 import { BranchInput, Branch, Professional, ProfessionalInput } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import { COUNTRIES } from "@/lib/countries";
+
 import * as Typography from "@/components/Typography";
 
 // Esquema de validación para sucursal
@@ -61,7 +61,7 @@ interface BranchManagementProps {
 }
 
 export default function BranchManagement({ cardFocusedId, setCardFocusedId }: BranchManagementProps) {
-  const { t } = useTranslation(['dashboard', 'common']);
+
   const { getCurrentPlan } = useAllowed();
   const { currentBusiness, loading: businessLoading, addBranch, updateBranch, removeBranch } = useBusiness();
   const [branches, setBranches] = useState(currentBusiness?.activeBranches);
@@ -471,20 +471,9 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>País</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un país" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.values(COUNTRIES).map((country) => (
-                                <SelectItem key={country.name} value={country.name}>
-                                  {country.flag} {country.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Input placeholder="Ej: Chile, Argentina, México" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -679,8 +668,8 @@ export default function BranchManagement({ cardFocusedId, setCardFocusedId }: Br
                             {branch.address}, {branch.locality}
                             <div className="mt-1">
                               <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${canAddProfessional(branchIndex)
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
                                 }`}>
                                 {getProfessionalLimitMessage(branchIndex)}
                               </span>

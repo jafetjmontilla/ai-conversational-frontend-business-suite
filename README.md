@@ -1,4 +1,4 @@
-# Pestilo Frontend
+# 4net Frontend
 
 Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
 
@@ -22,7 +22,7 @@ Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Fir
 
 1. **Clonar el repositorio**
 ```bash
-cd frontend-pestilo
+cd frontend-4net
 ```
 
 2. **Instalar dependencias**
@@ -169,22 +169,18 @@ lib/
 - ✅ **Manejo de errores** centralizado
 - ✅ **Tipos TypeScript** compartidos
 
-## 🌍 Internacionalización por país (rutas con sufijo)
+## 🌐 Estructura de Rutas
 
-- **Detección automática de país por headers**: El middleware inspecciona el header `Accept-Language` para inferir la región preferida del usuario y redirigir a la ruta con el sufijo de país correspondiente. Si no se puede determinar, se usa un país por defecto (`DEFAULT_COUNTRY`).
-- **Redirecciones basadas en cookies**: Se persiste la preferencia en la cookie `preferred-country` para futuras visitas. Si la cookie existe y es válida, se prioriza sobre el header.
-- **Validación de países soportados**: Solo se aceptan códigos incluidos en `SUPPORTED_COUNTRIES`. Si el primer segmento de la URL no corresponde a un país soportado, se retorna 404.
+La aplicación utiliza rutas directas sin prefijos de país para simplicidad:
 
-### Estructura de rutas
-- Home por país: `/{country}` (ej.: `/ar`, `/us`, `/mx`)
-- Secciones: `/{country}/dashboard`, `/{country}/login`, `/{country}/register`, `/{country}/theme-demo`
+### Rutas principales
+- **Páginas públicas**: `/`, `/login`, `/register`, `/about`, `/contact`
+- **Páginas protegidas**: `/dashboard`, `/settings`, `/users`, `/notifications`
+- **Demo**: `/theme-demo` - Demostración del sistema de temas
 
 ### Middleware
 - Archivo: `middleware.ts`
-- Funciones clave: detección de país, validación y redirección, persistencia de cookie.
-
-### Pendiente
-- Incluir un selector de país en la sección de Configuraciones cuando esté disponible, para permitir cambiar manualmente la región desde la UI.
+- Función: Manejo básico de archivos estáticos y API routes
 
 ## 🤝 Contribución
 
@@ -204,36 +200,33 @@ MIT License - ver archivo [LICENSE](LICENSE) para detalles.
 - **Beneficios**: consistencia visual, reusabilidad, menor código repetido, mejor DX.
 - **Dónde aplicarlo**: Dropdowns, menús de usuario, selectores (idioma/tema/país), barras de herramientas, acciones masivas, etc.
 
-### Ejemplo: Dropdown de idioma
+### Ejemplo: Dropdown de usuario
 
 ```tsx
 import Dropdown, { StructuredDropdownItem } from '@/components/Dropdown';
-import { Languages } from 'lucide-react';
+import { User, Settings, LogOut } from 'lucide-react';
 
-const currentLang = 'es'; // o 'en'
-
-const languageItems: StructuredDropdownItem[] = [
+const userMenuItems: StructuredDropdownItem[] = [
   {
-    value: 'es',
+    value: 'profile',
     label: (
-      <span className="flex items-center"><span className="mr-2">🇪🇸</span><span>Español</span></span>
+      <span className="flex items-center"><User className="mr-2" size={16} /><span>Perfil</span></span>
     ),
-    onSelect: () => change('es'),
+    onSelect: () => navigate('/profile'),
   },
   {
-    value: 'en',
+    value: 'settings',
     label: (
-      <span className="flex items-center"><span className="mr-2">🇺🇸</span><span>English</span></span>
+      <span className="flex items-center"><Settings className="mr-2" size={16} /><span>Configuración</span></span>
     ),
-    onSelect: () => change('en'),
+    onSelect: () => navigate('/settings'),
   },
 ];
 
 <Dropdown
-  icon={Languages}            // Icono del botón
-  text={<span className="uppercase">{currentLang}</span>} // Texto del botón
-  items={languageItems}       // Opciones estructuradas
-  selected={currentLang}      // Opción seleccionada (opcional)
+  text={userInitial}          // Inicial del usuario
+  items={userMenuItems}       // Opciones estructuradas
+  header="Mi cuenta"          // Encabezado del menú
 />
 ```
 

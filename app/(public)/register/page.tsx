@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegisterStep1 } from '@/components/auth/RegisterStep1';
 import { RegisterStep2 } from '@/components/auth/RegisterStep2';
-import LanguageDropdown from '@/components/navigation/LanguageDropdown';
+
 import { AnimatePresence, motion } from 'framer-motion';
 
 export type Step = 1 | 2;
@@ -64,9 +64,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-      <div className="absolute top-4 right-4 md:top-7 md:right-10">
-        <LanguageDropdown />
-      </div>
+
       <AnimatePresence mode="wait"  >
         {currentStep === 1 ? (
           <motion.div

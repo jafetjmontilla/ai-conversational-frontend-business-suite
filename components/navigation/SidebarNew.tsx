@@ -9,8 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
-import { useTranslation } from 'react-i18next'
-import LanguageDropdown from "./LanguageDropdown"
+
 import { useAllowed } from "@/lib/hooks/useAllowed"
 
 type NavItem = {
@@ -25,28 +24,28 @@ export interface AppSidebarProps {
 export const AppSidebar: FC<AppSidebarProps> = () => {
   const router = useRouter()
   const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar, } = useSidebar()
-  const { t } = useTranslation(['navigation'])
+
   const { hasRole } = useAllowed();
 
-  const buildPersonalItems = (t: (k: string) => string): NavItem[] => [
-    { href: '/dashboard', label: t('navigation:dashboard'), icon: Home },
-    { href: '/', label: t('navigation:professionals'), icon: Box },
-    { href: '/theme-demo', label: t('navigation:services'), icon: Stars },
-    { href: '/', label: t('navigation:timeSlots'), icon: Calendar1 },
-    { href: '/theme-demo', label: t('navigation:clients'), icon: ContactRound },
-    { href: '/', label: t('navigation:calendar'), icon: Calendar },
+  const buildPersonalItems = (): NavItem[] => [
+    { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/', label: 'Profesionales', icon: Box },
+    { href: '/theme-demo', label: 'Servicios', icon: Stars },
+    { href: '/', label: 'Horarios', icon: Calendar1 },
+    { href: '/theme-demo', label: 'Clientes', icon: ContactRound },
+    { href: '/', label: 'Calendario', icon: Calendar },
   ];
 
-  const buildAccountItems = (t: (k: string) => string): NavItem[] => [
-    { href: '/notifications', label: t('navigation:notifications'), icon: Bell, badge: 24 },
-    { href: '/chat', label: t('navigation:chat'), icon: MessageSquare, badge: 8 },
-    { href: '/users', label: t('navigation:users'), icon: Users, condition: hasRole("admin") },
-    { href: '/settings', label: t('navigation:settings'), icon: Settings },
-    { href: '/theme-demo', label: t('navigation:demoComponents'), icon: FileSpreadsheet },
+  const buildAccountItems = (): NavItem[] => [
+    { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 24 },
+    { href: '/chat', label: 'Chat', icon: MessageSquare, badge: 8 },
+    { href: '/users', label: 'Usuarios', icon: Users, condition: hasRole("admin") },
+    { href: '/settings', label: 'Configuración', icon: Settings },
+    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet },
   ];
 
-  const personalItems = buildPersonalItems(t)
-  const accountItems = buildAccountItems(t)
+  const personalItems = buildPersonalItems()
+  const accountItems = buildAccountItems()
 
   return (
     <Sidebar side="left" variant="floating" collapsible="icon" >
@@ -67,7 +66,7 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
             <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
               <Image src={previoLogo} alt="Logo" width={30} height={30} className="rounded-md" />
               {state == "expanded" && <span className="font-bold text-sm">App Pulsar v1.0</span>}
-              {state == "expanded" && <LanguageDropdown />}
+
             </div>
           </div>
         </SidebarMenu>
@@ -113,7 +112,7 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
               </Avatar>
               <div className="flex flex-col -translate-x-[13px]">
                 <span className="text-sm font-medium">Nina Egrena</span>
-                <span className="text-xs text-muted-foreground">nina.egrena@pestilo.com</span>
+                <span className="text-xs text-muted-foreground">nina.egrena@4net.com</span>
               </div>
             </SidebarMenuButton>
             {/* <SidebarMenuAction className="translate-y-3">

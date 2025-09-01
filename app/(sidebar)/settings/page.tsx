@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusiness } from "@/contexts/BusinessContext";
-import { useTranslation } from "react-i18next";
+
 import { useAllowed } from "@/lib/hooks/useAllowed";
 import * as Typography from "@/components/Typography";
 import { Separator } from "@/components/ui/separator";
@@ -12,20 +12,21 @@ import { useState } from "react";
 import BusinessConfiguration from "@/components/settings/BusinessConfiguration";
 import BranchManagement from "@/components/settings/BranchManagement";
 import InventoryBilling from "@/components/settings/InventoryBilling";
+import WhatsAppConnection from "@/components/settings/WhatsAppConnection";
 
 export default function SettingPage() {
   const { authUser } = useAuth();
   const { getCurrentRole, getCurrentPlan } = useAllowed();
-  const { t } = useTranslation(['dashboard', 'common']);
+
   const { currentBusiness, loading: businessLoading, error: businessError } = useBusiness();
   const [cardFocusedId, setCardFocusedId] = useState<string>();
 
   const authUserDisplay = [
-    { title: t('dashboard:name'), value: authUser?.displayName || 'No especificado' },
-    { title: t('dashboard:email'), value: authUser?.email || 'No especificado' },
-    { title: t('dashboard:emailVerified'), value: authUser?.emailVerified || false },
-    { title: t('dashboard:role'), value: getCurrentRole() || 'No especificado' },
-    { title: t('dashboard:plan'), value: getCurrentPlan() || 'No especificado' }
+    { title: 'Nombre', value: authUser?.displayName || 'No especificado' },
+    { title: 'Email', value: authUser?.email || 'No especificado' },
+    { title: 'Email verificado', value: authUser?.emailVerified || false },
+    { title: 'Rol', value: getCurrentRole() || 'No especificado' },
+    { title: 'Plan', value: getCurrentPlan() || 'No especificado' }
   ];
 
   return (
@@ -55,7 +56,7 @@ export default function SettingPage() {
                     <Typography.TypographySmall className="capitalize">{item.title}</Typography.TypographySmall>
                     {typeof item.value === 'boolean'
                       ? <Badge variant={item.value ? "default" : "secondary"} className="mt-1">
-                        {item.value ? t('common:yes') : t('common:no')}
+                        {item.value ? 'Sí' : 'No'}
                       </Badge>
                       : <Typography.TypographyLarge>{item.value}</Typography.TypographyLarge>}
                   </CardContent>
@@ -72,7 +73,7 @@ export default function SettingPage() {
             <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <Typography.TypographyH4>¡Bienvenido a Pestilo!</Typography.TypographyH4>
+                  <Typography.TypographyH4>¡Bienvenido a 4net!</Typography.TypographyH4>
                   <Typography.TypographyP className="text-muted-foreground mt-2">
                     Para comenzar, crea tu primer negocio completando el formulario anterior.
                     Una vez creado, podrás gestionar sucursales, servicios y mucho más.
@@ -88,6 +89,10 @@ export default function SettingPage() {
                 setCardFocusedId={setCardFocusedId}
               />
               <InventoryBilling
+                cardFocusedId={cardFocusedId}
+                setCardFocusedId={setCardFocusedId}
+              />
+              <WhatsAppConnection
                 cardFocusedId={cardFocusedId}
                 setCardFocusedId={setCardFocusedId}
               />

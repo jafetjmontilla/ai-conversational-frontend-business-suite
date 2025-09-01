@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+
 import { useAuth } from '../../contexts/AuthContext';
 import { FcGoogle } from 'react-icons/fc';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -21,14 +21,14 @@ interface LoginFormProps {
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
   const { signIn, signInGoogle } = useAuth();
-  const { t } = useTranslation(['auth', 'common']);
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { theme } = useTheme();
   const formSchema = z.object({
-    email: z.string().email(t('auth:login.errors.emailInvalid')),
-    password: z.string().min(6, t('auth:login.errors.passwordMin')),
+    email: z.string().email('Email inválido'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -44,14 +44,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
   const values = [
     {
       name: 'email' as const,
-      label: t('auth:login.email'),
-      placeholder: t('auth:login.emailPlaceholder'),
+      label: 'Email',
+      placeholder: 'tu@email.com',
       icon: Mail,
       type: 'email' as const,
     },
     {
       name: 'password' as const,
-      label: t('auth:login.password'),
+      label: 'Contraseña',
       placeholder: '••••••••',
       icon: Lock,
       type: 'password' as const,
@@ -69,7 +69,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         setError(response.message);
       }
     } catch (err) {
-      setError(t('auth:login.errors.unexpected'));
+      setError('Error inesperado');
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         setError(response.message);
       }
     } catch (err) {
-      setError(t('auth:login.errors.unexpectedGoogle'));
+      setError('Error inesperado con Google');
     } finally {
       setLoading(false);
     }
@@ -95,8 +95,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center space-y-1 py-6">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{t('auth:login.title')}</h2>
-        <p className="text-gray-600 dark:text-gray-300">{t('auth:login.subtitle')}</p>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar sesión</h2>
+        <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {error && (
@@ -144,7 +144,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
               />
             ))}
             <Button variant={theme === "dark" ? "outline" : "default"} type="submit" className="w-full" disabled={loading}>
-              {loading ? t('common:loading') : t('auth:login.submit')}
+              {loading ? 'Cargando...' : 'Iniciar sesión'}
             </Button>
           </form>
         </Form>
@@ -154,7 +154,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
               <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">{t('common:orContinueWith')}</span>
+              <span className="px-2 bg-card text-muted-foreground">O continúa con</span>
             </div>
           </div>
           <Button
@@ -164,17 +164,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
             className="w-full"
           >
             <FcGoogle className="h-4 w-4 mr-2" />
-            {loading ? t('common:connecting') : t('auth:login.google')}
+            {loading ? 'Conectando...' : 'Google'}
           </Button>
         </div>
         <div className="text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-300">{t('auth:login.noAccount')} </span>
+          <span className="text-gray-600 dark:text-gray-300">¿No tienes una cuenta? </span>
           <button
             onClick={onSwitchToRegister}
             disabled={loading}
             className="text-blue-600 dark:text-blue-400 hover:underline font-medium disabled:opacity-50"
           >
-            {t('auth:login.signUp')}
+            Regístrate
           </button>
         </div>
       </CardContent>

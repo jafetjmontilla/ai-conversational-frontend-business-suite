@@ -1,6 +1,6 @@
 # Hook useAllowed - Sistema de Permisos y Autorizaciones
 
-El hook `useAllowed` proporciona un sistema completo de permisos y autorizaciones para la aplicación Pestilo, basado en el plan del usuario y otros criterios de seguridad.
+El hook `useAllowed` proporciona un sistema completo de permisos y autorizaciones para la aplicación 4net, basado en el plan del usuario y otros criterios de seguridad.
 
 ## 🚀 Características
 

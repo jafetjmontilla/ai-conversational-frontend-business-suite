@@ -1,0 +1,14 @@
+# URL de la API principal
+NEXT_PUBLIC_API_URL=http://localhost:2000
+
+# URL de la API de WhatsApp
+NEXT_PUBLIC_WHATSAPP_API_URL=http://localhost:2001
+
+# URL de la API Jaihom (si existe)
+NEXT_PUBLIC_API_JAIHOM_URL=
+
+# Configuración de Firebase
+# (Agrega aquí las configuraciones de Firebase si es necesario)
+
+# Configuración de desarrollo
+NEXT_PUBLIC_ENV=development

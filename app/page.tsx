@@ -7,7 +7,7 @@ export default function RootPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-wellness-50 dark:from-gray-900 dark:to-gray-800">
       <div className="text-center max-w-2xl px-4">
         <h1 className="text-4xl font-bold text-primary-600 dark:text-primary-400 mb-6">
-          ¡Bienvenido a Pestilos!
+          ¡Bienvenido a 4nets!
         </h1>
         <p className="text-xl text-gray-700 dark:text-gray-300 mb-8">
           Tu plataforma integral para la gestión de eventos y servicios

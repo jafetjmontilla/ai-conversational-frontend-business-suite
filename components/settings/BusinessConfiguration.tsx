@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { useBusiness } from "@/contexts/BusinessContext";
-import { useTranslation } from "react-i18next";
+
 import { useState, useEffect } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +17,7 @@ import { BusinessInput } from "@/lib/interfases";
 import { Field, FieldValue } from "@/components/Field";
 import { FieldSocialmedias } from "@/components/FieldSocialmedias";
 import { FieldLogo } from "@/components/FieldLogo";
-import { COUNTRIES } from "@/lib/countries";
+
 
 // Esquema de validación con Zod
 const businessSchema = z.object({
@@ -45,7 +45,7 @@ interface BusinessConfigurationProps {
 }
 
 export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId }: BusinessConfigurationProps) {
-  const { t } = useTranslation(['dashboard', 'common']);
+
   const { currentBusiness, loading: businessLoading, error: businessError, updateBusiness, createBusiness, clearError, checkSlugAvailable } = useBusiness();
   const [saving, setSaving] = useState(false);
   const [slugChecking, setSlugChecking] = useState(false);
@@ -56,15 +56,15 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
   const valuesBusiness: FieldValue[] = [
     {
       name: 'logo',
-      label: t('dashboard:logo'),
-      placeholder: t('dashboard:logoPlaceholder'),
+      label: 'Logo',
+      placeholder: 'URL del logo',
       type: 'file',
       component: FieldLogo,
     },
     {
       name: 'commercialName',
-      label: t('dashboard:commercialName'),
-      placeholder: t('dashboard:commercialNamePlaceholder'),
+      label: 'Nombre comercial',
+      placeholder: 'Nombre de tu negocio',
       type: 'text',
       component: Input,
     },
@@ -79,52 +79,48 @@ export default function BusinessConfiguration({ cardFocusedId, setCardFocusedId 
     },
     {
       name: 'phoneNumber',
-      label: t('dashboard:phoneNumber'),
-      placeholder: t('dashboard:phoneNumberPlaceholder'),
+      label: 'Teléfono',
+      placeholder: '+56912345678',
       type: 'text',
       component: Input,
     },
     {
       name: 'address',
-      label: t('dashboard:address'),
-      placeholder: t('dashboard:addressPlaceholder'),
+      label: 'Dirección',
+      placeholder: 'Dirección de tu negocio',
       type: 'text',
       component: Input,
     },
     {
       name: 'country',
-      label: t('dashboard:country'),
-      placeholder: t('dashboard:countryPlaceholder'),
+      label: 'País',
+      placeholder: 'Ej: Chile, Argentina, México',
       type: 'text',
-      component: Select,
-      options: Object.values(COUNTRIES).map(country => ({
-        label: `${country.flag} ${country.name}`,
-        value: country.name
-      }))
+      component: Input,
     },
     {
       name: 'hasMultipleBranches',
-      label: t('dashboard:hasMultipleBranches'),
-      placeholder: t('dashboard:hasMultipleBranchesPlaceholder'),
+      label: '¿Múltiples sucursales?',
+      placeholder: 'Selecciona si tienes múltiples sucursales',
       type: 'boolean',
       component: Select,
       options: [
-        { label: t('dashboard:yes'), value: true },
-        { label: t('dashboard:no'), value: false }
+        { label: 'Sí', value: true },
+        { label: 'No', value: false }
       ]
     },
     {
       name: "description",
-      label: t('dashboard:description'),
-      placeholder: t('dashboard:descriptionPlaceholder'),
+      label: 'Descripción',
+      placeholder: 'Describe tu negocio',
       type: 'text',
       component: Textarea,
       info: "Esta descripción aparecerá en tu perfil público y ayudará a los clientes a conocerte mejor"
     },
     {
       name: "socialMedia",
-      label: t('dashboard:socialMedia'),
-      placeholder: t('dashboard:socialMediaPlaceholder'),
+      label: 'Redes sociales',
+      placeholder: 'Configura tus redes sociales',
       type: 'socialMedia',
       component: FieldSocialmedias,
       info: "Las redes sociales ayudarán a los clientes a encontrarte y conocer tu trabajo"

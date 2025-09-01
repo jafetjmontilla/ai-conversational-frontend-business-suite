@@ -1,7 +1,7 @@
 import { Field, FieldValue } from "./Field";
 import { TypographyExtraSmall } from "./Typography";
 import { Input } from "./ui/input";
-import { useTranslation } from "react-i18next";
+
 
 interface FieldSocialmediasProps {
   form: any;
@@ -9,13 +9,13 @@ interface FieldSocialmediasProps {
 }
 
 export const FieldSocialmedias = ({ form, value }: FieldSocialmediasProps) => {
-  const { t } = useTranslation();
+
 
   const valuesSocialmedias: FieldValue[] = [
     {
       name: "socialMedia.instagram",
-      label: t('dashboard:instagram'),
-      placeholder: t('dashboard:instagramPlaceholder'),
+      label: 'Instagram',
+      placeholder: '@tuusuario',
       type: 'text',
       component: Input,
       icon: '📷',
@@ -23,8 +23,8 @@ export const FieldSocialmedias = ({ form, value }: FieldSocialmediasProps) => {
     },
     {
       name: "socialMedia.facebook",
-      label: t('dashboard:facebook'),
-      placeholder: t('dashboard:facebookPlaceholder'),
+      label: 'Facebook',
+      placeholder: 'https://facebook.com/tupagina',
       type: 'text',
       component: Input,
       icon: '📘',
@@ -32,8 +32,8 @@ export const FieldSocialmedias = ({ form, value }: FieldSocialmediasProps) => {
     },
     {
       name: "socialMedia.whatsapp",
-      label: t('dashboard:whatsapp'),
-      placeholder: t('dashboard:whatsappPlaceholder'),
+      label: 'WhatsApp',
+      placeholder: '+56912345678',
       type: 'text',
       component: Input,
       icon: '💬',
@@ -41,8 +41,8 @@ export const FieldSocialmedias = ({ form, value }: FieldSocialmediasProps) => {
     },
     {
       name: "socialMedia.tiktok",
-      label: t('dashboard:tiktok'),
-      placeholder: t('dashboard:tiktokPlaceholder'),
+      label: 'TikTok',
+      placeholder: '@tuusuario',
       type: 'text',
       component: Input,
       icon: '🎵',

@@ -1,8 +1,8 @@
-# Sistema de Temas - Pestilo Frontend
+# Sistema de Temas - 4net Frontend
 
 ## Descripción
 
-El sistema de temas implementado en Pestilo permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
+El sistema de temas implementado en 4net permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
 
 ## Características
 

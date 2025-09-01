@@ -2,23 +2,21 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useTranslation } from 'react-i18next';
-import { NavigationMenu as ShadNavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
 
-export interface MainNavLinksProps { basePath: string; }
+import { NavigationMenu as ShadNavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
 
 export interface NavigationProps {
   items: { href: string; label: string; }[]
 }
 
-export default function MainNavLinks({ basePath }: MainNavLinksProps) {
-  const { t } = useTranslation(['navigation']);
+export default function MainNavLinks() {
+
   const items: NavigationProps['items'] = [
-    { href: `${basePath}`, label: t('navigation:home') },
-    { href: `${basePath}/theme-demo`, label: t('navigation:themes') },
-    { href: `${basePath}/services`, label: t('navigation:services') },
-    { href: `${basePath}/about`, label: t('navigation:about') },
-    { href: `${basePath}/contact`, label: t('navigation:contact') },
+    { href: '/', label: 'Inicio' },
+    { href: '/theme-demo', label: 'Temas' },
+    { href: '/services', label: 'Servicios' },
+    { href: '/about', label: 'Acerca de' },
+    { href: '/contact', label: 'Contacto' },
   ];
 
   return (

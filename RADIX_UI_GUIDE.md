@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Radix UI ha sido implementado en Pestilo para proporcionar componentes accesibles, personalizables y de alta calidad. Todos los componentes están optimizados para el sistema de temas claro/oscuro.
+Radix UI ha sido implementado en 4net para proporcionar componentes accesibles, personalizables y de alta calidad. Todos los componentes están optimizados para el sistema de temas claro/oscuro.
 
 ## Componentes Implementados
 
@@ -120,7 +120,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 - **Contraste** optimizado para ambos temas
 - **Estados de hover/focus** claros
 
-### 🎯 Beneficios para Pestilo
+### 🎯 Beneficios para 4net
 - **Inclusividad**: Accesible para usuarios con discapacidades
 - **Profesionalismo**: Componentes de nivel empresarial
 - **Mantenibilidad**: Código más limpio y estructurado
@@ -135,7 +135,7 @@ Todos los componentes están optimizados para el sistema de temas claro/oscuro:
 className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ```
 
-## Casos de Uso en Pestilo
+## Casos de Uso en 4net
 
 ### Dashboard
 - **Progress**: Progreso semanal de rutinas
@@ -218,7 +218,7 @@ const [open, setOpen] = useState(false);
 
 ## Conclusión
 
-Radix UI proporciona una base sólida para componentes accesibles y profesionales en Pestilo. La implementación actual cubre los casos de uso más comunes y está preparada para escalar con nuevas funcionalidades. 
+Radix UI proporciona una base sólida para componentes accesibles y profesionales en 4net. La implementación actual cubre los casos de uso más comunes y está preparada para escalar con nuevas funcionalidades. 
 
 ### Estilo de código: "código conciso/denso"
 
