@@ -4,29 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusiness } from "@/contexts/BusinessContext";
-
 import { useAllowed } from "@/lib/hooks/useAllowed";
 import * as Typography from "@/components/Typography";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import BusinessConfiguration from "@/components/settings/BusinessConfiguration";
-import BranchManagement from "@/components/settings/BranchManagement";
-import InventoryBilling from "@/components/settings/InventoryBilling";
 import WhatsAppConnection from "@/components/settings/WhatsAppConnection";
 
 export default function SettingPage() {
   const { authUser } = useAuth();
-  const { getCurrentRole, getCurrentPlan } = useAllowed();
-
-  const { currentBusiness, loading: businessLoading, error: businessError } = useBusiness();
+  const { getCurrentRole } = useAllowed();
   const [cardFocusedId, setCardFocusedId] = useState<string>();
-
   const authUserDisplay = [
     { title: 'Nombre', value: authUser?.displayName || 'No especificado' },
     { title: 'Email', value: authUser?.email || 'No especificado' },
     { title: 'Email verificado', value: authUser?.emailVerified || false },
-    { title: 'Rol', value: getCurrentRole() || 'No especificado' },
-    { title: 'Plan', value: getCurrentPlan() || 'No especificado' }
+    { title: 'Rol', value: getCurrentRole() || 'No especificado' }
   ];
 
   return (
@@ -37,11 +29,6 @@ export default function SettingPage() {
             <CardTitle>Configuración del Sistema</CardTitle>
             <CardDescription>Gestiona la configuración de tu negocio y sucursales</CardDescription>
           </div>
-          {businessError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{businessError}</p>
-            </div>
-          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <Card className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20">
@@ -65,39 +52,22 @@ export default function SettingPage() {
             </CardContent>
           </Card>
           <Separator className="my-4" />
-          <BusinessConfiguration
+          <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Typography.TypographyH4>¡Bienvenido a 4net!</Typography.TypographyH4>
+                <Typography.TypographyP className="text-muted-foreground mt-2">
+                  Para comenzar, crea tu primer negocio completando el formulario anterior.
+                  Una vez creado, podrás gestionar sucursales, servicios y mucho más.
+                </Typography.TypographyP>
+              </div>
+            </CardContent>
+          </Card>
+          <WhatsAppConnection
             cardFocusedId={cardFocusedId}
             setCardFocusedId={setCardFocusedId}
           />
-          {!businessLoading && !currentBusiness && (
-            <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <Typography.TypographyH4>¡Bienvenido a 4net!</Typography.TypographyH4>
-                  <Typography.TypographyP className="text-muted-foreground mt-2">
-                    Para comenzar, crea tu primer negocio completando el formulario anterior.
-                    Una vez creado, podrás gestionar sucursales, servicios y mucho más.
-                  </Typography.TypographyP>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {currentBusiness && (
-            <>
-              <BranchManagement
-                cardFocusedId={cardFocusedId}
-                setCardFocusedId={setCardFocusedId}
-              />
-              <InventoryBilling
-                cardFocusedId={cardFocusedId}
-                setCardFocusedId={setCardFocusedId}
-              />
-              <WhatsAppConnection
-                cardFocusedId={cardFocusedId}
-                setCardFocusedId={setCardFocusedId}
-              />
-            </>
-          )}
+
         </CardContent>
       </Card>
     </div>

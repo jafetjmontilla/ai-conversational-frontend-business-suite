@@ -110,8 +110,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
         variables: {
           args: {
             uid: userId,
-            role: data.role,
-            plan: 'free'
+            role: data.role
           }
         }
       });
@@ -249,8 +248,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
               <div className="flex items-start">
                 <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-primary">{'Plan Gratuito'}</h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{'Comenzarás con un plan gratuito que podrás mejorar más adelante'}</p>
+                  <h3 className="text-sm font-medium text-primary">{'Acceso Completo'}</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{'Tendrás acceso a todas las funcionalidades según tu rol'}</p>
                 </div>
               </div>
             </Card>

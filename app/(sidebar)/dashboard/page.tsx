@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function DashboardPage() {
   const { authUser, loading, logout } = useAuth();
-  const { getCurrentRole, getCurrentPlan } = useAllowed();
+  const { getCurrentRole } = useAllowed();
   const router = useRouter();
 
 
@@ -36,7 +36,6 @@ export default function DashboardPage() {
   if (!authUser) return null;
 
   const currentRole = getCurrentRole();
-  const currentPlan = getCurrentPlan();
 
   const handleLogout = async () => {
     await logout();
@@ -55,8 +54,7 @@ export default function DashboardPage() {
                 <span className="font-medium">{authUser.displayName || authUser.email}</span>
                 <Separator orientation="vertical" className="h-4" />
                 <Badge variant="secondary" className="capitalize">{currentRole}</Badge>
-                <Separator orientation="vertical" className="h-4" />
-                <Badge variant="outline" className="capitalize">{currentPlan}</Badge>
+
               </div>
               <Button variant="destructive" onClick={handleLogout}>
                 Cerrar sesión
@@ -115,11 +113,11 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tu Plan</CardTitle>
+              <CardTitle>Tu Rol</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold capitalize mb-2">{currentPlan}</div>
-              <p className="text-muted-foreground">Descripción del plan: {currentPlan}</p>
+              <div className="text-2xl font-bold capitalize mb-2">{currentRole}</div>
+              <p className="text-muted-foreground">Tu rol actual en el sistema</p>
             </CardContent>
           </Card>
         </div>

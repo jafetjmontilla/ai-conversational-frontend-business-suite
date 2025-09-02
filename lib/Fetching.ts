@@ -115,7 +115,6 @@ export interface CustomClaimsData {
   email: string | null;
   customClaims: any;
   role: string;
-  plan: string;
 }
 
 export const queries = {
@@ -127,7 +126,6 @@ export const queries = {
         uid
         email
         role
-        plan
         assignedAt
       }
     }
@@ -140,7 +138,6 @@ export const queries = {
         uid
         email
         role
-        plan
         assignedAt
       }
     }
@@ -168,7 +165,6 @@ export const queries = {
       name
       email
       phone
-      plan
       role
       active
       emailVerified

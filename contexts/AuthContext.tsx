@@ -47,10 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       photoURL: user.photoURL,
       emailVerified: user.emailVerified,
       providerId: user.providerData[0]?.providerId || 'password',
-      customClaims: decodedToken.role || decodedToken.plan ? {
+      customClaims: decodedToken.role ? {
         _id: decodedToken._id,
-        role: decodedToken.role,
-        plan: decodedToken.plan
+        role: decodedToken.role
       } : undefined
     };
   };

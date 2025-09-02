@@ -104,7 +104,6 @@ export default function UsersPage() {
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
-                      <TableHead>Plan</TableHead>
                       <TableHead>Active</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Email verified</TableHead>
@@ -125,7 +124,6 @@ export default function UsersPage() {
                         <TableCell>{u.name}</TableCell>
                         <TableCell>{u.email}</TableCell>
                         <TableCell>{u.phone}</TableCell>
-                        <TableCell>{u.plan}</TableCell>
                         <TableCell>{u.active ? "active" : "inactive"}</TableCell>
                         <TableCell>{u.role}</TableCell>
                         <TableCell>{u.emailVerified ? "verified" : "unverified"}</TableCell>

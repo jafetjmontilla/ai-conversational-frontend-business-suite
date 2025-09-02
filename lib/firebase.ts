@@ -46,7 +46,6 @@ export interface AuthUser {
   customClaims?: {
     _id: string;
     role?: string;
-    plan?: string;
   };
 }
 

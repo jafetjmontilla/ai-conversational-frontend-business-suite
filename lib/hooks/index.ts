@@ -1,7 +1,6 @@
 // Hook principal de permisos
 export {
   useAllowed,
-  type Plan,
   type Permission,
   type PermissionConfig
 } from './useAllowed';

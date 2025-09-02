@@ -1,10 +1,10 @@
 # Hook useAllowed - Sistema de Permisos y Autorizaciones
 
-El hook `useAllowed` proporciona un sistema completo de permisos y autorizaciones para la aplicación 4net, basado en el plan del usuario y otros criterios de seguridad.
+El hook `useAllowed` adminporciona un sistema completo de permisos y autorizaciones para la aplicación 4net, basado en el rol del usuario y otros criterios de seguridad.
 
 ## 🚀 Características
 
-- ✅ **Verificación de permisos** basada en planes de usuario
+- ✅ **Verificación de permisos** basada en roles de usuario
 - ✅ **Verificación de email** para funcionalidades críticas
 - ✅ **Permisos personalizados** con condiciones específicas
 - ✅ **Hooks especializados** para diferentes áreas de la aplicación
@@ -27,21 +27,21 @@ import { useAllowed } from '../lib/hooks/useAllowed';
 import { useAllowed } from '../lib/hooks/useAllowed';
 
 function MiComponente() {
-  const { can, hasPlan, getCurrentPlan } = useAllowed();
+  const { can, hasRole, getCurrentRole } = useAllowed();
 
   // Verificar un permiso específico
   const puedeCrearRutina = can('rutinas:crear');
 
-  // Verificar si tiene un plan específico
-  const esPremium = hasPlan('premium');
+  // Verificar si tiene un rol específico
+  const esAdmin = hasRole('admin');
 
-  // Obtener el plan actual
-  const planActual = getCurrentPlan();
+  // Obtener el rol actual
+  const rolActual = getCurrentRole();
 
   return (
     <div>
       {puedeCrearRutina && <button>Crear Rutina</button>}
-      {esPremium && <div>Funcionalidades Premium</div>}
+      {esAdmin && <div>Funcionalidades de Administrador</div>}
     </div>
   );
 }
@@ -61,8 +61,8 @@ const puedeGestionarRutinas = canAll([
 
 // Verificar que tenga AL MENOS UNO de los permisos (OR)
 const tieneAccesoPremium = canAny([
-  'ejercicios:premium',
-  'progreso:avanzado',
+  'ejercicios:adminfessional',
+  'admingreso:avanzado',
   'estadisticas:detalladas'
 ]);
 ```
@@ -80,7 +80,7 @@ function RutinasComponent() {
     canEdit, 
     canDelete, 
     canUnlimited, 
-    hasPremiumAccess 
+    hasProfessionalAccess 
   } = useRoutinePermissions();
 
   return (
@@ -103,7 +103,7 @@ function EjerciciosComponent() {
   const { 
     canAccess, 
     canAccessPremium, 
-    hasPremiumAccess 
+    hasProfessionalAccess 
   } = useExercisePermissions();
 
   return (
@@ -168,11 +168,11 @@ function EmailVerificationComponent() {
 
 ### Ejercicios
 - `ejercicios:acceder` - Acceder a ejercicios básicos
-- `ejercicios:premium` - Acceder a ejercicios premium
+- `ejercicios:adminfessional` - Acceder a ejercicios adminfessional
 
 ### Progreso y Estadísticas
-- `progreso:ver` - Ver progreso básico
-- `progreso:avanzado` - Ver progreso avanzado
+- `admingreso:ver` - Ver admingreso básico
+- `admingreso:avanzado` - Ver admingreso avanzado
 - `estadisticas:detalladas` - Ver estadísticas detalladas
 
 ### Configuración
@@ -188,24 +188,24 @@ function EmailVerificationComponent() {
 ### Email
 - `email:verificado` - Email verificado
 
-## 🎛️ Planes de Usuario
+## 🎛️ Roles de Usuario
 
-### Plan Gratuito
+### Rol Gratuito
 - ✅ Rutinas básicas (limitadas)
 - ✅ Ejercicios básicos
 - ✅ Progreso básico
 - ✅ Configuración de perfil
 
-### Plan Premium
-- ✅ Todo del plan gratuito
+### Rol Premium
+- ✅ Todo del rol gratuito
 - ✅ Rutinas ilimitadas
-- ✅ Ejercicios premium
+- ✅ Ejercicios adminfessional
 - ✅ Progreso avanzado
 - ✅ Estadísticas detalladas
 - ✅ Configuración avanzada
 
-### Plan Pro
-- ✅ Todo del plan premium
+### Rol Pro
+- ✅ Todo del rol adminfessional
 - ✅ Exportación de datos
 - ✅ Soporte prioritario
 
@@ -219,7 +219,7 @@ const customPermissions = {
     action: 'especial',
     resource: 'mi-permiso',
     conditions: {
-      plan: ['premium', 'pro'],
+      rol: ['adminfessional', 'admin'],
       emailVerified: true,
       custom: (user) => {
         // Lógica personalizada
@@ -242,11 +242,11 @@ const tienePermisoEspecial = can('mi-permiso:especial', customPermissions);
 
 ## 🔄 Integración con Backend
 
-Para obtener el plan real del usuario desde el backend:
+Para obtener el rol real del usuario desde el backend:
 
 ```typescript
 // En el futuro, esto vendría del backend
-const userPlan = await fetchUserPlan(authUser.uid);
+const userRol = await fetchUserRol(authUser.uid);
 ```
 
 ## 📝 Ejemplos de Uso Completo
@@ -260,8 +260,8 @@ function DashboardComponent() {
   const { 
     can, 
     canAll, 
-    hasPlan, 
-    getCurrentPlan,
+    hasRole, 
+    getCurrentRole,
     loading 
   } = useAllowed();
 
@@ -269,7 +269,7 @@ function DashboardComponent() {
     return <div>Cargando permisos...</div>;
   }
 
-  const planActual = getCurrentPlan();
+  const rolActual = getCurrentRole();
   const puedeGestionarTodo = canAll([
     'rutinas:crear',
     'rutinas:editar',
@@ -278,7 +278,7 @@ function DashboardComponent() {
 
   return (
     <div>
-      <h1>Dashboard - Plan: {planActual}</h1>
+      <h1>Dashboard - Rol: {rolActual}</h1>
       
       {/* Sección de Rutinas */}
       <section>
@@ -288,16 +288,16 @@ function DashboardComponent() {
       </section>
 
       {/* Sección Premium */}
-      {hasPlan('premium') && (
+      {hasRole('adminfessional') && (
         <section>
           <h2>Funcionalidades Premium</h2>
-          {can('ejercicios:premium') && <div>Ejercicios Premium</div>}
+          {can('ejercicios:adminfessional') && <div>Ejercicios Premium</div>}
           {can('estadisticas:detalladas') && <div>Estadísticas Avanzadas</div>}
         </section>
       )}
 
       {/* Sección Pro */}
-      {hasPlan('pro') && (
+      {hasRole('admin') && (
         <section>
           <h2>Funcionalidades Pro</h2>
           {can('exportar:datos') && <button>Exportar Datos</button>}
@@ -314,9 +314,9 @@ function DashboardComponent() {
 1. **Usar hooks especializados** para áreas específicas
 2. **Verificar permisos antes de renderizar** componentes sensibles
 3. **Proporcionar feedback visual** cuando no se tienen permisos
-4. **Manejar estados de carga** apropiadamente
+4. **Manejar estados de carga** aadminpiadamente
 5. **Documentar permisos personalizados** claramente
-6. **Testear diferentes planes** de usuario
+6. **Testear diferentes roles** de usuario
 
 ## 🔧 Configuración Avanzada
 
@@ -328,7 +328,7 @@ function DashboardComponent() {
   action: 'push',
   resource: 'notificaciones',
   conditions: {
-    plan: ['premium', 'pro'],
+    rol: ['adminfessional', 'admin'],
     emailVerified: true
   }
 }
@@ -338,11 +338,11 @@ function DashboardComponent() {
 
 ```typescript
 export const useNotificationPermissions = () => {
-  const { can, hasAnyPlan } = useAllowed();
+  const { can, hasAnyRole } = useAllowed();
 
   return {
     canSendPush: () => can('notificaciones:push'),
-    hasPremiumAccess: () => hasAnyPlan(['premium', 'pro'])
+    hasProfessionalAccess: () => hasAnyRole(['adminfessional', 'admin'])
   };
 };
 ``` 

@@ -26,7 +26,7 @@ export default function RegisterPage() {
 
   // Redirigir si ya está autenticado
   useEffect(() => {
-    if (!loading && authUser?.customClaims?.role && authUser?.customClaims?.plan) {
+    if (!loading && authUser?.customClaims?.role) {
       router.push('/dashboard'); // Actualizado para incluir el país por defecto
     }
   }, [authUser, loading, router]);
@@ -41,7 +41,7 @@ export default function RegisterPage() {
   }
 
   // Si ya está autenticado, no mostrar nada (se redirigirá)
-  if (authUser?.customClaims?.role && authUser?.customClaims?.plan) {
+  if (authUser?.customClaims?.role ) {
     return null;
   }
 

@@ -2,14 +2,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMemo } from 'react';
 
 // Tipos para permisos
-export type Plan = 'free' | 'premium' | 'pro';
 export type Role = 'admin' | 'professional' | 'client';
 
 export interface Permission {
   action: string;
   resource: string;
   conditions?: {
-    plan?: Plan[];
     role?: Role[];
     emailVerified?: boolean;
     custom?: (user: any) => boolean;
@@ -27,7 +25,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'crear',
     resource: 'rutinas',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -35,7 +32,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'editar',
     resource: 'rutinas',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -43,16 +39,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'eliminar',
     resource: 'rutinas',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
       role: ['admin', 'professional']
-    }
-  },
-  'rutinas:ilimitadas': {
-    action: 'ilimitadas',
-    resource: 'rutinas',
-    conditions: {
-      plan: ['premium', 'pro'],
-      role: ['admin', 'professional', 'client']
     }
   },
 
@@ -61,15 +48,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'acceder',
     resource: 'ejercicios',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'ejercicios:premium': {
-    action: 'premium',
-    resource: 'ejercicios',
-    conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -77,7 +55,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'crear',
     resource: 'ejercicios',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional']
     }
   },
@@ -85,7 +62,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'editar',
     resource: 'ejercicios',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional']
     }
   },
@@ -93,7 +69,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'eliminar',
     resource: 'ejercicios',
     conditions: {
-      plan: ['pro'],
       role: ['admin']
     }
   },
@@ -103,7 +78,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'ver',
     resource: 'progreso',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -111,7 +85,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'avanzado',
     resource: 'progreso',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -119,7 +92,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'detalladas',
     resource: 'estadisticas',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -127,7 +99,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'globales',
     resource: 'estadisticas',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional']
     }
   },
@@ -137,7 +108,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      plan: ['free', 'premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -145,7 +115,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'avanzada',
     resource: 'configuracion',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -153,7 +122,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'sistema',
     resource: 'configuracion',
     conditions: {
-      plan: ['pro'],
       role: ['admin']
     }
   },
@@ -163,7 +131,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'ver',
     resource: 'usuarios',
     conditions: {
-      plan: ['premium', 'pro'],
       role: ['admin', 'professional']
     }
   },
@@ -171,7 +138,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'crear',
     resource: 'usuarios',
     conditions: {
-      plan: ['pro'],
       role: ['admin']
     }
   },
@@ -179,7 +145,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'editar',
     resource: 'usuarios',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional']
     }
   },
@@ -187,7 +152,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'eliminar',
     resource: 'usuarios',
     conditions: {
-      plan: ['pro'],
       role: ['admin']
     }
   },
@@ -197,7 +161,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -205,7 +168,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional']
     }
   },
@@ -215,7 +177,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional', 'client']
     }
   },
@@ -223,7 +184,6 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      plan: ['pro'],
       role: ['admin', 'professional']
     }
   },
@@ -262,15 +222,6 @@ export const useAllowed = () => {
       }
 
       const { conditions } = permissionConfig;
-
-      // Verificar condiciones de plan
-      if (conditions?.plan) {
-        // Obtener el plan del usuario desde los custom claims
-        const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
-        if (!conditions.plan.includes(userPlan)) {
-          return false;
-        }
-      }
 
       // Verificar condiciones de rol
       if (conditions?.role) {
@@ -323,31 +274,7 @@ export const useAllowed = () => {
     };
   }, [can]);
 
-  // Función para verificar si el usuario tiene un plan específico
-  const hasPlan = useMemo(() => {
-    return (plan: Plan): boolean => {
-      if (!authUser) return false;
-      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
-      return userPlan === plan;
-    };
-  }, [authUser]);
 
-  // Función para verificar si el usuario tiene al menos un plan específico
-  const hasAnyPlan = useMemo(() => {
-    return (plans: Plan[]): boolean => {
-      if (!authUser) return false;
-      const userPlan: Plan = (authUser.customClaims?.plan as Plan) || 'free';
-      return plans.includes(userPlan);
-    };
-  }, [authUser]);
-
-  // Función para obtener el plan actual del usuario
-  const getCurrentPlan = useMemo(() => {
-    return (): Plan | null => {
-      if (!authUser) return null;
-      return (authUser.customClaims?.plan as Plan) || 'gratuito';
-    };
-  }, [authUser]);
 
   // Función para verificar si el usuario tiene un rol específico
   const hasRole = useMemo(() => {
@@ -380,9 +307,6 @@ export const useAllowed = () => {
     canAll,
     canAny,
     getAvailablePermissions,
-    hasPlan,
-    hasAnyPlan,
-    getCurrentPlan,
     hasRole,
     hasAnyRole,
     getCurrentRole,
@@ -393,29 +317,25 @@ export const useAllowed = () => {
 
 // Hook específico para verificar permisos de rutinas
 export const useRoutinePermissions = () => {
-  const { can, hasAnyPlan, hasAnyRole } = useAllowed();
+  const { can, hasAnyRole } = useAllowed();
 
   return {
     canCreate: () => can('rutinas:crear'),
     canEdit: () => can('rutinas:editar'),
     canDelete: () => can('rutinas:eliminar'),
-    canUnlimited: () => can('rutinas:ilimitadas'),
-    hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
     hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
 // Hook específico para verificar permisos de ejercicios
 export const useExercisePermissions = () => {
-  const { can, hasAnyPlan, hasAnyRole, hasRole } = useAllowed();
+  const { can, hasAnyRole, hasRole } = useAllowed();
 
   return {
     canAccess: () => can('ejercicios:acceder'),
-    canAccessPremium: () => can('ejercicios:premium'),
     canCreate: () => can('ejercicios:crear'),
     canEdit: () => can('ejercicios:editar'),
     canDelete: () => can('ejercicios:eliminar'),
-    hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
     hasProfessionalAccess: () => hasAnyRole(['admin', 'professional']),
     isAdmin: () => hasRole('admin')
   };
@@ -423,51 +343,47 @@ export const useExercisePermissions = () => {
 
 // Hook específico para verificar permisos de progreso
 export const useProgressPermissions = () => {
-  const { can, hasAnyPlan, hasAnyRole } = useAllowed();
+  const { can, hasAnyRole } = useAllowed();
 
   return {
     canView: () => can('progreso:ver'),
     canViewAdvanced: () => can('progreso:avanzado'),
     canViewDetailedStats: () => can('estadisticas:detalladas'),
     canViewGlobalStats: () => can('estadisticas:globales'),
-    hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
     hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
 // Hook específico para verificar permisos de configuración
 export const useConfigPermissions = () => {
-  const { can, hasAnyPlan, hasRole } = useAllowed();
+  const { can, hasRole } = useAllowed();
 
   return {
     canEditProfile: () => can('configuracion:perfil'),
     canAdvancedConfig: () => can('configuracion:avanzada'),
     canSystemConfig: () => can('configuracion:sistema'),
-    hasPremiumAccess: () => hasAnyPlan(['premium', 'pro']),
     isAdmin: () => hasRole('admin')
   };
 };
 
 // Hook específico para verificar permisos de exportación
 export const useExportPermissions = () => {
-  const { can, hasPlan, hasAnyRole } = useAllowed();
+  const { can, hasAnyRole } = useAllowed();
 
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProPlan: () => hasPlan('pro'),
     hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
 // Hook específico para verificar permisos de soporte
 export const useSupportPermissions = () => {
-  const { can, hasPlan, hasAnyRole } = useAllowed();
+  const { can, hasAnyRole } = useAllowed();
 
   return {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProPlan: () => hasPlan('pro'),
     hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
