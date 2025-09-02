@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 
 // Configuración de la API de WhatsApp
 const WHATSAPP_API_URL = process.env.NEXT_PUBLIC_WHATSAPP_API_URL || 'http://localhost:2001';
+const DEVELOPMENT_ID = process.env.NEXT_PUBLIC_DEVELOPMENT_ID || '4net';
 
 // Cliente axios para la API de WhatsApp
 const whatsappApiClient = axios.create({
@@ -16,6 +17,8 @@ const whatsappApiClient = axios.create({
 // Tipos para TypeScript
 export interface WhatsAppSession {
   id: string;
+  development: string;
+  userId?: string;
   isConnected: boolean;
   qrCode?: string;
   phoneNumber?: string;
@@ -73,13 +76,15 @@ class WhatsAppApiService {
   }
 
   // Crear sesión de WhatsApp
-  async createSession(sessionId: string, phoneNumber?: string): Promise<CreateSessionResponse> {
+  async createSession(sessionId: string, development: string, userId?: string, phoneNumber?: string): Promise<CreateSessionResponse> {
     const query = `
       mutation CreateSession($args: CreateSessionArgs!) {
         createSession(args: $args) {
           success
           session {
             id
+            development
+            userId
             isConnected
             qrCode
             phoneNumber
@@ -93,7 +98,7 @@ class WhatsAppApiService {
     `;
 
     const variables = {
-      args: { sessionId, phoneNumber }
+      args: { sessionId, development, userId, phoneNumber }
     };
 
     const result = await this.graphqlQuery<{ createSession: CreateSessionResponse }>(query, variables);
@@ -106,6 +111,8 @@ class WhatsAppApiService {
       query GetSession($args: GetSessionArgs!) {
         getSession(args: $args) {
           id
+          development
+          userId
           isConnected
           qrCode
           phoneNumber
@@ -129,6 +136,8 @@ class WhatsAppApiService {
       query GetAllSessions {
         getAllSessions {
           id
+          development
+          userId
           isConnected
           qrCode
           phoneNumber
@@ -140,6 +149,56 @@ class WhatsAppApiService {
 
     const result = await this.graphqlQuery<{ getAllSessions: WhatsAppSession[] }>(query);
     return result.getAllSessions;
+  }
+
+  // Obtener sesiones por desarrollo
+  async getSessionsByDevelopment(development: string): Promise<WhatsAppSession[]> {
+    const query = `
+      query GetSessionsByDevelopment($args: GetSessionsByDevelopmentArgs!) {
+        getSessionsByDevelopment(args: $args) {
+          id
+          development
+          userId
+          isConnected
+          qrCode
+          phoneNumber
+          connectionTime
+          lastActivity
+        }
+      }
+    `;
+
+    const variables = {
+      args: { development }
+    };
+
+    const result = await this.graphqlQuery<{ getSessionsByDevelopment: WhatsAppSession[] }>(query, variables);
+    return result.getSessionsByDevelopment;
+  }
+
+  // Obtener sesiones por desarrollo y usuario
+  async getSessionsByUser(development: string, userId: string): Promise<WhatsAppSession[]> {
+    const query = `
+      query GetSessionsByUser($args: GetSessionsByUserArgs!) {
+        getSessionsByUser(args: $args) {
+          id
+          development
+          userId
+          isConnected
+          qrCode
+          phoneNumber
+          connectionTime
+          lastActivity
+        }
+      }
+    `;
+
+    const variables = {
+      args: { development, userId }
+    };
+
+    const result = await this.graphqlQuery<{ getSessionsByUser: WhatsAppSession[] }>(query, variables);
+    return result.getSessionsByUser;
   }
 
   // Enviar mensaje
@@ -189,6 +248,8 @@ class WhatsAppApiService {
           success
           session {
             id
+            development
+            userId
             isConnected
             qrCode
           }
@@ -239,7 +300,7 @@ export class WhatsAppWebSocketClient {
   private reconnectDelay = 1000;
   private eventListeners: Map<string, Set<Function>> = new Map();
 
-  constructor(private userId?: string, private token?: string) { }
+  constructor(private development: string = DEVELOPMENT_ID, private userId?: string, private token?: string) { }
 
   // Conectar al servidor WebSocket
   connect(): Promise<void> {
@@ -263,8 +324,8 @@ export class WhatsAppWebSocketClient {
         this.reconnectAttempts = 0;
 
         // Autenticar si tenemos credenciales
-        if (this.userId || this.token) {
-          this.authenticate(this.userId, this.token);
+        if (this.development || this.userId || this.token) {
+          this.authenticate(this.development, this.userId, this.token);
         }
 
         resolve();
@@ -329,10 +390,10 @@ export class WhatsAppWebSocketClient {
   }
 
   // Autenticar con el servidor
-  authenticate(userId?: string, token?: string) {
+  authenticate(development?: string, userId?: string, token?: string) {
     if (!this.socket?.connected) return;
 
-    this.socket.emit('authenticate', { userId, token });
+    this.socket.emit('authenticate', { development, userId, token });
   }
 
   // Suscribirse a eventos de una sesión específica
@@ -430,12 +491,22 @@ export class WhatsAppWebSocketClient {
   }
 
   get connecting(): boolean {
-    return this.socket?.connecting || false;
+    return this.socket?.connected === false && this.socket?.disconnected === false;
   }
 }
 
 // Crear instancia singleton del servicio
 export const whatsappApiService = new WhatsAppApiService();
+
+// Métodos de conveniencia que usan el desarrollo actual
+export const createSession = (sessionId: string, userId?: string, phoneNumber?: string) =>
+  whatsappApiService.createSession(sessionId, DEVELOPMENT_ID, userId, phoneNumber);
+
+export const getSessionsByDevelopment = () =>
+  whatsappApiService.getSessionsByDevelopment(DEVELOPMENT_ID);
+
+export const getSessionsByUser = (userId: string) =>
+  whatsappApiService.getSessionsByUser(DEVELOPMENT_ID, userId);
 
 // Exportar para uso directo
 export default whatsappApiService;
