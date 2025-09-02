@@ -1,10 +1,10 @@
 {
   "name": "4net-frontend",
   "version": "1.0.0",
-  "description": "Frontend para aplicación SaaS de Bienestar y Cuidado Personal",
+  "description": "Aplicación SaaS ERP",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

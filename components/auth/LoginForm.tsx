@@ -13,6 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormInput } from '@/components/ui/input';
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
+import logoBlack from '/app/4netBlack.png';
+import logoWhite from '/app/4netWhite.png';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -94,6 +97,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
 
   return (
     <Card className="w-full max-w-md mx-auto">
+      <Image src={theme === "dark" ? logoWhite : logoBlack} alt="4net" width={200} height={200} className="mt-10 mx-auto" />
       <CardHeader className="text-center space-y-1 py-6">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar sesión</h2>
         <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>
@@ -124,18 +128,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
                           className={value.name === 'password' ? 'pl-10 pr-10' : 'pl-10'}
                           disabled={loading}
                         />
-                        {value.name === 'password' && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowPassword(!showPassword)}
-                            disabled={loading}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        )}
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -166,16 +158,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
             <FcGoogle className="h-4 w-4 mr-2" />
             {loading ? 'Conectando...' : 'Google'}
           </Button>
-        </div>
-        <div className="text-center text-sm">
-          <span className="text-gray-600 dark:text-gray-300">¿No tienes una cuenta? </span>
-          <button
-            onClick={onSwitchToRegister}
-            disabled={loading}
-            className="text-blue-600 dark:text-blue-400 hover:underline font-medium disabled:opacity-50"
-          >
-            Regístrate
-          </button>
         </div>
       </CardContent>
     </Card>

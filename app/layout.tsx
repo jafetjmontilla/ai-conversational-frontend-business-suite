@@ -9,8 +9,8 @@ import { ThemeProvider } from 'next-themes'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '4net - Bienestar y Cuidado Personal',
-  description: 'Tu compañero digital para una vida más saludable y equilibrada',
+  title: '4net - ERP',
+  description: 'ERP de 4net',
 }
 
 export default function RootLayout({ children, }: { children: React.ReactNode }) {
