@@ -8,24 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from 'sonner';
-import {
-  Smartphone,
-  QrCode,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  MessageSquare,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Trash2
-} from "lucide-react";
-import {
-  whatsappApiService,
-  WhatsAppSession,
-  CreateSessionResponse,
-  SessionEventData
-} from "@/lib/whatsapp-api";
+import { Smartphone, QrCode, Wifi, WifiOff, RefreshCw, MessageSquare, AlertCircle, CheckCircle, Clock, Trash2 } from "lucide-react";
+import { whatsappApiService, WhatsAppSession, CreateSessionResponse, SessionEventData } from "@/lib/whatsapp-api";
 import { useWhatsAppWebSocket } from "@/lib/hooks/useWhatsAppWebSocket";
 import * as Typography from "@/components/Typography";
 
@@ -67,7 +51,7 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
   const loadSessions = async () => {
     setLoading(true);
     try {
-      const sessionsData = await whatsappApiService.getAllSessions();
+      const sessionsData = await whatsappApiService.getSessionsByDevelopment();
       setSessions(sessionsData);
     } catch (error: any) {
       toast.error("No se pudieron cargar las sesiones de WhatsApp");
@@ -78,7 +62,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
 
   const handleSessionEvent = (event: SessionEventData) => {
     const { sessionId, event: eventType, data } = event;
-
     switch (eventType) {
       case 'connected':
         setSessions(prev => prev.map(session =>
@@ -93,7 +76,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
         });
         toast.success(`WhatsApp Conectado: La sesión ${sessionId} se conectó exitosamente`);
         break;
-
       case 'disconnected':
         setSessions(prev => prev.map(session =>
           session.id === sessionId
@@ -102,14 +84,12 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
         ));
         toast.error(`WhatsApp Desconectado: La sesión ${sessionId} se desconectó`);
         break;
-
       case 'qr_generated':
         if (data?.qrCode) {
           setQrCodeData(prev => ({ ...prev, [sessionId]: data.qrCode }));
           toast.success(`QR Code Generado: Escanea el código QR para conectar ${sessionId}`);
         }
         break;
-
       case 'qr_expired':
         setQrCodeData(prev => {
           const newData = { ...prev };
@@ -118,7 +98,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
         });
         toast.error(`QR Code Expirado: El código QR de ${sessionId} ha expirado`);
         break;
-
       case 'error':
         toast.error(`Error en ${sessionId}: ${data?.error || 'Error desconocido'}`);
         break;
@@ -130,28 +109,23 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
       toast.error("El ID de sesión es requerido");
       return;
     }
-
     setCreating(true);
     try {
-      const response: CreateSessionResponse = await whatsappApiService.createSession(
-        newSessionId.trim(),
-        phoneNumber.trim() || undefined
-      );
-
+      const response: CreateSessionResponse = await whatsappApiService.createSession({
+        sessionId: newSessionId.trim(),
+        phoneNumber: phoneNumber.trim() || undefined
+      });
       if (response.success && response.session) {
         setSessions(prev => [...prev, response.session!]);
 
         if (response.qrCode) {
           setQrCodeData(prev => ({ ...prev, [response.session!.id]: response.qrCode! }));
         }
-
         // Suscribirse a eventos de esta sesión
         subscribeToSession(response.session.id);
         setSelectedSession(response.session.id);
-
         setNewSessionId('');
         setPhoneNumber('');
-
         toast.success(response.qrCode
           ? "Sesión Creada: Escanea el código QR para conectar WhatsApp"
           : "Sesión creada exitosamente");
@@ -168,7 +142,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
   const regenerateQR = async (sessionId: string) => {
     try {
       const response = await whatsappApiService.regenerateQR(sessionId);
-
       if (response.success && response.qrCode) {
         setQrCodeData(prev => ({ ...prev, [sessionId]: response.qrCode! }));
         toast.success("QR Regenerado: Nuevo código QR generado");
@@ -183,7 +156,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
   const disconnectSession = async (sessionId: string) => {
     try {
       const response = await whatsappApiService.disconnectSession(sessionId);
-
       if (response.success) {
         setSessions(prev => prev.filter(session => session.id !== sessionId));
         setQrCodeData(prev => {
@@ -192,7 +164,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
           return newData;
         });
         unsubscribeFromSession(sessionId);
-
         toast.success("Sesión Eliminada: La sesión de WhatsApp ha sido eliminada");
       } else {
         toast.error(response.error || "No se pudo eliminar la sesión");
@@ -263,7 +234,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
           </div>
         </div>
       </CardHeader>
-
       <CardContent className="space-y-6">
         {/* Crear nueva sesión */}
         <div className="space-y-4">
@@ -306,9 +276,7 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
             )}
           </Button>
         </div>
-
         <Separator />
-
         {/* Lista de sesiones */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -326,7 +294,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
               )}
             </Button>
           </div>
-
           {sessions.length === 0 ? (
             <Card className="bg-muted/50">
               <CardContent className="flex flex-col items-center justify-center py-8">
@@ -357,7 +324,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
                           )}
                         </div>
                       </div>
-
                       <div className="flex items-center space-x-2">
                         <Badge variant={getStatusVariant(session)}>
                           {getStatusText(session)}
@@ -370,7 +336,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
                         )}
                       </div>
                     </div>
-
                     {/* QR Code Display */}
                     {qrCodeData[session.id] && (
                       <div className="mt-4 p-4 bg-white rounded-lg border-2 border-dashed border-primary/20">
@@ -389,7 +354,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
                         </div>
                       </div>
                     )}
-
                     {/* Acciones */}
                     <div className="flex items-center justify-end space-x-2 mt-4">
                       {!session.isConnected && (
@@ -402,7 +366,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
                           Regenerar QR
                         </Button>
                       )}
-
                       {selectedSession !== session.id && (
                         <Button
                           variant="outline"
@@ -413,7 +376,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
                           Suscribirse
                         </Button>
                       )}
-
                       <Button
                         variant="destructive"
                         size="sm"
@@ -429,7 +391,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
             </div>
           )}
         </div>
-
         {/* Estado de conexión WebSocket */}
         {connectionState.error && (
           <Card className="bg-destructive/10 border-destructive/20">
@@ -443,7 +404,6 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
             </CardContent>
           </Card>
         )}
-
         {/* Eventos recientes */}
         {sessionEvents.length > 0 && (
           <div className="space-y-3">

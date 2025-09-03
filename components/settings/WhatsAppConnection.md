@@ -85,9 +85,6 @@ import { whatsappApiService } from '@/lib/whatsapp-api';
 // Crear sesión
 const response = await whatsappApiService.createSession('mi-sesion');
 
-// Obtener todas las sesiones
-const sessions = await whatsappApiService.getAllSessions();
-
 // Enviar mensaje
 const result = await whatsappApiService.sendMessage('sesion-id', '+573001234567', 'Hola!');
 ```

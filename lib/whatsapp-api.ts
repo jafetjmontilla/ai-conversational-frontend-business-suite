@@ -76,7 +76,7 @@ class WhatsAppApiService {
   }
 
   // Crear sesión de WhatsApp
-  async createSession(sessionId: string, development: string, userId?: string, phoneNumber?: string): Promise<CreateSessionResponse> {
+  async createSession({ sessionId, phoneNumber }: { sessionId: string, phoneNumber?: string }): Promise<CreateSessionResponse> {
     const query = `
       mutation CreateSession($args: CreateSessionArgs!) {
         createSession(args: $args) {
@@ -84,7 +84,6 @@ class WhatsAppApiService {
           session {
             id
             development
-            userId
             isConnected
             qrCode
             phoneNumber
@@ -98,7 +97,7 @@ class WhatsAppApiService {
     `;
 
     const variables = {
-      args: { sessionId, development, userId, phoneNumber }
+      args: { sessionId, phoneNumber, development: DEVELOPMENT_ID }
     };
 
     const result = await this.graphqlQuery<{ createSession: CreateSessionResponse }>(query, variables);
@@ -130,29 +129,8 @@ class WhatsAppApiService {
     return result.getSession;
   }
 
-  // Obtener todas las sesiones
-  async getAllSessions(): Promise<WhatsAppSession[]> {
-    const query = `
-      query GetAllSessions {
-        getAllSessions {
-          id
-          development
-          userId
-          isConnected
-          qrCode
-          phoneNumber
-          connectionTime
-          lastActivity
-        }
-      }
-    `;
-
-    const result = await this.graphqlQuery<{ getAllSessions: WhatsAppSession[] }>(query);
-    return result.getAllSessions;
-  }
-
   // Obtener sesiones por desarrollo
-  async getSessionsByDevelopment(development: string): Promise<WhatsAppSession[]> {
+  async getSessionsByDevelopment(): Promise<WhatsAppSession[]> {
     const query = `
       query GetSessionsByDevelopment($args: GetSessionsByDevelopmentArgs!) {
         getSessionsByDevelopment(args: $args) {
@@ -169,36 +147,11 @@ class WhatsAppApiService {
     `;
 
     const variables = {
-      args: { development }
+      args: { development: DEVELOPMENT_ID }
     };
 
     const result = await this.graphqlQuery<{ getSessionsByDevelopment: WhatsAppSession[] }>(query, variables);
     return result.getSessionsByDevelopment;
-  }
-
-  // Obtener sesiones por desarrollo y usuario
-  async getSessionsByUser(development: string, userId: string): Promise<WhatsAppSession[]> {
-    const query = `
-      query GetSessionsByUser($args: GetSessionsByUserArgs!) {
-        getSessionsByUser(args: $args) {
-          id
-          development
-          userId
-          isConnected
-          qrCode
-          phoneNumber
-          connectionTime
-          lastActivity
-        }
-      }
-    `;
-
-    const variables = {
-      args: { development, userId }
-    };
-
-    const result = await this.graphqlQuery<{ getSessionsByUser: WhatsAppSession[] }>(query, variables);
-    return result.getSessionsByUser;
   }
 
   // Enviar mensaje
@@ -499,14 +452,11 @@ export class WhatsAppWebSocketClient {
 export const whatsappApiService = new WhatsAppApiService();
 
 // Métodos de conveniencia que usan el desarrollo actual
-export const createSession = (sessionId: string, userId?: string, phoneNumber?: string) =>
-  whatsappApiService.createSession(sessionId, DEVELOPMENT_ID, userId, phoneNumber);
+export const createSession = ({ sessionId, phoneNumber }: { sessionId: string, phoneNumber?: string }) =>
+  whatsappApiService.createSession({ sessionId, phoneNumber });
 
 export const getSessionsByDevelopment = () =>
-  whatsappApiService.getSessionsByDevelopment(DEVELOPMENT_ID);
-
-export const getSessionsByUser = (userId: string) =>
-  whatsappApiService.getSessionsByUser(DEVELOPMENT_ID, userId);
+  whatsappApiService.getSessionsByDevelopment();
 
 // Exportar para uso directo
 export default whatsappApiService;

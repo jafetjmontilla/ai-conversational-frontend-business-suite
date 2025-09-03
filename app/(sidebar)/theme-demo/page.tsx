@@ -1,15 +1,11 @@
 'use client';
 
 import { ThemeDemo } from '@/components/ThemeDemo';
-import * as Examples from '@/components/examples';
 
 export default function ThemeDemoPage() {
   return (
     <div className="min-h-screen">
       <ThemeDemo />
-      <Examples.PermissionsIntegrationExample />
-      <Examples.PermissionsExample />
-      <Examples.SpecializedHooksExample />
       <div className="mt-8 text-center">
         <a
           href="/"
