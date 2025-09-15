@@ -87,7 +87,7 @@ module.exports = {
 			fontFamily: {
 				sans: [
 					'Noto Color Emoji',
-					'Inter',
+					'Manrope',
 					'sans-serif'
 				]
 			},
