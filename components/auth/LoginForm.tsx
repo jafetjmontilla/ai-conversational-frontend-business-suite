@@ -23,8 +23,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
-  const { signIn, signInGoogle } = useAuth();
-
+  const { signIn, signInGoogle, errorAuth } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,9 +102,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {error && (
+        {error || errorAuth && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
-            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            <p className="text-red-800 dark:text-red-200 text-sm">{error || errorAuth}</p>
           </div>
         )}
         <Form {...form}>

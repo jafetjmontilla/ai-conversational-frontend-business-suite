@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegisterStep1 } from '@/components/auth/RegisterStep1';
 import { RegisterStep2 } from '@/components/auth/RegisterStep2';
@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 export type Step = 1 | 2;
 
 export interface UserData {
-  role: string;
+  role?: string;
   email: string;
   name: string;
   password: string;
@@ -23,8 +23,17 @@ export interface UserData {
 export default function RegisterPage() {
   const { authUser, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Si hay un token, redirigir a la página de registro con invitación
+  useEffect(() => {
+    if (token) {
+      router.push(`/register-invitation?token=${token}`);
+    }
+  }, [token, router]);
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -48,8 +57,8 @@ export default function RegisterPage() {
   }
 
   const handleStep1Complete = (data: UserData) => {
-    setUserData(data);
-    setCurrentStep(2);
+    // setUserData(data);
+    // setCurrentStep(2);
   };
 
   const handleStep2Complete = () => {

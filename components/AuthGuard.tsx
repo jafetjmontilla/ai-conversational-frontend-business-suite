@@ -14,7 +14,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
 
   // Rutas que no requieren autenticación
-  const publicRoutes = ['/login', '/register', '/forgot-password'];
+  const publicRoutes = ['/login', '/register-invitation', '/forgot-password', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   // Redirección basada en el estado de autenticación

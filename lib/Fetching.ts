@@ -139,6 +139,20 @@ export const queries = {
       _id
     }
   }`,
+  getUser: `query getUser($_id: ID, $uid: String) {
+    getUser(_id: $_id, uid: $uid) {
+      _id
+      name
+      email
+      phone
+      role
+      active
+      emailVerified
+      photoURL  
+      createdAt
+      updatedAt
+    }
+  }`,
   getUsers: `query getUsers {
     getUsers {
       _id
@@ -151,6 +165,108 @@ export const queries = {
       photoURL
       createdAt
       updatedAt
+    }
+  }`,
+  // Queries para invitaciones
+  createUserInvitation: `mutation createUserInvitation($args: CreateInvitationInput!) {
+    createUserInvitation(args: $args) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
+    }
+  }`,
+  sendUserInvitation: `mutation sendUserInvitation($args: SendInvitationArgs!) {
+    sendUserInvitation(args: $args) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
+    }
+  }`,
+  validateInvitationToken: `query validateInvitationToken($token: String!) {
+    validateInvitationToken(token: $token) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
+      userData {
+        name
+        email
+        phone
+        role
+      }
+    }
+  }`,
+  completeUserRegistration: `mutation completeUserRegistration($args: CompleteRegistrationInput!) {
+    completeUserRegistration(args: $args) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
+    }
+  }`,
+  completeUserRegistrationWithGoogle: `mutation completeUserRegistrationWithGoogle($args: CompleteGoogleRegistrationInput!) {
+    completeUserRegistrationWithGoogle(args: $args) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
     }
   }`,
 }

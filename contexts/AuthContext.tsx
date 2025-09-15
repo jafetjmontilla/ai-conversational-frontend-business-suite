@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, AuthUser, AuthResponse, auth } from '../lib/firebase';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import { toast } from 'sonner';
 
 // Tipos para el contexto
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   logout: () => Promise<AuthResponse>;
   getToken: () => Promise<string | null>;
   setAuthUser: (authUser: AuthUser) => void;
+  errorAuth: string | undefined;
 }
 
 // Crear contexto
@@ -25,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorAuth, setErrorAuth] = useState<string | undefined>(undefined);
 
   // Función para convertir User de Firebase a AuthUser
   const convertToAuthUser = async (user: User): Promise<AuthUser> => {
@@ -57,6 +60,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
+      setLoading(true);
+      console.log(100051, user?.uid)
+      //aqui verificar si el usuario esta en la base de datos
+      // const userData = await fetchApiV1({
+      //   query: queries.getUser,
+      //   variables: {
+      //     uid: user?.uid
+      //   }
+      // });
+      // console.log(100052, userData)
+      // if (!userData?._id && user?.uid) {
+      //   console.log(100053, userData)
+      //   setUser(null);
+      //   setAuthUser(null);
+      //   setTimeout(() => {
+      //     setLoading(false);
+      //   }, 100);
+      //   return;
+      // }
+      setErrorAuth(undefined);
       setUser(user);
       if (user) {
         const authUser = await convertToAuthUser(user);
@@ -89,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Función para iniciar sesión con Google
   const signInGoogle = async (isRegister: boolean = false): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
+    setErrorAuth('Usuario no encontrado');
     return response;
   };
 
@@ -115,7 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInGoogle,
     logout,
     getToken,
-    setAuthUser
+    setAuthUser,
+    errorAuth,
   };
 
   return (

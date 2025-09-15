@@ -31,7 +31,7 @@ export const FormFieldInputs = ({ field, control, name, isSubmitting = false }: 
                     {!field.icon?.type ? (
                       <field.icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     ) : (
-                      <div className="absolute bg-red-500 left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4">
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4">
                         {field.icon}
                       </div>
                     )}

@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { FormFieldInput, OptionSelect, Role, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
+import { sendWhatsAppMessage, getWhatsAppSessions } from "@/lib/whatsappApi";
 import { toast } from "sonner";
-import { User as UserIcon, Mail, Phone, Image, Shield, Link } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Image, Shield, Link, MessageSquare } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
 
 const roleOptions: OptionSelect[] = [
@@ -55,7 +56,7 @@ const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  role: z.enum(["admin", "editor", "viewer"], {
+  role: z.enum(["admin", "accounting", "callCenter", "support"], {
     message: "El rol es requerido",
   }),
   active: z.boolean(),
@@ -118,6 +119,7 @@ const formFields: FormFieldInput[] = [
 
 export default function UserFormModal({ isOpen, onClose, user, onSuccess }: UserFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   const isEditing = !!user;
 
@@ -127,7 +129,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "editor" | "viewer") || "viewer",
+      role: (user?.role as "admin" | "accounting" | "callCenter" | "support") || "callCenter",
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
@@ -140,8 +142,9 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
         // TODO: Implementar mutación de actualización cuando esté disponible
         toast.error("La funcionalidad de edición estará disponible próximamente");
       } else {
-        await fetchApiV1({
-          query: queries.createUser,
+        // Crear invitación de usuario
+        const invitationResponse = await fetchApiV1({
+          query: queries.createUserInvitation,
           type: "json",
           variables: {
             args: {
@@ -149,20 +152,84 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
               email: values.email,
               phone: values.phone,
               role: values.role,
-              active: values.active,
-              photoURL: values.photoURL || null,
             },
           },
         });
-        toast.success("Usuario creado exitosamente");
-        onSuccess();
-        onClose();
+
+        if (invitationResponse.success) {
+          // Enviar por WhatsApp
+          await sendInvitationByWhatsApp(invitationResponse.data);
+          toast.success("Invitación enviada por WhatsApp exitosamente");
+          onSuccess();
+          onClose();
+        } else {
+          toast.error(invitationResponse.message || "Error creando invitación");
+        }
       }
     } catch (error) {
-      console.error("Error al guardar usuario:", error);
-      toast.error("Error al guardar el usuario");
+      console.error("Error al crear invitación:", error);
+      toast.error("Error al crear la invitación");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const sendInvitationByWhatsApp = async (invitationData: any) => {
+    console.log(100031, invitationData)
+    setIsSendingWhatsApp(true);
+    try {
+      invitationData.phone = `${invitationData.phone.replace('+', '')}@s.whatsapp.net`;
+      // Obtener sesiones activas de WhatsApp
+      const sessions = await getWhatsAppSessions();
+      const activeSession = sessions.find((session: any) => session.isConnected);
+
+      if (!activeSession) {
+        toast.error("No hay sesiones de WhatsApp activas. Por favor, conecta WhatsApp primero.");
+        return;
+      }
+
+      // Generar enlace de registro
+      const registrationLink = `${window.location.origin}/register-invitation?token=${invitationData.token}`;
+
+      // Crear mensaje personalizado
+      const message = `¡Hola ${invitationData.name}!
+
+Has sido invitado a unirte a nuestra plataforma.
+
+Para completar tu registro, haz clic en el siguiente enlace:
+${registrationLink}
+
+Este enlace expira en 7 días.
+
+¡Bienvenido!`;
+
+      // Enviar mensaje por WhatsApp
+      const whatsappResponse = await sendWhatsAppMessage(
+        activeSession.id,
+        invitationData.phone,
+        message
+      );
+
+      if (whatsappResponse.success) {
+        // Actualizar estado de envío en la invitación
+        await fetchApiV1({
+          query: queries.sendUserInvitation,
+          type: "json",
+          variables: {
+            args: {
+              invitationId: invitationData._id,
+              sessionId: activeSession.id,
+            },
+          },
+        });
+      } else {
+        toast.error("Error enviando mensaje por WhatsApp");
+      }
+    } catch (error) {
+      console.error("Error enviando por WhatsApp:", error);
+      toast.error("Error enviando invitación por WhatsApp");
+    } finally {
+      setIsSendingWhatsApp(false);
     }
   };
 
@@ -171,16 +238,16 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Editar Usuario" : "Nuevo Usuario"}
+            {isEditing ? "Editar Usuario" : "Invitar Usuario por WhatsApp"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Modifica la información del usuario seleccionado."
-              : "Completa la información para crear un nuevo usuario."}
+              : "Completa la información para enviar una invitación por WhatsApp."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
             {formFields.map((field) => (
               <FormFieldInputs
                 key={field.name}
@@ -200,8 +267,10 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : isEditing ? "Actualizar" : "Enviar Invitación"}
+              <Button type="submit" disabled={isSubmitting || isSendingWhatsApp}>
+                {isSubmitting ? "Creando invitación..." :
+                  isSendingWhatsApp ? "Enviando por WhatsApp..." :
+                    isEditing ? "Actualizar" : "Enviar por WhatsApp"}
               </Button>
             </DialogFooter>
           </form>
