@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthUser } from '@/lib/firebase';
 import { getAuth } from 'firebase/auth';
+import { Role, roles } from '@/lib/interfases';
 
 interface RegisterStep2Props {
   userData: UserData;
@@ -23,40 +24,14 @@ interface RegisterStep2Props {
   onSuccess: () => void;
 }
 
-type Role = 'client' | 'professional' | 'admin';
-
 export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
   const { authUser, setAuthUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const roleOptions = [
-    {
-      value: 'client' as Role,
-      title: 'Cliente',
-      description: '',
-      icon: '👤',
-      features: []
-    },
-    {
-      value: 'professional' as Role,
-      title: 'Profesional',
-      description: '',
-      icon: '💇🏻',
-      features: []
-    },
-    {
-      value: 'admin' as Role,
-      title: 'Administrador',
-      description: '',
-      icon: '⚙️',
-      features: []
-    }
-  ];
-
   const formSchema = z.object({
-    role: z.enum(['client', 'professional', 'admin']),
+    role: z.enum(roles),
     phone: z
       .string()
       .min(7, 'El teléfono debe tener al menos 7 dígitos')
@@ -68,7 +43,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      role: 'client',
+      role: 'none',
       phone: '',
     },
   });
@@ -155,9 +130,8 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
       <Button type="button" variant="secondary" className='absolute top-2 left-2 w-8 h-8 p-0 rounded-full' onClick={onBack} disabled={loading}>
         <ArrowLeft className="h-4 w-4 " />
       </Button>
-      <CardHeader className="space-y-1 text-center py-2">
+      <CardHeader className="space-y-1 text-center py-4">
         <Label className="text-2xl font-bold">{'Completar registro'}</Label>
-        <Label className="text-muted-foreground text-sm">{'Selecciona tu rol y agrega información adicional'}</Label>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -166,93 +140,53 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
           </div>
         )}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Información del usuario */}
-            <Card className="space-y-1 p-2 bg-background">
+            <Card className="space-y-3 p-2 bg-background">
               <CardHeader className="space-y-0 py-0">
-                <CardTitle>{'Información del usuario'}</CardTitle>
+                <CardTitle className="text-center py-2">{'Información del usuario'}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-0 py-0 text-sm">
+              <CardContent className="space-y-2 py-0 text-sm">
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Nombre completo'}</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Nombre:'}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.name}</p>
                 </div>
                 <div className="flex gap-2">
-                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Email'}</label>
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Email:'}</label>
                   <p className="text-gray-900 dark:text-white">{userData?.email}</p>
+                </div>
+                <div className="flex gap-2">
+                  <label className="font-medium text-gray-700 dark:text-gray-300">{'Rol:'}</label>
+                  <p className="text-gray-900 dark:text-white">{userData?.role}</p>
                 </div>
               </CardContent>
             </Card>
-            <div>
-              <FormLabel className="font-medium text-primary">{'Rol'}</FormLabel>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {roleOptions.map((role) => (
-                  <div
-                    key={role.value}
-                    onClick={() => form.setValue('role', role.value, { shouldValidate: true })}
-                    className={`relative p-2 border-2 rounded-lg cursor-pointer transition-all ${form.watch('role') === role.value
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                      }`}
-                  >
-                    {form.watch('role') === role.value && (
-                      <div className="absolute top-2 right-2">
-                        <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                    )}
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">{role.icon}</div>
-                      <h4 className="font-medium mb-1 text-gray-900 dark:text-white">{role.title}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{role.description}</p>
-                      <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                        {role.features.map((feature, index) => (
-                          <li key={index} className="flex items-center">
-                            <Check className="h-3 w-3 text-blue-600 dark:text-blue-400 mr-1" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <FormLabel htmlFor="phone">{'Teléfono'}</FormLabel>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
+            <div className='pb-12'>
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem className='space-y-0 relative'>
+                    <FormLabel htmlFor="phone">{'Teléfono'}</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <FormInput
                           id="phone"
                           type="tel"
                           value={field.value}
                           onChange={(e) => field.onChange(e)}
                           className="pl-10 pr-4 py-2"
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="+584123456789"
                           disabled={loading}
                         />
-                      </FormControl>
-                      <FormMessage className='absolute text-xs translate-y-1.5' />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{'Incluye el código de país (ej: +56912345678)'}</p>
+                      </div>
+                    </FormControl>
+                    <FormMessage className='absolute text-xs' />
+                  </FormItem>
+                )}
+              />
             </div>
-            <Card className='p-2'>
-              <div className="flex items-start">
-                <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-primary">{'Acceso Completo'}</h3>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">{'Tendrás acceso a todas las funcionalidades según tu rol'}</p>
-                </div>
-              </div>
-            </Card>
             <Button type="submit" style={{ marginTop: '2rem', marginBottom: '1rem' }} className="w-full" disabled={loading} >
               {loading ? 'Creando cuenta...' : 'Completar registro'}
             </Button>

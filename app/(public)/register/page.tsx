@@ -11,11 +11,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 export type Step = 1 | 2;
 
 export interface UserData {
+  role: string;
   email: string;
   name: string;
   password: string;
   confirmPassword?: string;
   uid?: string; // Opcional para usuarios de Google
+  phone?: string;
 }
 
 export default function RegisterPage() {
@@ -41,7 +43,7 @@ export default function RegisterPage() {
   }
 
   // Si ya está autenticado, no mostrar nada (se redirigirá)
-  if (authUser?.customClaims?.role ) {
+  if (authUser?.customClaims?.role) {
     return null;
   }
 
@@ -76,9 +78,9 @@ export default function RegisterPage() {
             className="w-full"
           >
             <RegisterStep1
-              onNext={handleStep1Complete}
+              onNext={(data) => handleStep1Complete(data)}
               onSwitchToLogin={handleSwitchToLogin}
-              userData={userData!}
+              userData={userData || { role: 'none', email: '', name: '', password: '' }}
             />
           </motion.div>
         ) : (

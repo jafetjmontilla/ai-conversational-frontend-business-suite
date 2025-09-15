@@ -1,17 +1,15 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ToggleWithBorder } from "@/components/Toggle";
 import { InputSearch } from "@/components/InputSearch";
 import { useEffect, useMemo, useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import { TypographyH2, TypographyH3 } from "@/components/Typography";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { User } from "@/lib/interfases";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import UserFormModal from "@/components/UserFormModal";
 
 
 export default function UsersPage() {
@@ -19,15 +17,43 @@ export default function UsersPage() {
   const [active, setActive] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [query, setQuery] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const fetchUsers = async () => {
+    try {
+      const res: User[] = await fetchApiV1({
+        query: queries.getUsers,
+        type: "json"
+      });
+      setUsers(res);
+    } catch (error) {
+      console.error("Error al cargar usuarios:", error);
+    }
+  };
 
   useEffect(() => {
-    fetchApiV1({
-      query: queries.getUsers,
-      type: "json"
-    }).then((res: User[]) => {
-      setUsers(res)
-    })
-  }, [])
+    fetchUsers();
+  }, []);
+
+  const handleNewUser = () => {
+    setSelectedUser(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleUserSuccess = () => {
+    fetchUsers(); // Recargar la lista de usuarios
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,7 +89,7 @@ export default function UsersPage() {
                   className="w-full"
                 />
               </div>
-              <Button>Nuevo usuario</Button>
+              <Button onClick={handleNewUser}>Nuevo usuario</Button>
             </div>
             {/* <div className="flex items-center gap-2">
                 <ToggleWithBorder
@@ -104,7 +130,11 @@ export default function UsersPage() {
               </TableHeader>
               <TableBody>
                 {filtered?.map((u) => (
-                  <TableRow key={u._id}>
+                  <TableRow
+                    key={u._id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleEditUser(u)}
+                  >
                     <TableCell>
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={u.photoURL as string ?? ""} />
@@ -127,6 +157,13 @@ export default function UsersPage() {
           </div>
         </CardContent>
       </Card>
+
+      <UserFormModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        user={selectedUser}
+        onSuccess={handleUserSuccess}
+      />
     </div>
   );
 }

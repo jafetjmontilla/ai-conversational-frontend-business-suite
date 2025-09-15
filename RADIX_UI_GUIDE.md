@@ -1,9 +1,3 @@
-# Radix UI - Guía de Implementación
-
-## Descripción
-
-Radix UI ha sido implementado en 4net para proporcionar componentes accesibles, personalizables y de alta calidad. Todos los componentes están optimizados para el sistema de temas claro/oscuro.
-
 ## Componentes Implementados
 
 ### 1. Button (`components/ui/button.tsx`)
@@ -152,11 +146,6 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 - **Progress**: Progreso en tiempo real
 - **Button**: Controles de reproducción
 
-## Páginas de Demostración
-
-- **`/radix-demo`**: Demostración completa de todos los componentes
-- **Navegación actualizada**: Usa DropdownMenu de Radix UI
-
 ## Próximos Componentes
 
 ### Fase 2 (Próximamente)
@@ -171,12 +160,6 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 - **Popover**: Información contextual
 - **ScrollArea**: Contenido con scroll
 - **HoverCard**: Previews de rutinas
-
-## Dependencias Instaladas
-
-```bash
-npm install @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs @radix-ui/react-switch @radix-ui/react-progress @radix-ui/react-toast @radix-ui/react-tooltip @radix-ui/react-accordion @radix-ui/react-select @radix-ui/react-slider @radix-ui/react-checkbox @radix-ui/react-radio-group @radix-ui/react-separator @radix-ui/react-avatar @radix-ui/react-alert-dialog @radix-ui/react-popover @radix-ui/react-scroll-area @radix-ui/react-hover-card class-variance-authority clsx tailwind-merge
-```
 
 ## Mejores Prácticas
 
@@ -216,13 +199,9 @@ const [open, setOpen] = useState(false);
 - **Lazy loading**: Los componentes se cargan bajo demanda
 - **No CSS-in-JS**: Usa Tailwind CSS para mejor performance
 
-## Conclusión
-
-Radix UI proporciona una base sólida para componentes accesibles y profesionales en 4net. La implementación actual cubre los casos de uso más comunes y está preparada para escalar con nuevas funcionalidades. 
-
 ### Estilo de código: "código conciso/denso"
 
-- Importaciones de Radix y UI internas en una sola línea cuando sea posible.
+- Importaciones de Shadcn y UI internas en una sola línea cuando sea posible.
 - Evitar líneas en blanco dentro de funciones; se permite una antes de `return` si mejora la lectura.
 - En `return` de componentes, no intercalar líneas en blanco entre nodos.
 

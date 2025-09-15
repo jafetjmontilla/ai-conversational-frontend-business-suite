@@ -28,7 +28,6 @@ interface RegisterStep1Props {
 
 export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin, userData }) => {
   const { signInGoogle } = useAuth();
-
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const { theme } = useTheme();
 
@@ -93,7 +92,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
         variables: { args: { email } },
         type: 'json'
       });
-      return Boolean(exists);
+      return exists === true;
     } catch (e) {
       console.error('Error verificando email:', e);
       return false;
@@ -108,12 +107,14 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
         form.setError('email', { message: 'Este email ya está registrado' });
         return;
       }
-      onNext({
+      const userDataToPass = {
         email: data.email,
         password: data.password,
         name: data.name,
         confirmPassword: data.confirmPassword,
-      });
+        role: userData.role,
+      };
+      onNext(userDataToPass);
     } catch (error) {
       toast.error('Error inesperado');
     } finally {
@@ -130,6 +131,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
           email: response.user.email || '',
           name: response.user.displayName || '',
           password: '', // No necesitamos contraseña para auth con Google
+          role: userData.role,
         });
       } else {
         toast.error(response.message || 'Error inesperado con Google');
@@ -141,9 +143,8 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1 text-center py-2">
+      <CardHeader className="space-y-1 text-center py-2 pt-4">
         <Label className="text-2xl font-bold">{'Crear cuenta'}</Label>
-        <Label className="text-muted-foreground text-sm">{'Ingresa tu información personal'}</Label>
       </CardHeader>
       <CardContent className="space-y-6 pb-4">
         <Form {...form}>

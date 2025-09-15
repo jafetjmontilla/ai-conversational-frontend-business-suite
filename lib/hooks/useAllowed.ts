@@ -1,121 +1,22 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useMemo } from 'react';
-
-// Tipos para permisos
-export type Role = 'admin' | 'professional' | 'client';
-
-export interface Permission {
-  action: string;
-  resource: string;
-  conditions?: {
-    role?: Role[];
-    emailVerified?: boolean;
-    custom?: (user: any) => boolean;
-  };
-}
-
-export interface PermissionConfig {
-  [key: string]: Permission;
-}
+import { PermissionConfig, Role } from '../interfases';
 
 // Configuración de permisos por defecto
 const DEFAULT_PERMISSIONS: PermissionConfig = {
-  // Rutinas
-  'rutinas:crear': {
-    action: 'crear',
-    resource: 'rutinas',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'rutinas:editar': {
-    action: 'editar',
-    resource: 'rutinas',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'rutinas:eliminar': {
-    action: 'eliminar',
-    resource: 'rutinas',
-    conditions: {
-      role: ['admin', 'professional']
-    }
-  },
-
-  // Ejercicios
-  'ejercicios:acceder': {
-    action: 'acceder',
-    resource: 'ejercicios',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'ejercicios:crear': {
-    action: 'crear',
-    resource: 'ejercicios',
-    conditions: {
-      role: ['admin', 'professional']
-    }
-  },
-  'ejercicios:editar': {
-    action: 'editar',
-    resource: 'ejercicios',
-    conditions: {
-      role: ['admin', 'professional']
-    }
-  },
-  'ejercicios:eliminar': {
-    action: 'eliminar',
-    resource: 'ejercicios',
-    conditions: {
-      role: ['admin']
-    }
-  },
-
-  // Progreso y estadísticas
-  'progreso:ver': {
-    action: 'ver',
-    resource: 'progreso',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'progreso:avanzado': {
-    action: 'avanzado',
-    resource: 'progreso',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'estadisticas:detalladas': {
-    action: 'detalladas',
-    resource: 'estadisticas',
-    conditions: {
-      role: ['admin', 'professional', 'client']
-    }
-  },
-  'estadisticas:globales': {
-    action: 'globales',
-    resource: 'estadisticas',
-    conditions: {
-      role: ['admin', 'professional']
-    }
-  },
-
   // Configuración
   'configuracion:perfil': {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'professional', 'client']
+      role: ['admin', 'accounting', 'callCenter']
     }
   },
   'configuracion:avanzada': {
     action: 'avanzada',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'professional', 'client']
+      role: ['admin',]
     }
   },
   'configuracion:sistema': {
@@ -131,7 +32,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'ver',
     resource: 'usuarios',
     conditions: {
-      role: ['admin', 'professional']
+      role: ['admin']
     }
   },
   'usuarios:crear': {
@@ -145,7 +46,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'editar',
     resource: 'usuarios',
     conditions: {
-      role: ['admin', 'professional']
+      role: ['admin']
     }
   },
   'usuarios:eliminar': {
@@ -161,14 +62,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'professional', 'client']
+      role: ['admin', 'accounting', 'callCenter']
     }
   },
   'exportar:reportes': {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'professional']
+      role: ['admin', 'accounting', 'callCenter']
     }
   },
 
@@ -177,14 +78,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'professional', 'client']
+      role: ['admin', 'callCenter', 'support']
     }
   },
   'soporte:gestionar': {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'professional']
+      role: ['admin', 'callCenter', 'support']
     }
   },
 
@@ -280,7 +181,7 @@ export const useAllowed = () => {
   const hasRole = useMemo(() => {
     return (role: Role): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
+      const userRole: Role = (authUser.customClaims?.role as Role);
       return userRole === role;
     };
   }, [authUser]);
@@ -289,7 +190,7 @@ export const useAllowed = () => {
   const hasAnyRole = useMemo(() => {
     return (roles: Role[]): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
+      const userRole: Role = (authUser.customClaims?.role as Role);
       return roles.includes(userRole);
     };
   }, [authUser]);
@@ -298,7 +199,7 @@ export const useAllowed = () => {
   const getCurrentRole = useMemo(() => {
     return (): Role | null => {
       if (!authUser) return null;
-      return (authUser.customClaims?.role as Role) || 'Cliente';
+      return (authUser.customClaims?.role as Role);
     };
   }, [authUser]);
 
@@ -312,45 +213,6 @@ export const useAllowed = () => {
     getCurrentRole,
     loading,
     user: authUser
-  };
-};
-
-// Hook específico para verificar permisos de rutinas
-export const useRoutinePermissions = () => {
-  const { can, hasAnyRole } = useAllowed();
-
-  return {
-    canCreate: () => can('rutinas:crear'),
-    canEdit: () => can('rutinas:editar'),
-    canDelete: () => can('rutinas:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
-  };
-};
-
-// Hook específico para verificar permisos de ejercicios
-export const useExercisePermissions = () => {
-  const { can, hasAnyRole, hasRole } = useAllowed();
-
-  return {
-    canAccess: () => can('ejercicios:acceder'),
-    canCreate: () => can('ejercicios:crear'),
-    canEdit: () => can('ejercicios:editar'),
-    canDelete: () => can('ejercicios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional']),
-    isAdmin: () => hasRole('admin')
-  };
-};
-
-// Hook específico para verificar permisos de progreso
-export const useProgressPermissions = () => {
-  const { can, hasAnyRole } = useAllowed();
-
-  return {
-    canView: () => can('progreso:ver'),
-    canViewAdvanced: () => can('progreso:avanzado'),
-    canViewDetailedStats: () => can('estadisticas:detalladas'),
-    canViewGlobalStats: () => can('estadisticas:globales'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
   };
 };
 
@@ -373,7 +235,7 @@ export const useExportPermissions = () => {
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter'])
   };
 };
 
@@ -384,7 +246,7 @@ export const useSupportPermissions = () => {
   return {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'callCenter', 'support'])
   };
 };
 
@@ -397,7 +259,7 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'professional']),
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'support']),
     isAdmin: () => hasRole('admin')
   };
 };
