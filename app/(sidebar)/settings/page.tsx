@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardTitle, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBusiness } from "@/contexts/BusinessContext";
 import { useAllowed } from "@/lib/hooks/useAllowed";
 import * as Typography from "@/components/Typography";
 import { Separator } from "@/components/ui/separator";
