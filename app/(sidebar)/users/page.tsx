@@ -29,12 +29,9 @@ export default function UsersPage() {
     })
   }, [])
 
-
-
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return users.filter((u) => {
+    return users?.filter((u) => {
       const byRole = role ? u.role.toLowerCase().includes(role) : true;
       const byActive = active ? u.active.toString().includes(active) : true;
       const byQuery = q
@@ -51,29 +48,24 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col">
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Manage users</CardDescription>
+            <CardTitle>Usuarios</CardTitle>
+            <CardDescription>Gestionar usuarios</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex items-center justify-between gap-4">
-              <TabsList>
-                <TabsTrigger value="all">All users</TabsTrigger>
-                <TabsTrigger value="org">Organization users</TabsTrigger>
-              </TabsList>
-              <div className="flex items-center gap-2 flex-1">
-                <div className="flex-1">
-                  <InputSearch
-                    placeholder="Search user by login, email, or name"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <Button>New user</Button>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex-1">
+                <InputSearch
+                  placeholder="Buscar usuario por login, email o nombre"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full"
+                />
               </div>
-              {/* <div className="flex items-center gap-2">
+              <Button>Nuevo usuario</Button>
+            </div>
+            {/* <div className="flex items-center gap-2">
                 <ToggleWithBorder
                   type="single"
                   items={[
@@ -93,53 +85,46 @@ export default function UsersPage() {
                   size="sm"
                 />
               </div> */}
-            </div>
-            <Separator className="my-4" />
-            <TabsContent value="all" className="mt-4">
-              <div className="w-full overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead />
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Active</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Email verified</TableHead>
-                      <TableHead>Updated at</TableHead>
-                      <TableHead>Created at</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((u) => (
-                      <TableRow key={u._id}>
-                        <TableCell>
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={u.photoURL as string ?? ""} />
-                            <AvatarFallback>
-                              {u.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar></TableCell>
-                        <TableCell>{u.name}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>{u.phone}</TableCell>
-                        <TableCell>{u.active ? "active" : "inactive"}</TableCell>
-                        <TableCell>{u.role}</TableCell>
-                        <TableCell>{u.emailVerified ? "verified" : "unverified"}</TableCell>
-                        <TableCell>{u.updatedAt}</TableCell>
-                        <TableCell>{u.createdAt}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="org" className="mt-4">
-              <div className="text-sm text-muted-foreground">Organization users coming soon…</div>
-            </TabsContent>
-          </Tabs>
+          </div>
+          <Separator className="my-4" />
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead />
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead>Activo</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Email verificado</TableHead>
+                  <TableHead>Actualizado el</TableHead>
+                  <TableHead>Creado el</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered?.map((u) => (
+                  <TableRow key={u._id}>
+                    <TableCell>
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={u.photoURL as string ?? ""} />
+                        <AvatarFallback>
+                          {u.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar></TableCell>
+                    <TableCell>{u.name}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{u.phone}</TableCell>
+                    <TableCell>{u.active ? "activo" : "inactivo"}</TableCell>
+                    <TableCell>{u.role}</TableCell>
+                    <TableCell>{u.emailVerified ? "verificado" : "no verificado"}</TableCell>
+                    <TableCell>{u.updatedAt}</TableCell>
+                    <TableCell>{u.createdAt}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
