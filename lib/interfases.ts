@@ -32,6 +32,13 @@ export interface User {
   photoURL: string;
   updatedAt: string;
   createdAt: string;
+  // Campos para invitaciones (opcionales)
+  token?: string;
+  used?: boolean;
+  expiresAt?: string;
+  createdBy?: string;
+  whatsappSent?: boolean;
+  uid?: string; // Los usuarios tienen uid, las invitaciones no
 }
 
 export type FormFieldInput = {

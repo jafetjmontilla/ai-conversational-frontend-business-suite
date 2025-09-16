@@ -4,6 +4,7 @@ import './globals.css'
 import { AuthProvider } from '../contexts/AuthContext'
 import { ThemeProvider } from 'next-themes'
 import AuthGuard from '../components/AuthGuard'
+import { Toaster } from "@/components/ui/sonner"
 const manrope = Manrope({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
           <AuthProvider>
             <AuthGuard>
               {children}
+              <Toaster />
             </AuthGuard>
           </AuthProvider>
         </ThemeProvider>

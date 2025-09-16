@@ -162,6 +162,12 @@ export const queries = {
       role
       active
       emailVerified
+      token
+      used
+      expiresAt
+      createdBy
+      whatsappSent
+      uid
       photoURL
       createdAt
       updatedAt
@@ -267,6 +273,13 @@ export const queries = {
         whatsappSent
         createdAt
       }
+    }
+  }`,
+  // Mutaciones para gestión de invitaciones
+  deleteUserInvitation: `mutation deleteUserInvitation($invitationId: String!) {
+    deleteUserInvitation(invitationId: $invitationId) {
+      success
+      message
     }
   }`,
 }

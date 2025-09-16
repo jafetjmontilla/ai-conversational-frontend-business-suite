@@ -4,7 +4,7 @@ import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGr
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import previoLogo from '@/app/previoLogo3.png'
-import React, { FC } from 'react';
+import React, { FC, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

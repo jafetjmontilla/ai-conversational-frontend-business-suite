@@ -10,6 +10,9 @@ import { fetchApiV1, queries } from "@/lib/Fetching";
 import { User } from "@/lib/interfases";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import UserFormModal from "@/components/UserFormModal";
+import { Copy, Send, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useSidebar } from "@/components/ui/sidebar";
 
 
 export default function UsersPage() {
@@ -19,6 +22,8 @@ export default function UsersPage() {
   const [query, setQuery] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { open } = useSidebar()
+
 
   const fetchUsers = async () => {
     try {
@@ -55,6 +60,106 @@ export default function UsersPage() {
     fetchUsers(); // Recargar la lista de usuarios
   };
 
+  // Función para copiar el link de invitación
+  const handleCopyInvitationLink = async (token: string) => {
+
+    try {
+      const invitationLink = `${window.location.origin}/register-invitation?token=${token}`;
+      // Verificar si el navegador soporta la API de Clipboard
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(invitationLink);
+          console.log(100032, "Link de invitación copiado al portapapeles");
+          toast.success("Link de invitación copiado al portapapeles");
+          return;
+        } catch (clipboardError) {
+          console.log(100033, "Error con clipboard API:", clipboardError);
+          // Fallback al método tradicional
+        }
+      }
+
+      // Fallback: método tradicional para contextos no seguros o navegadores antiguos
+      const textArea = document.createElement('textarea');
+      textArea.value = invitationLink;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          console.log(100034, "Link copiado usando fallback");
+          toast.success("Link de invitación copiado al portapapeles");
+        } else {
+          throw new Error('Fallback copy failed');
+        }
+      } catch (fallbackError) {
+        document.body.removeChild(textArea);
+        console.log(100035, "Error con fallback:", fallbackError);
+        toast.error("Error al copiar el link. Por favor, cópialo manualmente: " + invitationLink);
+      }
+
+    } catch (error) {
+      console.log(100036, "Error general:", error);
+      toast.error("Error al copiar el link");
+    }
+  };
+
+  // Función para reenviar invitación por WhatsApp
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      // Aquí necesitarías obtener el sessionId del contexto o estado
+      const sessionId = "default-session"; // Esto debería venir del contexto
+      const response = await fetchApiV1({
+        query: queries.sendUserInvitation,
+        type: "json",
+        variables: {
+          args: {
+            invitationId,
+            sessionId
+          }
+        }
+      });
+      if (response.success) {
+        toast.success("Invitación reenviada por WhatsApp");
+        fetchUsers(); // Recargar la lista
+      } else {
+        toast.error(response.message || "Error al reenviar invitación");
+      }
+    } catch (error) {
+      toast.error("Error al reenviar invitación");
+    }
+  };
+
+  // Función para eliminar invitación
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta invitación?")) {
+      return;
+    }
+    try {
+      const response = await fetchApiV1({
+        query: queries.deleteUserInvitation,
+        type: "json",
+        variables: {
+          invitationId
+        }
+      });
+      if (response.success) {
+        toast.success("Invitación eliminada correctamente");
+        fetchUsers(); // Recargar la lista
+      } else {
+        toast.error(response.message || "Error al eliminar invitación");
+      }
+    } catch (error) {
+      toast.error("Error al eliminar invitación");
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return users?.filter((u) => {
@@ -63,7 +168,7 @@ export default function UsersPage() {
       const byQuery = q
         ? u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        u.name.toLowerCase().includes(q)
+        u.phone.toLowerCase().includes(q)
         : true;
       return byRole && byActive && byQuery;
     });
@@ -74,8 +179,8 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col">
-            <CardTitle>Usuarios</CardTitle>
-            <CardDescription>Gestionar usuarios</CardDescription>
+            <CardTitle>Usuarios e Invitaciones</CardTitle>
+            <CardDescription>Gestionar usuarios e invitaciones pendientes</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -83,7 +188,7 @@ export default function UsersPage() {
             <div className="flex items-center gap-2 flex-1">
               <div className="flex-1">
                 <InputSearch
-                  placeholder="Buscar usuario por login, email o nombre"
+                  placeholder="Buscar usuario o invitación por nombre, email o teléfono"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="w-full"
@@ -113,47 +218,113 @@ export default function UsersPage() {
               </div> */}
           </div>
           <Separator className="my-4" />
-          <div className="w-full overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead />
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Activo</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Email verificado</TableHead>
-                  <TableHead>Actualizado el</TableHead>
-                  <TableHead>Creado el</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered?.map((u) => (
-                  <TableRow
-                    key={u._id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleEditUser(u)}
-                  >
-                    <TableCell>
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={u.photoURL as string ?? ""} />
-                        <AvatarFallback>
-                          {u.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar></TableCell>
-                    <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.phone}</TableCell>
-                    <TableCell>{u.active ? "activo" : "inactivo"}</TableCell>
-                    <TableCell>{u.role}</TableCell>
-                    <TableCell>{u.emailVerified ? "verificado" : "no verificado"}</TableCell>
-                    <TableCell>{u.updatedAt}</TableCell>
-                    <TableCell>{u.createdAt}</TableCell>
+          <div id="scrolls-container" className={`${open ? 'w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
+            <div className="overflow-x-auto">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="sticky left-0 bg-card z-10 w-16" />
+                    <TableHead className="sticky left-14 bg-card z-10 min-w-[200px]">Nombre</TableHead>
+                    <TableHead className="min-w-[200px]">Email</TableHead>
+                    <TableHead className="min-w-[150px]">Teléfono</TableHead>
+                    <TableHead className="min-w-[100px]">Activo</TableHead>
+                    <TableHead className="min-w-[100px]">Rol</TableHead>
+                    <TableHead className="min-w-[150px]">Email verificado</TableHead>
+                    <TableHead className="min-w-[150px]">Actualizado el</TableHead>
+                    <TableHead className="min-w-[150px]">Creado el</TableHead>
+                    <TableHead className="min-w-[200px]">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered?.map((u) => {
+                    const isInvitation = !u.uid; // Las invitaciones no tienen uid
+                    return (
+                      <TableRow
+                        key={u._id}
+                        className={`cursor-pointer hover:!bg-transparent`}
+                        onClick={!isInvitation ? () => handleEditUser(u) : undefined}
+                      >
+                        <TableCell className={`sticky left-0 z-10 w-16 bg-card`}>
+                          <Avatar className="w-10 h-10">
+                            <AvatarImage src={u.photoURL as string ?? ""} />
+                            <AvatarFallback>
+                              {u.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell className={`sticky left-14 z-10 min-w-[200px] bg-card`}>
+                          {u.name}
+                          {isInvitation && (
+                            <span className="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                              Invitación
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="min-w-[200px]">{u.email}</TableCell>
+                        <TableCell className="min-w-[150px]">{u.phone}</TableCell>
+                        <TableCell className="min-w-[100px]">
+                          {isInvitation ? (
+                            u.used ? "usada" : "pendiente"
+                          ) : (
+                            u.active ? "activo" : "inactivo"
+                          )}
+                        </TableCell>
+                        <TableCell className="min-w-[100px]">{u.role}</TableCell>
+                        <TableCell className="min-w-[150px]">
+                          {isInvitation ? (
+                            u.whatsappSent ? "enviado" : "no enviado"
+                          ) : (
+                            u.emailVerified ? "verificado" : "no verificado"
+                          )}
+                        </TableCell>
+                        <TableCell className="min-w-[150px]">{u.updatedAt}</TableCell>
+                        <TableCell className="min-w-[150px]">{u.createdAt}</TableCell>
+                        <TableCell className="min-w-[200px]">
+                          {isInvitation && u.token && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyInvitationLink(u.token!);
+                                }}
+                                tooltip="Copiar link de invitación"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleResendInvitation(u._id);
+                                }}
+                                tooltip="Reenviar por WhatsApp"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteInvitation(u._id);
+                                }}
+                                tooltip="Eliminar invitación"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
