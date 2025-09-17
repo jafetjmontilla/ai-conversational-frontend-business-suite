@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   User,
   AuthError
 } from 'firebase/auth';
@@ -221,6 +222,39 @@ export const getIdToken = async (): Promise<string | null> => {
   } catch (error) {
     console.error('Error al obtener token:', error);
     return null;
+  }
+};
+
+// Función para enviar email de recuperación de contraseña
+export const sendPasswordResetEmail = async (email: string): Promise<AuthResponse> => {
+  try {
+    await firebaseSendPasswordResetEmail(auth, email);
+    return {
+      success: true,
+      message: 'Email de recuperación enviado exitosamente'
+    };
+  } catch (error: any) {
+    let message = 'Error al enviar email de recuperación';
+
+    switch (error.code) {
+      case 'auth/user-not-found':
+        message = 'No existe una cuenta con este email';
+        break;
+      case 'auth/invalid-email':
+        message = 'Email inválido';
+        break;
+      case 'auth/too-many-requests':
+        message = 'Demasiados intentos. Intenta más tarde';
+        break;
+      default:
+        message = error.message;
+    }
+
+    return {
+      success: false,
+      message,
+      error: error.code
+    };
   }
 };
 

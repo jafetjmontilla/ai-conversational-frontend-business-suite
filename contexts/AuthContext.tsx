@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getAuth, User } from 'firebase/auth';
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, AuthUser, AuthResponse, auth } from '../lib/firebase';
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, sendPasswordResetEmail, AuthUser, AuthResponse, auth } from '../lib/firebase';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 
 // Tipos para el contexto
@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<AuthResponse>;
   getToken: () => Promise<string | null>;
   setAuthUser: (authUser: AuthUser) => void;
+  sendPasswordResetEmail: (email: string) => Promise<AuthResponse>;
   errorAuth: string | undefined;
 }
 
@@ -143,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     getToken,
     setAuthUser,
+    sendPasswordResetEmail,
     errorAuth,
   };
 
