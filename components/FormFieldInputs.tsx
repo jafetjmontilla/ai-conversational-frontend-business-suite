@@ -1,9 +1,9 @@
 "use client";
 
-import { Control, FieldPath, FieldValues } from "react-hook-form";
+import { Control, FieldPath, } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FormInput } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { FormFieldInput } from "@/lib/interfases";
 
@@ -16,6 +16,7 @@ interface FormFieldInputsProps {
 
 
 export const FormFieldInputs = ({ field, control, name, isSubmitting = false }: FormFieldInputsProps) => {
+
   if (field.type === "text") {
     return (
       <FormField
@@ -74,7 +75,10 @@ export const FormFieldInputs = ({ field, control, name, isSubmitting = false }: 
                       )}
                     </div>
                   }
-                  <Select>
+                  <Select
+                    value={formField.value}
+                    onValueChange={formField.onChange}
+                  >
                     <SelectTrigger isWithIcon={field.icon ? true : false} >
                       <SelectValue placeholder={field.placeholder} />
                     </SelectTrigger>

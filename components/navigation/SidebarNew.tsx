@@ -40,8 +40,8 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
     { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 24 },
     { href: '/chat', label: 'Chat', icon: MessageSquare, badge: 8 },
     { href: '/users', label: 'Usuarios', icon: Users, condition: hasRole("admin") },
-    { href: '/settings', label: 'Configuración', icon: Settings },
-    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet },
+    { href: '/settings', label: 'Configuración', icon: Settings, condition: hasRole("admin") },
+    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: hasRole("admin") },
   ];
 
   const personalItems = buildPersonalItems()

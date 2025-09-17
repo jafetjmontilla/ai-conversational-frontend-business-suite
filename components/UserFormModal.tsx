@@ -11,13 +11,13 @@ import { FormFieldInput, OptionSelect, Role, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { sendWhatsAppMessage, getWhatsAppSessions } from "@/lib/whatsappApi";
 import { toast } from "sonner";
-import { User as UserIcon, Mail, Phone, Image, Shield, Link, MessageSquare } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Image, Shield, Link } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
 
 const roleOptions: OptionSelect[] = [
   {
     value: 'callCenter' as Role,
-    title: 'Cliente',
+    title: 'Call Center',
     description: '',
     icon: '👤',
     features: []
@@ -129,7 +129,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "accounting" | "callCenter" | "support") || "callCenter",
+      role: (user?.role as "admin" | "accounting" | "callCenter" | "support"),
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
@@ -175,7 +175,6 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
   };
 
   const sendInvitationByWhatsApp = async (invitationData: any) => {
-    console.log(100031, invitationData)
     setIsSendingWhatsApp(true);
     try {
       invitationData.phone = `${invitationData.phone.replace('+', '')}@s.whatsapp.net`;

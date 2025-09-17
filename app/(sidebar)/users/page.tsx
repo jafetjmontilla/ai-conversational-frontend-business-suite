@@ -62,22 +62,18 @@ export default function UsersPage() {
 
   // Función para copiar el link de invitación
   const handleCopyInvitationLink = async (token: string) => {
-
     try {
       const invitationLink = `${window.location.origin}/register-invitation?token=${token}`;
       // Verificar si el navegador soporta la API de Clipboard
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(invitationLink);
-          console.log(100032, "Link de invitación copiado al portapapeles");
-          toast.success("Link de invitación copiado al portapapeles");
+                    toast.success("Link de invitación copiado al portapapeles");
           return;
         } catch (clipboardError) {
-          console.log(100033, "Error con clipboard API:", clipboardError);
-          // Fallback al método tradicional
+                    // Fallback al método tradicional
         }
       }
-
       // Fallback: método tradicional para contextos no seguros o navegadores antiguos
       const textArea = document.createElement('textarea');
       textArea.value = invitationLink;
@@ -87,25 +83,19 @@ export default function UsersPage() {
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-
       try {
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
-
         if (successful) {
-          console.log(100034, "Link copiado usando fallback");
           toast.success("Link de invitación copiado al portapapeles");
         } else {
           throw new Error('Fallback copy failed');
         }
       } catch (fallbackError) {
         document.body.removeChild(textArea);
-        console.log(100035, "Error con fallback:", fallbackError);
         toast.error("Error al copiar el link. Por favor, cópialo manualmente: " + invitationLink);
       }
-
     } catch (error) {
-      console.log(100036, "Error general:", error);
       toast.error("Error al copiar el link");
     }
   };

@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   const handleAuthSuccess = () => {
-    router.push('/dashboard'); // Actualizado para incluir el país por defecto
+    router.push('/dashboard');
   };
 
   const handleSwitchToRegister = () => {

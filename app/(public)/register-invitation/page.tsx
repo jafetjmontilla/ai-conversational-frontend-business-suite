@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, CheckCircle, XCircle, User, Mail, Phone, Shield } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 
 interface InvitationData {
   _id: string;
@@ -148,6 +149,9 @@ export default function RegisterInvitationPage() {
 
       // Verificar que el email de Google coincida con el de la invitación
       if (googleResponse.user.email !== userData?.email) {
+        //borrar el usuario de firebase
+        const auth = getAuth();
+        auth.currentUser?.delete();
         toast.error('El email de Google no coincide con el de la invitación');
         return;
       }

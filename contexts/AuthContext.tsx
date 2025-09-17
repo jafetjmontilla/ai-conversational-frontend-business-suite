@@ -1,10 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
+import { getAuth, User } from 'firebase/auth';
 import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, AuthUser, AuthResponse, auth } from '../lib/firebase';
 import { fetchApiV1, queries } from '@/lib/Fetching';
-import { toast } from 'sonner';
 
 // Tipos para el contexto
 interface AuthContextType {
@@ -61,24 +60,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
       setLoading(true);
-      console.log(100051, user?.uid)
-      //aqui verificar si el usuario esta en la base de datos
-      // const userData = await fetchApiV1({
-      //   query: queries.getUser,
-      //   variables: {
-      //     uid: user?.uid
-      //   }
-      // });
-      // console.log(100052, userData)
-      // if (!userData?._id && user?.uid) {
-      //   console.log(100053, userData)
-      //   setUser(null);
-      //   setAuthUser(null);
-      //   setTimeout(() => {
-      //     setLoading(false);
-      //   }, 100);
-      //   return;
-      // }
+      if (window.location.pathname !== '/register-invitation') {
+        // aqui verificar si el usuario esta en la base de datos
+        const userData = await fetchApiV1({
+          query: queries.getUser,
+          variables: {
+            uid: user?.uid
+          }
+        });
+        if (!userData?._id && user?.uid) {
+          setUser(null);
+          setAuthUser(null);
+          //borrar el usuario de firebase
+          const auth = getAuth();
+          auth.currentUser?.delete();
+          setTimeout(() => {
+            setLoading(false);
+          }, 100);
+          return;
+        }
+      }
       setErrorAuth(undefined);
       setUser(user);
       if (user) {
@@ -89,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -112,7 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Función para iniciar sesión con Google
   const signInGoogle = async (isRegister: boolean = false): Promise<AuthResponse> => {
     const response = await signInWithGoogle();
-    setErrorAuth('Usuario no encontrado');
+    if (response.success) {
+      return response;
+    }
+    setErrorAuth('Usuario no encontrado 1');
     return response;
   };
 

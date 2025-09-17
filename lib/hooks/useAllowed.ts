@@ -9,7 +9,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter']
+      role: ['admin', 'accounting', 'callCenter', 'support']
     }
   },
   'configuracion:avanzada': {
