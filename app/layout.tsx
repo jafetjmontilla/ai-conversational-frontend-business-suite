@@ -16,7 +16,13 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${manrope.className} bg-background text-foreground transition-colors duration-200`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+          storageKey="4net-theme"
+        >
           <AuthProvider>
             <AuthGuard>
               {children}

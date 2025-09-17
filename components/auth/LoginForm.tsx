@@ -12,22 +12,21 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormInput } from '@/components/ui/input';
-import { useTheme } from 'next-themes';
+import { useThemeContext } from '../../contexts/ThemeContext';
 import Image from 'next/image';
-import logoBlack from '/app/4netBlack.png';
-import logoWhite from '/app/4netWhite.png';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
   onSuccess?: () => void;
 }
 
+
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
   const { signIn, signInGoogle, errorAuth } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { theme } = useTheme();
+  const { theme, isDark } = useThemeContext();
   const formSchema = z.object({
     email: z.string().email('Email inválido'),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
@@ -96,7 +95,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <Image src={theme === "dark" ? logoWhite : logoBlack} alt="4net" width={200} height={200} className="mt-10 mx-auto" />
+      <Image src={theme === "dark" ? '/images/4netWhite.png' : '/images/4netBlack.png'} alt="4net" width={200} height={200} className="mt-10 mx-auto" />
       <CardHeader className="text-center space-y-1 py-6">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar sesión</h2>
         <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>
@@ -134,7 +133,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
                 )}
               />
             ))}
-            <Button variant={theme === "dark" ? "outline" : "default"} type="submit" className="w-full" disabled={loading}>
+            <Button variant={isDark ? "outline" : "default"} type="submit" className="w-full" disabled={loading}>
               {loading ? 'Cargando...' : 'Iniciar sesión'}
             </Button>
           </form>
@@ -151,7 +150,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
-            variant={theme === "dark" ? "default" : "outline"}
+            variant={isDark ? "default" : "outline"}
             className="w-full"
           >
             <FcGoogle className="h-4 w-4 mr-2" />

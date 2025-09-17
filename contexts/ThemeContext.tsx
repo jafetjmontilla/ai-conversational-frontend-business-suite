@@ -14,12 +14,24 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const useThemeContext = () => {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Efecto para detectar automáticamente el tema del sistema y setear dark cuando corresponda
+  useEffect(() => {
+    if (mounted && theme === 'system') {
+      // Si el tema del sistema es dark, forzar el tema dark
+      if (systemTheme === 'dark') {
+        setTheme('dark');
+      } else if (systemTheme === 'light') {
+        setTheme('light');
+      }
+    }
+  }, [mounted, theme, systemTheme, setTheme]);
 
   if (!mounted) {
     return {
@@ -31,11 +43,14 @@ export const useThemeContext = () => {
     };
   }
 
+  // Determinar si es dark basado en el tema resuelto
+  const isDarkMode = resolvedTheme === 'dark' || (theme === 'system' && systemTheme === 'dark');
+
   return {
     theme: theme || 'system',
     setTheme,
-    isDark: resolvedTheme === 'dark',
-    isLight: resolvedTheme === 'light',
+    isDark: isDarkMode,
+    isLight: !isDarkMode,
     isSystem: theme === 'system',
   };
 };

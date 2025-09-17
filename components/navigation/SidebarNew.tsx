@@ -1,10 +1,9 @@
 "use client"
 
-import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroupLabel, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
+import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
-import previoLogo from '@/app/previoLogo3.png'
-import React, { FC, useEffect } from 'react';
+import React, { FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,7 +22,7 @@ export interface AppSidebarProps {
 
 export const AppSidebar: FC<AppSidebarProps> = () => {
   const router = useRouter()
-  const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar, } = useSidebar()
+  const { state, toggleSidebar, } = useSidebar()
 
   const { hasRole } = useAllowed();
 
@@ -64,8 +63,8 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
         <SidebarMenu>
           <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
             <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-              <Image src={previoLogo} alt="Logo" width={30} height={30} className="rounded-md" />
-              {state == "expanded" && <span className="font-bold text-sm">App Pulsar v1.0</span>}
+              <Image src={'/images/previoLogo3.png'} alt="Logo" width={30} height={30} className="rounded-md" />
+              {state == "expanded" && <span className="font-bold text-sm">Erp 4net v1.0</span>}
 
             </div>
           </div>
