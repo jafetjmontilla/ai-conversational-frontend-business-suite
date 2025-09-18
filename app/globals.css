@@ -83,6 +83,7 @@
     --sidebar-ring: 24 6% 63%;
     /* Anillo de enfoque primario */
     --sidebar-background: 60 5% 98%;
+    --avatar: 200 100% 35%;
   }
 
   .dark {
@@ -119,6 +120,7 @@
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 42 7% 46%;
     --sidebar-background: 215 100% 8%;
+    --avatar: 215 100% 35%;
   }
 }
 

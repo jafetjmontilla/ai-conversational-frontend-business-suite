@@ -15,7 +15,6 @@ import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
 import { User as UserIcon, Mail, Phone, Image, Shield, Calendar, Edit3, Save, X, LogOut, Sun, Moon, Monitor } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { FormFieldInputs } from "@/components/FormFieldInputs";
 import { FormFieldInput, Role } from "@/lib/interfases";
 
@@ -341,16 +340,12 @@ export default function ProfilePage() {
         </Card>
 
         {/* Configuración de cuenta */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Configuración</CardTitle>
-            <CardDescription>
-              Personaliza tu experiencia y gestiona tu cuenta.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+
+        <div className="flex">
+
+          <CardContent className="flex w-full gap-16 -translate-y-5">
             {/* Toggle de tema */}
-            <div className="flex items-center justify-between">
+            <div className="w-1/2 flex items-center justify-between pr-28">
               <div className="flex items-center space-x-3">
                 {isDark ? (
                   <Moon className="h-5 w-5 text-muted-foreground" />
@@ -358,7 +353,7 @@ export default function ProfilePage() {
                   <Sun className="h-5 w-5 text-muted-foreground" />
                 )}
                 <div>
-                  <p className="text-sm font-medium">Tema oscuro</p>
+                  <p className="text-sm font-medium">{`Tema ${isDark ? "oscuro" : "claro"}`}</p>
                   <p className="text-sm text-muted-foreground">
                     {isDark ? "Activar tema claro" : "Activar tema oscuro"}
                   </p>
@@ -371,7 +366,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="border-t pt-4">
+            <div className="w-1/2 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <LogOut className="h-5 w-5 text-muted-foreground" />
@@ -394,7 +389,8 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
+
 
       </div>
     </div>

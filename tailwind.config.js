@@ -82,7 +82,8 @@ module.exports = {
 					ring: 'hsl(var(--sidebar-ring))',
 					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))'
-				}
+				},
+				avatar: 'hsl(var(--avatar))'
 			},
 			fontFamily: {
 				sans: [
