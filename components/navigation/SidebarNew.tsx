@@ -7,7 +7,7 @@ import React, { FC } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
+import { Home, FileText, Receipt, BarChart3, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -30,16 +30,13 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/', label: 'Profesionales', icon: Box },
-    { href: '/theme-demo', label: 'Servicios', icon: Stars },
-    { href: '/', label: 'Horarios', icon: Calendar1 },
-    { href: '/theme-demo', label: 'Clientes', icon: ContactRound },
-    { href: '/', label: 'Calendario', icon: Calendar },
+    { href: '/payments-reports', label: 'Facturas HKA', icon: FileText },
+    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt },
+    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3 },
   ];
 
   const buildAccountItems = (): NavItem[] => [
-    { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 24 },
-    { href: '/chat', label: 'Chat', icon: MessageSquare, badge: 8 },
+    { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 0 },
     { href: '/users', label: 'Usuarios', icon: Users, condition: hasRole("admin") },
     { href: '/settings', label: 'Configuración', icon: Settings, condition: hasRole("admin") },
     { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: hasRole("admin") },
