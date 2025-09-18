@@ -25,14 +25,14 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
   const pathname = usePathname()
   const { state, toggleSidebar, } = useSidebar()
   const { theme } = useThemeContext();
-  const { hasRole } = useAllowed();
+  const { hasRole, hasAnyRole } = useAllowed();
   const { user } = useAuth();
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/payments-reports', label: 'Facturas HKA', icon: FileText },
-    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt },
-    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3 },
+    { href: '/thefactory', label: 'Facturas HKA', icon: FileText, condition: hasAnyRole(["admin", "accounting"]) },
+    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt, condition: hasAnyRole(["admin", "accounting"]) },
+    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3, condition: hasAnyRole(["admin", "callCenter"]) },
   ];
 
   const buildAccountItems = (): NavItem[] => [
@@ -75,7 +75,7 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
             <SidebarMenu>
               {personalItems.map((item) => {
                 const isActive = pathname === item.href;
-                return (
+                return (item?.condition === undefined || item?.condition === true) &&
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton
                       tooltip={item.label}
@@ -89,7 +89,6 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>

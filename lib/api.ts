@@ -20,10 +20,46 @@ instanceApiV1.interceptors.request.use(async (config) => {
   try {
     const token = await getIdToken();
     if (token) {
-      config.headers = {
-        ...(config.headers || {}),
-        Authorization: `Bearer ${token}`,
-      } as any;
+      // Preservar el Content-Type existente si es FormData
+      if (config.data instanceof FormData) {
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${token}`,
+        } as any;
+        // No establecer Content-Type para FormData, axios lo maneja automáticamente
+        delete config.headers['Content-Type'];
+      } else {
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${token}`,
+        } as any;
+      }
+    }
+  } catch {
+    // sin token
+  }
+  return config;
+});
+
+// Interceptor para adjuntar el token en Authorization para Jaihom
+instanceApiJaihomV1.interceptors.request.use(async (config) => {
+  try {
+    const token = await getIdToken();
+    if (token) {
+      // Preservar el Content-Type existente si es FormData
+      if (config.data instanceof FormData) {
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${token}`,
+        } as any;
+        // No establecer Content-Type para FormData, axios lo maneja automáticamente
+        delete config.headers['Content-Type'];
+      } else {
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${token}`,
+        } as any;
+      }
     }
   } catch {
     // sin token
@@ -53,6 +89,8 @@ export const apiV1: Fetching = {
 
 export const apiJaihomV1: Fetching = {
   graphql: async (data: object): Promise<AxiosResponse> => {
-    return await instanceApiJaihomV1.post("/graphql", data, {})
+    // Para FormData, no establecer Content-Type para que axios lo maneje automáticamente
+    const config = data instanceof FormData ? {} : {};
+    return await instanceApiJaihomV1.post("/graphql", data, config)
   },
 }
