@@ -218,7 +218,7 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
             <div>
               <CardTitle>Conexión WhatsApp</CardTitle>
               <CardDescription>
-                Gestiona las conexiones de WhatsApp Business para automatización de mensajes
+                Conexiones de WhatsApp para automatización de mensajes
               </CardDescription>
             </div>
           </div>
@@ -309,7 +309,7 @@ export default function WhatsAppConnection({ cardFocusedId, setCardFocusedId }: 
             <div className="grid gap-4">
               {sessions.map((session) => (
                 <Card key={session.id} className="relative">
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         {getStatusIcon(session)}

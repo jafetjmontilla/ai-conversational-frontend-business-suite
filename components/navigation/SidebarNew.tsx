@@ -4,7 +4,7 @@ import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGr
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import React, { FC } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
@@ -22,6 +22,7 @@ export interface AppSidebarProps {
 
 export const AppSidebar: FC<AppSidebarProps> = () => {
   const router = useRouter()
+  const pathname = usePathname()
   const { state, toggleSidebar, } = useSidebar()
   const { theme } = useThemeContext();
   const { hasRole } = useAllowed();
@@ -75,37 +76,51 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {personalItems.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton tooltip={item.label} asChild onClick={() => router.push(item.href)} className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""}`}>
-                    <div>
-                      <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
-                      <span>{item.label}</span>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {personalItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton
+                      tooltip={item.label}
+                      asChild
+                      onClick={() => router.push(item.href)}
+                      className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+                    >
+                      <div>
+                        <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                        <span>{item.label}</span>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {accountItems.map((item) =>
-            (item?.condition === undefined || item?.condition === true) &&
-            <SidebarMenuItem key={item.label}>
-              <SidebarMenuButton tooltip={item.label} asChild onClick={() => router.push(item.href)} className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""}`}>
-                <div>
-                  <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
-                  <span>{item.label}</span>
-                </div>
-              </SidebarMenuButton>
-              <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
-            </SidebarMenuItem>
-          )}
+          {accountItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (item?.condition === undefined || item?.condition === true) &&
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton
+                  tooltip={item.label}
+                  asChild
+                  onClick={() => router.push(item.href)}
+                  className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+                >
+                  <div>
+                    <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                    <span>{item.label}</span>
+                  </div>
+                </SidebarMenuButton>
+                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+              </SidebarMenuItem>
+          })}
           <Separator className="my-2" />
           <SidebarMenuItem onClick={() => router.push("/profile")} >
-            <SidebarMenuButton className="h-14">
+            <SidebarMenuButton className={`h-14 ${pathname === "/profile" ? "bg-accent text-accent-foreground" : ""}`}>
               <Avatar className="scale-[80%] -translate-x-[12px]">
                 <AvatarImage src={user?.photoURL || ""} />
                 <AvatarFallback>NE</AvatarFallback>
