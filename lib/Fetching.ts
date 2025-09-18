@@ -82,21 +82,6 @@ const conector: CallableFunction = async ({ api, query = ``, variables = {}, typ
   }
 };
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  error?: string;
-}
-
-export interface CustomClaimsData {
-  _id: string;
-  uid: string;
-  email: string | null;
-  customClaims: any;
-  role: string;
-}
-
 export const queries = {
   getCustomClaims: `query getCustomClaims($uid: String!) {
     getCustomClaims(uid: $uid) {
@@ -106,6 +91,7 @@ export const queries = {
         uid
         email
         role
+        phone
         assignedAt
       }
     }
@@ -118,6 +104,7 @@ export const queries = {
         uid
         email
         role
+        phone
         assignedAt
       }
     }
@@ -275,11 +262,52 @@ export const queries = {
       }
     }
   }`,
+  updateUser: `mutation updateUser($id: ID!, $args: UserInput!) {
+    updateUser(id: $id, args: $args) {
+      _id
+      name
+      email
+      phone
+      role
+      active
+      emailVerified
+      photoURL
+      createdAt
+      updatedAt
+    }
+  }`,
   // Mutaciones para gestión de invitaciones
+  updateUserInvitation: `mutation updateUserInvitation($invitationId: String!, $args: UpdateInvitationInput!) {
+    updateUserInvitation(invitationId: $invitationId, args: $args) {
+      success
+      message
+      data {
+        _id
+        name
+        email
+        phone
+        role
+        token
+        expiresAt
+        used
+        createdBy
+        whatsappSent
+        createdAt
+      }
+    }
+  }`,
   deleteUserInvitation: `mutation deleteUserInvitation($invitationId: String!) {
     deleteUserInvitation(invitationId: $invitationId) {
       success
       message
+    }
+  }`,
+  updateProfile: `mutation updateProfile($args: UpdateProfileInput!) {
+    updateProfile(args: $args) {
+      name
+      email
+      phone
+      photoURL
     }
   }`,
 }

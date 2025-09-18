@@ -10,6 +10,14 @@ const manrope = Manrope({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: '4net - ERP',
   description: 'ERP de 4net',
+  icons: {
+    icon: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://4net.com.ve/&size=16',
+  },
+  openGraph: {
+    title: '4net - ERP',
+    description: 'ERP de 4net',
+    images: 'https://i.ibb.co/FLHz9s58/4net-Logo-Open-Graph.png',
+  },
 }
 
 export default function RootLayout({ children, }: { children: React.ReactNode }) {

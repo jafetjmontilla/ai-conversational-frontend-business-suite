@@ -49,6 +49,7 @@ export type FormFieldInput = {
   type: string;
   required: boolean;
   options?: OptionSelect[];
+  disabled?: boolean;
 }
 
 export interface OptionSelect {

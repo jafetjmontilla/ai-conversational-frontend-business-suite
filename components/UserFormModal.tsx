@@ -120,8 +120,9 @@ const formFields: FormFieldInput[] = [
 export default function UserFormModal({ isOpen, onClose, user, onSuccess }: UserFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
-
+  const isInvitation = !user?.uid;
   const isEditing = !!user;
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -139,8 +140,55 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        // TODO: Implementar mutación de actualización cuando esté disponible
-        toast.error("La funcionalidad de edición estará disponible próximamente");
+        if (isInvitation) {
+          // Actualizar invitación
+          const updateInvitationResponse = await fetchApiV1({
+            query: queries.updateUserInvitation,
+            type: "json",
+            variables: {
+              invitationId: user?._id,
+              args: {
+                name: values.name,
+                email: values.email,
+                phone: values.phone,
+                role: values.role,
+              },
+            },
+          });
+
+          if (updateInvitationResponse.success) {
+            toast.success("Invitación actualizada exitosamente");
+            onSuccess();
+            onClose();
+          } else {
+            toast.error(updateInvitationResponse.message || "Error actualizando invitación");
+          }
+          return;
+        }
+        // Actualizar usuario existente
+        const updateResponse = await fetchApiV1({
+          query: queries.updateUser,
+          type: "json",
+          variables: {
+            id: user?._id,
+            args: {
+              name: values.name,
+              email: values.email,
+              phone: values.phone,
+              role: values.role,
+              photoURL: values.photoURL || "",
+              emailVerified: user?.emailVerified,
+            },
+          },
+        });
+
+        if (updateResponse) {
+          toast.success("Usuario actualizado exitosamente");
+          onSuccess();
+          onClose();
+        } else {
+          toast.error("Error actualizando usuario");
+        }
       } else {
         // Crear invitación de usuario
         const invitationResponse = await fetchApiV1({
@@ -167,8 +215,8 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
         }
       }
     } catch (error) {
-      console.error("Error al crear invitación:", error);
-      toast.error("Error al crear la invitación");
+      console.error("Error al procesar usuario:", error);
+      toast.error(isEditing ? "Error al actualizar usuario" : "Error al crear la invitación");
     } finally {
       setIsSubmitting(false);
     }
@@ -247,29 +295,45 @@ Este enlace expira en 7 días.
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
-            {formFields.map((field) => (
-              <FormFieldInputs
-                key={field.name}
-                field={field}
-                control={form.control}
-                name={field.name as 'name' | 'email' | 'phone' | 'photoURL' | 'role' | 'active'}
-                isSubmitting={form.formState.isSubmitting}
-              />
-            ))}
+            {formFields
+              .filter((field) => {
+                // En modo edición, no mostrar el campo 'active' ya que no se puede modificar
+                if (isEditing && field.name === 'active') {
+                  return false;
+                }
+                return true;
+              })
+              .map((field) => {
+                if (field.name === 'email') {
+                  field.disabled = isInvitation ? false : isEditing;
+                }
+                if (field.name === 'photoURL' && isInvitation) {
+                  return null;
+                }
+                return (
+                  <FormFieldInputs
+                    key={field.name}
+                    field={field}
+                    control={form.control}
+                    name={field.name as 'name' | 'email' | 'phone' | 'photoURL' | 'role' | 'active'}
+                    isSubmitting={form.formState.isSubmitting}
+                    disabled={field.disabled}
+                  />
+                )
+              })}
             <DialogFooter>
-              {isEditing && <div className="flex-1">
-                <Button type="button" variant="link" onClick={onClose}>
-                  <Link className="h-4 w-4" />
-                  Cancelar
-                </Button>
-              </div>}
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting || isSendingWhatsApp}>
-                {isSubmitting ? "Creando invitación..." :
-                  isSendingWhatsApp ? "Enviando por WhatsApp..." :
-                    isEditing ? "Actualizar" : "Enviar por WhatsApp"}
+                {isSubmitting ? (isEditing ? "Actualizando usuario..." : "Creando invitación...") :
+                  isSendingWhatsApp
+                    ? "Enviando por WhatsApp..."
+                    : isEditing
+                      ? isInvitation
+                        ? "Actualizar Invitación"
+                        : "Actualizar Usuario"
+                      : "Enviar por WhatsApp"}
               </Button>
             </DialogFooter>
           </form>

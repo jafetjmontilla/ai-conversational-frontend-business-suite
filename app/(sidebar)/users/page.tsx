@@ -68,10 +68,10 @@ export default function UsersPage() {
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(invitationLink);
-                    toast.success("Link de invitación copiado al portapapeles");
+          toast.success("Link de invitación copiado al portapapeles");
           return;
         } catch (clipboardError) {
-                    // Fallback al método tradicional
+          // Fallback al método tradicional
         }
       }
       // Fallback: método tradicional para contextos no seguros o navegadores antiguos
@@ -232,7 +232,7 @@ export default function UsersPage() {
                       <TableRow
                         key={u._id}
                         className={`cursor-pointer hover:!bg-transparent`}
-                        onClick={!isInvitation ? () => handleEditUser(u) : undefined}
+                        onClick={() => handleEditUser(u)}
                       >
                         <TableCell className={`sticky left-0 z-10 w-16 bg-card`}>
                           <Avatar className="w-10 h-10">
@@ -319,12 +319,12 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      <UserFormModal
+      {isModalOpen && <UserFormModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
         user={selectedUser}
         onSuccess={handleUserSuccess}
-      />
+      />}
     </div>
   );
 }

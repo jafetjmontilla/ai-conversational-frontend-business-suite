@@ -8,9 +8,9 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Box, Calendar, Users, Bell, MessageSquare, Settings, ChevronLeft, ChevronRight, Calendar1, Stars, ContactRound, SquareArrowOutUpRight, FileSpreadsheet } from 'lucide-react';
-
+import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
-
+import { useAuth } from "@/contexts/AuthContext"
 type NavItem = {
   href: string;
   label: string; icon: React.ElementType;
@@ -23,8 +23,9 @@ export interface AppSidebarProps {
 export const AppSidebar: FC<AppSidebarProps> = () => {
   const router = useRouter()
   const { state, toggleSidebar, } = useSidebar()
-
+  const { theme } = useThemeContext();
   const { hasRole } = useAllowed();
+  const { user } = useAuth();
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -63,8 +64,8 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
         <SidebarMenu>
           <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
             <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-              <Image src={'/images/previoLogo3.png'} alt="Logo" width={30} height={30} className="rounded-md" />
-              {state == "expanded" && <span className="font-bold text-sm">Erp 4net v1.0</span>}
+              <Image src={theme === "dark" ? `/images/4netWhite.png` : `/images/4netBlack.png`} alt="Logo" width={50} height={30} className="rounded-md" />
+              {state == "expanded" && <span className="font-bold text-sm">Erp v1.0</span>}
 
             </div>
           </div>
@@ -103,15 +104,15 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
             </SidebarMenuItem>
           )}
           <Separator className="my-2" />
-          <SidebarMenuItem >
+          <SidebarMenuItem onClick={() => router.push("/profile")} >
             <SidebarMenuButton className="h-14">
               <Avatar className="scale-[80%] -translate-x-[12px]">
-                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarImage src={user?.photoURL || ""} />
                 <AvatarFallback>NE</AvatarFallback>
               </Avatar>
               <div className="flex flex-col -translate-x-[13px]">
-                <span className="text-sm font-medium">Nina Egrena</span>
-                <span className="text-xs text-muted-foreground">nina.egrena@4net.com</span>
+                <span className="text-sm font-medium">{user?.displayName}</span>
+                <span className="text-xs text-muted-foreground">{user?.email}</span>
               </div>
             </SidebarMenuButton>
             {/* <SidebarMenuAction className="translate-y-3">

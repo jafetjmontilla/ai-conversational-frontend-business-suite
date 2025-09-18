@@ -52,7 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       providerId: user.providerData[0]?.providerId || 'password',
       customClaims: decodedToken.role ? {
         _id: decodedToken._id,
-        role: decodedToken.role
+        role: decodedToken.role,
+        phone: decodedToken.phone,
+        assignedAt: decodedToken.assignedAt
       } : undefined
     };
   };

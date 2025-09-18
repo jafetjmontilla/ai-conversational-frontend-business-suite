@@ -12,10 +12,10 @@ interface FormFieldInputsProps {
   control: Control<any>;
   name: FieldPath<any>;
   isSubmitting?: boolean;
+  disabled?: boolean;
 }
 
-
-export const FormFieldInputs = ({ field, control, name, isSubmitting = false }: FormFieldInputsProps) => {
+export const FormFieldInputs = ({ field, control, name, isSubmitting = false, disabled = false }: FormFieldInputsProps) => {
 
   if (field.type === "text") {
     return (
@@ -42,7 +42,7 @@ export const FormFieldInputs = ({ field, control, name, isSubmitting = false }: 
                   {...formField}
                   placeholder={field.placeholder}
                   className={field.icon ? "pl-10" : ""}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || disabled}
                 />
               </div>
             </FormControl>

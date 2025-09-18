@@ -42,11 +42,14 @@ export interface AuthUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  phone?: string | null;
   emailVerified: boolean;
   providerId: string;
   customClaims?: {
     _id: string;
     role?: string;
+    phone?: string;
+    assignedAt?: string;
   };
 }
 
