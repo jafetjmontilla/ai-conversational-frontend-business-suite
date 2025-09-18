@@ -8,6 +8,12 @@ import { Toaster } from "@/components/ui/sonner"
 const manrope = Manrope({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NODE_ENV === 'production' 
+    ? 'http://api2.eventosorganizador.com' 
+    : process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : 'http://localhost:3000'
+  ),
   title: '4net - ERP',
   description: 'ERP de 4net',
   icons: {
