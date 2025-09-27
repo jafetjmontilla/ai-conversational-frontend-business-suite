@@ -1,5 +1,5 @@
 {
-  "name": "4net-frontend",
+  "name": "sistemasJaihom-frontend",
   "version": "1.0.0",
   "description": "Aplicación SaaS ERP",
   "private": true,
@@ -68,6 +68,6 @@
     "bienestar",
     "saas"
   ],
-  "author": "4net Team",
+  "author": "sistemasJaihom Team",
   "license": "MIT"
 }

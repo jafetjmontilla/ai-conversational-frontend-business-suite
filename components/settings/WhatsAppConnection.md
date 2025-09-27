@@ -1,6 +1,6 @@
 # Componente WhatsApp Connection
 
-Componente React para gestionar conexiones de WhatsApp Business integrado con la API de WhatsApp de 4net.
+Componente React para gestionar conexiones de WhatsApp Business integrado con la API de WhatsApp de sistemasJaihom.
 
 ## 🚀 Características
 
@@ -14,7 +14,7 @@ Componente React para gestionar conexiones de WhatsApp Business integrado con la
 ## 📁 Archivos Relacionados
 
 ```
-frontend-4net/
+frontend-sistemasJaihom/
 ├── components/settings/
 │   └── WhatsAppConnection.tsx          # Componente principal
 ├── lib/

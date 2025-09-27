@@ -71,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uid: user?.uid
           }
         });
+        //Modificar para el primer usuario que se registre sea admin
         if (!userData?._id && user?.uid) {
           setUser(null);
           setAuthUser(null);

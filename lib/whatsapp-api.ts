@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 
 // Configuración de la API de WhatsApp
 const WHATSAPP_API_URL = process.env.NEXT_PUBLIC_WHATSAPP_API_URL || 'http://localhost:2001';
-const DEVELOPMENT_ID = process.env.NEXT_PUBLIC_DEVELOPMENT_ID || '4net';
+const DEVELOPMENT_ID = process.env.NEXT_PUBLIC_DEVELOPMENT_ID || 'sistemasJaihom';
 
 // Cliente axios para la API de WhatsApp
 const whatsappApiClient = axios.create({

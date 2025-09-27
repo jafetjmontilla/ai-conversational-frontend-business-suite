@@ -114,7 +114,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 - **Contraste** optimizado para ambos temas
 - **Estados de hover/focus** claros
 
-### 🎯 Beneficios para 4net
+### 🎯 Beneficios para sistemasJaihom
 - **Inclusividad**: Accesible para usuarios con discapacidades
 - **Profesionalismo**: Componentes de nivel empresarial
 - **Mantenibilidad**: Código más limpio y estructurado
@@ -129,7 +129,7 @@ Todos los componentes están optimizados para el sistema de temas claro/oscuro:
 className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ```
 
-## Casos de Uso en 4net
+## Casos de Uso en sistemasJaihom
 
 ### Dashboard
 - **Progress**: Progreso semanal de rutinas

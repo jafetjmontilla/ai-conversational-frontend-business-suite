@@ -14,15 +14,15 @@ export const metadata: Metadata = {
     ? process.env.NEXT_PUBLIC_APP_URL
     : 'http://localhost:3000'
   ),
-  title: '4net - ERP',
-  description: 'ERP de 4net',
+  title: 'sistemasJaihom - ERP',
+  description: 'ERP de sistemasJaihom',
   icons: {
-    icon: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://4net.com.ve/&size=16',
+    icon: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://sistemasJaihom.com.ve/&size=16',
   },
   openGraph: {
-    title: '4net - ERP',
-    description: 'ERP de 4net',
-    images: 'https://i.ibb.co/FLHz9s58/4net-Logo-Open-Graph.png',
+    title: 'sistemasJaihom - ERP',
+    description: 'ERP de sistemasJaihom',
+    images: 'https://i.ibb.co/FLHz9s58/sistemasJaihom-Logo-Open-Graph.png',
   },
 }
 
@@ -35,7 +35,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange={false}
-          storageKey="4net-theme"
+          storageKey="sistemasJaihom-theme"
         >
           <AuthProvider>
             <AuthGuard>

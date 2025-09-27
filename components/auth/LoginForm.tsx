@@ -117,7 +117,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
             transition={{ duration: 0.15 }}
           >
             <Card className="w-full">
-              <Image src={theme === "dark" ? '/images/4netWhite.png' : '/images/4netBlack.png'} alt="4net" width={200} height={200} className="mt-10 mx-auto" />
+              <Image src={theme === "dark" ? '/images/sistemasJaihomWhite.png' : '/images/sistemasJaihomBlack.png'} alt="sistemasJaihom" width={200} height={200} className="mt-10 mx-auto" />
               <CardHeader className="text-center space-y-1 py-6">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar sesión</h2>
                 <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>

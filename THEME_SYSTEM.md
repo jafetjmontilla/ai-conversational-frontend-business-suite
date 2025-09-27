@@ -1,8 +1,8 @@
-# Sistema de Temas - 4net Frontend
+# Sistema de Temas - sistemasJaihom Frontend
 
 ## Descripción
 
-El sistema de temas implementado en 4net permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
+El sistema de temas implementado en sistemasJaihom permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
 
 ## Características
 

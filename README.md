@@ -1,4 +1,4 @@
-# 4net Frontend
+# sistemasJaihom Frontend
 
 Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
 
@@ -22,7 +22,7 @@ Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Fir
 
 1. **Clonar el repositorio**
 ```bash
-cd frontend-4net
+cd frontend-sistemasJaihom
 ```
 
 2. **Instalar dependencias**

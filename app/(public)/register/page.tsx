@@ -56,6 +56,7 @@ export default function RegisterPage() {
     return null;
   }
 
+  //Modificar para el primer usuario que se registre sea admin
   const handleStep1Complete = (data: UserData) => {
     // setUserData(data);
     // setCurrentStep(2);

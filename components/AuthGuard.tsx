@@ -13,6 +13,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  //Modificar para el primer usuario que se registre sea admin
   // Rutas que no requieren autenticación
   const publicRoutes = ['/login', '/register-invitation', '/forgot-password'];
   const isPublicRoute = publicRoutes.includes(pathname);

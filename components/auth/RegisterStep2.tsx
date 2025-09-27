@@ -79,6 +79,7 @@ export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, 
           return;
         }
       }
+      //Modificar para el primer usuario que se registre sea admin
       // Asignar custom claims con el rol seleccionado
       const customClaimsResponse = await fetchApiV1({
         query: queries.assignCustomClaims,

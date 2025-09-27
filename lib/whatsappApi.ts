@@ -75,7 +75,7 @@ export const createWhatsAppSession = async (sessionId: string = 'default') => {
       variables: {
         args: {
           sessionId,
-          development: '4net',
+          development: 'sistemasJaihom',
           userId: 'admin'
         }
       }

@@ -62,8 +62,8 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
     return (
       <Card className="w-full max-w-md mx-auto">
         <Image
-          src={theme === "dark" ? '/images/4netWhite.png' : '/images/4netBlack.png'}
-          alt="4net"
+          src={theme === "dark" ? '/images/sistemasJaihomWhite.png' : '/images/sistemasJaihomBlack.png'}
+          alt="sistemasJaihom"
           width={200}
           height={200}
           className="mt-10 mx-auto"
@@ -110,8 +110,8 @@ export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBa
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/4netWhite.png' : '/images/4netBlack.png'}
-        alt="4net"
+        src={theme === "dark" ? '/images/sistemasJaihomWhite.png' : '/images/sistemasJaihomBlack.png'}
+        alt="sistemasJaihom"
         width={200}
         height={200}
         className="mt-10 mx-auto"

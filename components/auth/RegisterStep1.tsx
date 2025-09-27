@@ -122,6 +122,7 @@ export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchTo
     }
   };
 
+  //Modificar para el primer usuario que se registre sea admin
   const handleGoogleRegister = async () => {
     try {
       const response = await signInGoogle();
