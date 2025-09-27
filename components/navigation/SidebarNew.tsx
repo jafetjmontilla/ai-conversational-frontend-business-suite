@@ -30,9 +30,9 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/thefactory', label: 'Facturas HKA', icon: FileText, condition: hasAnyRole(["admin", "accounting"]) },
-    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt, condition: hasAnyRole(["admin", "accounting"]) },
-    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3, condition: hasAnyRole(["admin", "callCenter"]) },
+    { href: '/thefactory', label: 'Facturas HKA', icon: FileText, condition: hasAnyRole(["admin", "customerService"]) },
+    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt, condition: hasAnyRole(["admin", "customerService"]) },
+    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3, condition: hasAnyRole(["admin", "customerService"]) },
   ];
 
   const buildAccountItems = (): NavItem[] => [

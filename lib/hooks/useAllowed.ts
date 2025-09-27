@@ -9,7 +9,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'support']
+      role: ['admin', 'customerService']
     }
   },
   'configuracion:avanzada': {
@@ -62,14 +62,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter']
+      role: ['admin', 'customerService']
     }
   },
   'exportar:reportes': {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter']
+      role: ['admin', 'customerService']
     }
   },
 
@@ -78,14 +78,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'callCenter', 'support']
+      role: ['admin', 'customerService']
     }
   },
   'soporte:gestionar': {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'callCenter', 'support']
+      role: ['admin', 'customerService']
     }
   },
 
@@ -235,7 +235,7 @@ export const useExportPermissions = () => {
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService'])
   };
 };
 
@@ -246,7 +246,7 @@ export const useSupportPermissions = () => {
   return {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'callCenter', 'support'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService'])
   };
 };
 
@@ -259,7 +259,7 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'support']),
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService']),
     isAdmin: () => hasRole('admin')
   };
 };

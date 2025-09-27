@@ -6,8 +6,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarLayout defaultOpen={defaultOpen}>
-      <div className='flex-1'>
-
+      <div className='flex-1 max-h-[100vh] overflow-auto'>
         {children}
       </div>
     </SidebarLayout>)

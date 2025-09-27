@@ -14,7 +14,6 @@ import { Copy, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
 
-
 export default function UsersPage() {
   const [role, setRole] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -23,7 +22,6 @@ export default function UsersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { open } = useSidebar()
-
 
   const fetchUsers = async () => {
     try {

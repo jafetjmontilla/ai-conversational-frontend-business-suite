@@ -13,7 +13,7 @@ export function SidebarLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
-      <SidebarTrigger className="block md:hidden sticky top-10 left-10 z-10" />
+      <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden absolute top-5 left-2 z-10" />
       {children}
     </SidebarProvider>
   )

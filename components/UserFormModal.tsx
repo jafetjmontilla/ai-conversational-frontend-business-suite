@@ -11,22 +11,15 @@ import { FormFieldInput, OptionSelect, Role, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { sendWhatsAppMessage, getWhatsAppSessions } from "@/lib/whatsappApi";
 import { toast } from "sonner";
-import { User as UserIcon, Mail, Phone, Image, Shield, Link } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Image, Shield } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
 
 const roleOptions: OptionSelect[] = [
   {
-    value: 'callCenter' as Role,
-    title: 'Call Center',
+    value: 'customerService' as Role,
+    title: 'Atención al Cliente',
     description: '',
     icon: '👤',
-    features: []
-  },
-  {
-    value: 'accounting' as Role,
-    title: 'Contabilidad',
-    description: '',
-    icon: '💇🏻',
     features: []
   },
   {
@@ -36,13 +29,7 @@ const roleOptions: OptionSelect[] = [
     icon: '⚙️',
     features: []
   },
-  {
-    value: 'support' as Role,
-    title: 'Soporte',
-    description: '',
-    icon: '💬',
-    features: []
-  },
+
 ].sort((a, b) => a.title.localeCompare(b.title));
 
 interface UserFormModalProps {
@@ -56,7 +43,7 @@ const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  role: z.enum(["admin", "accounting", "callCenter", "support"], {
+  role: z.enum(["admin", "customerService"], {
     message: "El rol es requerido",
   }),
   active: z.boolean(),
@@ -130,7 +117,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "accounting" | "callCenter" | "support"),
+      role: (user?.role as "admin" | "customerService"),
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
@@ -282,7 +269,7 @@ Este enlace expira en 7 días.
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Usuario" : "Invitar Usuario por WhatsApp"}

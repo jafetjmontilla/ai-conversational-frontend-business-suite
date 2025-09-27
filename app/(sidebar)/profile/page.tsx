@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
-import { User as UserIcon, Mail, Phone, Image, Shield, Calendar, Edit3, Save, X, LogOut, Sun, Moon, Monitor } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Image, Shield, Calendar, Edit3, Save, X, LogOut, Sun, Moon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FormFieldInputs } from "@/components/FormFieldInputs";
 import { FormFieldInput, Role } from "@/lib/interfases";
@@ -55,15 +55,13 @@ const formFields: FormFieldInput[] = [
 
 const roleLabels: Record<Role, string> = {
   admin: 'Administrador',
-  accounting: 'Contabilidad',
-  callCenter: 'Call Center',
-  support: 'Soporte',
+  customerService: 'Atención al Cliente',
   none: 'Sin rol'
 };
 
 export default function ProfilePage() {
   const { user, authUser, setAuthUser, logout } = useAuth();
-  const { theme, setTheme, isDark } = useThemeContext();
+  const { setTheme, isDark } = useThemeContext();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
