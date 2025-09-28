@@ -310,4 +310,246 @@ export const queries = {
       photoURL
     }
   }`,
+  // Queries para inventario
+  getInventoryItems: `query getInventoryItems {
+    getInventoryItems {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  getInventoryItem: `query getInventoryItem($_id: ID!) {
+    getInventoryItem(_id: $_id) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  getInventoryItemByCode: `query getInventoryItemByCode($code: String!) {
+    getInventoryItemByCode(code: $code) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  createInventoryItem: `mutation createInventoryItem($args: InventoryItemInput!) {
+    createInventoryItem(args: $args) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateInventoryItem: `mutation updateInventoryItem($_id: ID!, $args: UpdateInventoryItemInput!) {
+    updateInventoryItem(_id: $_id, args: $args) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateItemQuantity: `mutation updateItemQuantity($args: UpdateQuantityInput!) {
+    updateItemQuantity(args: $args) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteInventoryItem: `mutation deleteInventoryItem($_id: ID!) {
+    deleteInventoryItem(_id: $_id)
+  }`,
+  bulkCreateInventoryItems: `mutation bulkCreateInventoryItems($items: [BulkInventoryItemInput!]!) {
+    bulkCreateInventoryItems(items: $items) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      unitCost
+      salesPrice
+      profitPercentage
+      status
+      costHistory {
+        value
+        updatedAt
+        userId
+      }
+      priceHistory {
+        value
+        updatedAt
+        userId
+      }
+      quantityHistory {
+        quantity
+        concept
+        updatedAt
+        userId
+      }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  // Query para obtener tasas BCV
+  getTasasBCV: `query getTasasBCV($fecha: String!, $skip: Int!, $limit: Int!) {
+    getTasasBCV(fecha: $fecha, skip: $skip, limit: $limit) {
+      tasa
+      fecha
+    }
+  }`,
 }

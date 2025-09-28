@@ -58,3 +58,36 @@ export interface OptionSelect {
   icon?: string;
   color?: string;
 }
+
+// Interfaces para inventario
+export interface PriceHistory {
+  value: number;
+  updatedAt: string;
+  userId: string;
+}
+
+export interface QuantityHistory {
+  quantity: number;
+  concept: string;
+  updatedAt: string;
+  userId: string;
+}
+
+export interface InventoryItem {
+  _id: string;
+  code: string;
+  description: string;
+  type: "mercancia" | "servicio";
+  store: "guardians" | "jaihom";
+  quantity: number;
+  unitCost: number;
+  salesPrice: number;
+  profitPercentage: number;
+  status: boolean;
+  costHistory: PriceHistory[];
+  priceHistory: PriceHistory[];
+  quantityHistory: QuantityHistory[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}

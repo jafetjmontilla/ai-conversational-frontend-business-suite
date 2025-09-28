@@ -4,11 +4,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/navigation/AppSidebar"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
+import { useTasaBCV } from "@/hooks/useTasaBCV"
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
   const [slugs, setSlugs] = useState<{ name: string, href: string }[]>([])
   const [currentDate, setCurrentDate] = useState(new Date())
   const pathname = usePathname()
+  const { tasaBCV, loading: tasaLoading, error: tasaError } = useTasaBCV()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,7 +30,9 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span>
           </div>
           <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
-          <span className="hidden md:block">$ 175.00</span>
+          <span id="tasaBCV" className="hidden md:block">
+            {tasaLoading ? 'Cargando...' : tasaError ? 'Error' : tasaBCV ? `$ ${tasaBCV.tasa.toFixed(2)}` : '$ 0.00'}
+          </span>
           <span className="hidden md:block first-letter:uppercase">{currentDate.toLocaleDateString('es-VE', {
             weekday: 'long',
             year: 'numeric', month: 'numeric',
