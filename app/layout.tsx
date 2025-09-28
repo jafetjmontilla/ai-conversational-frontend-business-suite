@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'sistemasJaihom - ERP',
     description: 'ERP de sistemasJaihom',
-    images: 'https://i.ibb.co/FLHz9s58/sistemasJaihom-Logo-Open-Graph.png',
+    images: 'https://i.ibb.co/PG9jYvfD/Sietemas-Jaihom-Logo-Open-Graph.png',
   },
 }
 

@@ -171,7 +171,7 @@ export default function UsersPage() {
             <CardDescription>Gestionar usuarios e invitaciones pendientes</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 md:p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 flex-1">
               <div className="flex-1">
@@ -206,13 +206,13 @@ export default function UsersPage() {
               </div> */}
           </div>
           <Separator className="my-4" />
-          <div id="scrolls-container" className={`${open ? 'w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
+          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'md:w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
             <div className="overflow-x-auto">
-              <Table className="min-w-full">
+              <Table className="md:min-w-full">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="sticky left-0 bg-card z-10 w-16" />
-                    <TableHead className="sticky left-14 bg-card z-10 min-w-[200px]">Nombre</TableHead>
+                    <TableHead className="md:sticky md:left-0 bg-card z-10 w-16" />
+                    <TableHead className="md:sticky md:left-14 bg-card z-10 min-w-[200px]">Nombre</TableHead>
                     <TableHead className="min-w-[200px]">Email</TableHead>
                     <TableHead className="min-w-[150px]">Teléfono</TableHead>
                     <TableHead className="min-w-[100px]">Activo</TableHead>
@@ -232,7 +232,7 @@ export default function UsersPage() {
                         className={`cursor-pointer hover:!bg-transparent`}
                         onClick={() => handleEditUser(u)}
                       >
-                        <TableCell className={`sticky left-0 z-10 w-16 bg-card`}>
+                        <TableCell className={`md:sticky md:left-0 md:z-10 md:bg-card w-16`}>
                           <Avatar className="w-10 h-10">
                             <AvatarImage src={u.photoURL as string ?? ""} />
                             <AvatarFallback>
@@ -240,7 +240,7 @@ export default function UsersPage() {
                             </AvatarFallback>
                           </Avatar>
                         </TableCell>
-                        <TableCell className={`sticky left-14 z-10 min-w-[200px] bg-card`}>
+                        <TableCell className={`md:stickymd: md:left-14 md:z-10 md:bg-card min-w-[200px]`}>
                           {u.name}
                           {isInvitation && (
                             <span className="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">

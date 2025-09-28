@@ -247,7 +247,7 @@ export const RegisterInvitationForm: React.FC<RegisterInvitationFormProps> = ({ 
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/sistemasJaihomWhite.png' : '/images/sistemasJaihomBlack.png'}
+        src={theme === "dark" ? '/images/sistemasJaihomLogo.png' : '/images/sistemasJaihomLogo.png'}
         alt="sistemasJaihom"
         width={200}
         height={200}
