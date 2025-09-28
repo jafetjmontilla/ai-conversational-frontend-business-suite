@@ -1,15 +1,12 @@
 'use client';
 
-import { Menu } from 'lucide-react';
 import { SimpleThemeToggle } from './SimpleThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import UserMenu from '@/components/navigation/UserMenu';
 import MainNavLinks from '@/components/navigation/MainNavLinks';
 import MobileNavSheet from '@/components/navigation/MobileNavSheet';
-import { NavigationMenu as ShadNavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuLink, navigationMenuTriggerStyle } from '@/components/ui/navigation-menu';
 
 export const Navigation = () => {
   const { user, logout } = useAuth();

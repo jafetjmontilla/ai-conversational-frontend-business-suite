@@ -3,7 +3,7 @@
 import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
-import React, { FC } from 'react';
+import React, { Dispatch, FC, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,6 +11,7 @@ import { Home, FileText, Receipt, BarChart3, Users, Bell, Settings, ChevronLeft,
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
+
 type NavItem = {
   href: string;
   label: string; icon: React.ElementType;
@@ -18,9 +19,10 @@ type NavItem = {
 };
 
 export interface AppSidebarProps {
+  setSlugs: Dispatch<React.SetStateAction<{ name: string, href: string }[]>>
 }
 
-export const AppSidebar: FC<AppSidebarProps> = () => {
+export const AppSidebar: FC<AppSidebarProps> = ({ setSlugs }) => {
   const router = useRouter()
   const pathname = usePathname()
   const { state, toggleSidebar, } = useSidebar()
@@ -30,9 +32,8 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/thefactory', label: 'Facturas HKA', icon: FileText, condition: hasAnyRole(["admin", "customerService"]) },
-    { href: '/retention-iva', label: 'Retención IVA', icon: Receipt, condition: hasAnyRole(["admin", "customerService"]) },
-    { href: '/payments-reports', label: 'Pagos Reportes', icon: BarChart3, condition: hasAnyRole(["admin", "customerService"]) },
+    { href: '/invoicing', label: 'Facturación Guardians', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG"]) },
+    { href: '/invoicing', label: 'Facturación Jaihom', icon: FileText, condition: hasAnyRole(["admin", "customerServiceJ"]) },
   ];
 
   const buildAccountItems = (): NavItem[] => [
@@ -41,6 +42,14 @@ export const AppSidebar: FC<AppSidebarProps> = () => {
     { href: '/settings', label: 'Configuración', icon: Settings, condition: hasRole("admin") },
     { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: hasRole("admin") },
   ];
+
+  useEffect(() => {
+    setSlugs([
+      ...buildPersonalItems().map((item) => ({ name: item.label, href: item.href })),
+      ...buildAccountItems().map((item) => ({ name: item.label, href: item.href })
+      )]
+    )
+  }, [])
 
   const personalItems = buildPersonalItems()
   const accountItems = buildAccountItems()

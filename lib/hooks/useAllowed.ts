@@ -9,7 +9,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'customerService']
+      role: ['admin', 'customerServiceG', "customerServiceJ"]
     }
   },
   'configuracion:avanzada': {
@@ -62,14 +62,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'customerService']
+      role: ['admin', 'customerServiceG', "customerServiceJ"]
     }
   },
   'exportar:reportes': {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'customerService']
+      role: ['admin', 'customerServiceG', "customerServiceJ"]
     }
   },
 
@@ -78,14 +78,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'customerService']
+      role: ['admin', 'customerServiceG', "customerServiceJ"]
     }
   },
   'soporte:gestionar': {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'customerService']
+      role: ['admin', 'customerServiceG', "customerServiceJ"]
     }
   },
 
@@ -235,7 +235,7 @@ export const useExportPermissions = () => {
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"])
   };
 };
 
@@ -246,7 +246,7 @@ export const useSupportPermissions = () => {
   return {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"])
   };
 };
 
@@ -259,7 +259,7 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerService']),
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"]),
     isAdmin: () => hasRole('admin')
   };
 };

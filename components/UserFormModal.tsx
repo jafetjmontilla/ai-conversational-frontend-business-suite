@@ -16,8 +16,15 @@ import { FormFieldInputs } from "./FormFieldInputs";
 
 const roleOptions: OptionSelect[] = [
   {
-    value: 'customerService' as Role,
-    title: 'Atención al Cliente',
+    value: 'customerServiceG' as Role,
+    title: 'Att. al Cliente Guardians',
+    description: '',
+    icon: '👤',
+    features: []
+  },
+  {
+    value: 'customerServiceJ' as Role,
+    title: 'Att. al Cliente Jaihom',
     description: '',
     icon: '👤',
     features: []
@@ -43,7 +50,7 @@ const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  role: z.enum(["admin", "customerService"], {
+  role: z.enum(["admin", "customerServiceG", "customerServiceJ"], {
     message: "El rol es requerido",
   }),
   active: z.boolean(),
@@ -117,7 +124,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "customerService"),
+      role: (user?.role as "admin" | "customerServiceG" | "customerServiceJ"),
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
