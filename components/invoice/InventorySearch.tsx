@@ -27,6 +27,7 @@ interface InventorySearchProps {
 export function InventorySearch({ value, onChange, onSelectItem, placeholder = "Buscar artículo...", className = "", store = "guardians", tasaBCV }: InventorySearchProps) {
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocus, setIsFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,11 +76,6 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
     setIsOpen(false);
   }, [onSelectItem]);
 
-  const clearInput = useCallback(() => {
-    onChange('');
-    setIsOpen(false);
-  }, [onChange]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -105,19 +101,30 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
           type="text"
           value={value}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setIsOpen(false)}
+          onFocus={() => {
+            setIsOpen(true)
+            setIsFocus(true)
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              setIsFocus(false)
+            }, 200)
+          }}
           className={`w-full bg-white dark:bg-gray-100 text-left border-0 outline-none px-1 ${className}`}
         />
-        <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 z-10">
-          {isOpen && value && (
-            <button
-              onClick={clearInput}
-              className="bg-white rounded-full border-[1px] border-ring text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center"
-              type="button"
+        <div
+          onClickCapture={() => {
+            console.log('clearInput');
+            onChange('');
+            setIsOpen(false);
+          }}
+          className="absolute -top-6 -right-2 flex md:hidden items-center space-x-1 z-10">
+          {value && isFocus && (
+            <div
+              className="bg-white rounded-full border-[1px] border-ring text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center"
             >
-              <X className="w-3 h-3" />
-            </button>
+              <X className="w-4 h-4" />
+            </div>
           )}
         </div>
       </div>
@@ -136,7 +143,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
               <div
                 key={item._id}
                 onClick={() => handleItemSelect(item)}
-                className="px-2.5 py-1.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0"
+                className="px-2.5 py-2.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0"
               >
                 <div className="flex justify-between items-start text-xs gap-2">
                   <div className="flex-1">
@@ -145,10 +152,10 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
                     </div>
                   </div>
                   <div className="font-semibold w-[35px] text-right">
-                    {item.salesPrice.toFixed(2)}
+                    {(item.salesPrice / tasaBCV).toFixed(2)}
                   </div>
                   <div className="font-semibold w-[55px] text-right">
-                    {(item.salesPrice * tasaBCV).toFixed(2)}
+                    {item.salesPrice.toFixed(2)}
                   </div>
                   <div className="w-5 flex justify-center text-green-600">
                     {"(" + item.quantity + ")"}

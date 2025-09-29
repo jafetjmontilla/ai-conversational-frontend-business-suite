@@ -21,10 +21,11 @@ interface PaymentDialogProps {
   onClose: () => void;
   invoice: Invoice;
   tasaBCV: number;
+  store?: 'guardians' | 'jaihom';
   onProcessPayment?: (paymentData: any) => void;
 }
 
-export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, onProcessPayment }: PaymentDialogProps) {
+export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaihom', onProcessPayment }: PaymentDialogProps) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
     { id: 'cash-bs', name: 'Efectivo Bs.', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
     { id: 'point', name: 'Punto', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
@@ -110,12 +111,25 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, onProcessPaym
           {/* Total Amount */}
           <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
             <div className="text-center space-y-2">
-              <div className="text-3xl font-bold text-blue-800">
-                Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                $ {invoice.totalUsd.toFixed(2)}
-              </div>
+              {store === "guardians" ? (
+                <>
+                  <div className="text-3xl font-bold text-green-600">
+                    $ {invoice.totalUsd.toFixed(2)}
+                  </div>
+                  <div className="text-2xl font-bold text-blue-800">
+                    Bs. {(invoice.totalUsd * tasaBCV).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-blue-800">
+                    Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">
+                    $ {invoice.totalUsd.toFixed(2)}
+                  </div>
+                </>
+              )}
               <div className="text-sm text-gray-600">
                 Tasa: {tasaBCV.toFixed(2)}
               </div>

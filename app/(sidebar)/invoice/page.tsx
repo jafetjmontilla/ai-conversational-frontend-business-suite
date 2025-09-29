@@ -12,6 +12,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { Invoice } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
@@ -78,6 +79,7 @@ export default function InvoicePage() {
   };
 
   const handlePay = (invoice: Invoice) => {
+    console.log(invoice);
     setSelectedInvoice(invoice);
     setIsPaymentDialogOpen(true);
   };
@@ -106,8 +108,8 @@ export default function InvoicePage() {
   const allInvoices = [...filteredSavedInvoices, ...filteredLocalInvoices];
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <Card>
+    <div className="p-4 md:p-6 lg:p-8 w-full h-full">
+      <Card className='flex flex-col w-full h-full'>
         <CardHeader>
           <div className="flex flex-col">
             <CardTitle className="flex items-center gap-2">
@@ -117,7 +119,7 @@ export default function InvoicePage() {
             <CardDescription>Crear y gestionar facturas</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-2 md:p-6">
+        <CardContent className="p-2 md:p-6 w-full flex flex-col flex-1">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2 flex-1"></div>
             <ToggleGroup
@@ -140,31 +142,44 @@ export default function InvoicePage() {
           </div>
 
           <Separator className="my-4" />
+          <div className='w-full max-w-full h-full flex overflow-hidden relative'>
+            {allInvoices.length > 0 ? (
+              <Carousel
+                opts={{
+                  align: "center",
+                  skipSnaps: false,
+                  dragFree: false,
+                }}
+                className="w-full max-w-full h-full flex overflow-hidden absolute"
+              >
+                <CarouselContent className='w-full h-full -ml-0 md:-ml-4'>
+                  {allInvoices.map((invoice) => (
+                    <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
+                      <InvoiceCard
+                        invoice={invoice}
+                        onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
+                        onRemove={() => removeInvoice(invoice._id)}
+                        onPay={() => handlePay(invoice)}
+                        tasaBCV={tasaBCV?.tasa || 175}
+                        store={selectedStore}
+                      />
+                    </CarouselItem>
+                  ))}
 
-          {/* Invoices Carousel */}
-          {allInvoices.length > 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {allInvoices.map((invoice) => (
-                <InvoiceCard
-                  key={invoice._id}
-                  invoice={invoice}
-                  onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
-                  onRemove={() => removeInvoice(invoice._id)}
-                  onPay={() => handlePay(invoice)}
-                  tasaBCV={tasaBCV?.tasa || 175}
-                  store={selectedStore}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
-              <div className="text-center">
-                <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg mb-2">No hay facturas</p>
-                <p className="text-sm text-gray-400">Haz clic en "Nueva Factura" para crear una nueva factura</p>
+                </CarouselContent>
+              </Carousel>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="text-center">
+                  <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-lg mb-2">No hay facturas</p>
+                  <p className="text-sm text-gray-400">Haz clic en "Nueva Factura" para crear una nueva factura</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+
         </CardContent>
       </Card>
 
@@ -175,6 +190,7 @@ export default function InvoicePage() {
           onClose={() => setIsPaymentDialogOpen(false)}
           invoice={selectedInvoice}
           tasaBCV={tasaBCV?.tasa || 175}
+          store={selectedStore}
           onProcessPayment={handleProcessPayment}
         />
       )}

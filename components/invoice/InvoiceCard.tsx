@@ -33,7 +33,6 @@ export function InvoiceCard({
   }, [invoice]);
 
   const updateField = (field: keyof Invoice, value: any) => {
-    console.log("updateField", field, value);
     const updated = { ...localInvoice, [field]: value };
     setLocalInvoice(updated);
     onUpdate({ [field]: value });
@@ -45,10 +44,10 @@ export function InvoiceCard({
     for (let i = 0; i < 10; i++) {
       items.push({
         id: `item-${i}`,
-        quantity: '',
+        quantity: 0,
         description: '',
-        unitPrice: '',
-        total: '',
+        unitPrice: 0,
+        total: 0,
         inventoryItem: null as InventoryItem | null
       });
     }
@@ -60,6 +59,7 @@ export function InvoiceCard({
 
   // Función para actualizar un item de la tabla
   const updateTableItem = (itemId: string, field: string, value: any) => {
+    console.log("updateTableItem", { itemId, field, value, typeofValue: typeof value });
     setTableItems(prevItems => {
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {
@@ -67,9 +67,9 @@ export function InvoiceCard({
 
           // Si se actualiza cantidad o precio unitario, recalcular total
           if (field === 'quantity' || field === 'unitPrice') {
-            const quantity = parseFloat(updatedItem.quantity) || 0;
-            const unitPrice = parseFloat(updatedItem.unitPrice) || 0;
-            updatedItem.total = (quantity * unitPrice).toFixed(2);
+            const quantity = updatedItem.quantity || 0;
+            const unitPrice = updatedItem.unitPrice || 0;
+            updatedItem.total = quantity * unitPrice;
           }
 
           return updatedItem;
@@ -89,20 +89,22 @@ export function InvoiceCard({
     }
 
     const totalBs = tableItems.reduce((sum, item) => {
-      return sum + (parseFloat(item.total) || 0);
+      return sum + (item.total || 0);
     }, 0);
     const totalUsd = totalBs / tasaBCV;
 
+    // Para store guardians, los totales deben mostrarse en USD (divididos por tasaBCV)
+    // Para store jaihom, los totales se mantienen en Bs
     const updatedInvoice = {
       ...localInvoice,
-      totalBs,
-      totalUsd: Number(totalUsd.toFixed(2))
+      totalBs: store === "guardians" ? totalUsd : totalBs,
+      totalUsd: store === "guardians" ? totalUsd : Number(totalUsd.toFixed(2))
     };
 
     isUpdatingRef.current = true;
     setLocalInvoice(updatedInvoice);
     onUpdate(updatedInvoice);
-  }, [tableItems, tasaBCV]);
+  }, [tableItems, tasaBCV, store]);
 
   // Función para manejar la selección de un artículo del inventario
   const handleInventoryItemSelect = (itemId: string, inventoryItem: InventoryItem) => {
@@ -112,14 +114,14 @@ export function InvoiceCard({
           const updatedItem = {
             ...item,
             description: inventoryItem.description,
-            unitPrice: inventoryItem.salesPrice.toString(),
+            unitPrice: inventoryItem.salesPrice,
             inventoryItem: inventoryItem
           };
 
           // Recalcular total si hay cantidad
-          const quantity = parseFloat(updatedItem.quantity) || 0;
+          const quantity = updatedItem.quantity || 0;
           const unitPrice = inventoryItem.salesPrice;
-          updatedItem.total = (quantity * unitPrice).toFixed(2);
+          updatedItem.total = quantity * unitPrice;
 
           return updatedItem;
         }
@@ -150,82 +152,6 @@ export function InvoiceCard({
     }
 
     updateField(option.field as keyof Invoice, value);
-  };
-
-  const updateItem = (itemId: string, field: keyof InvoiceItem, value: any) => {
-    const updatedItems = localInvoice.items.map(item => {
-      if (item.id === itemId) {
-        const updatedItem = { ...item, [field]: value };
-
-        // Recalcular total del item
-        if (field === 'quantity' || field === 'unitPrice') {
-          updatedItem.total = updatedItem.quantity * updatedItem.unitPrice;
-        }
-
-        return updatedItem;
-      }
-      return item;
-    });
-
-    const updated = { ...localInvoice, items: updatedItems };
-
-    // Recalcular totales
-    const totalBs = updatedItems.reduce((sum, item) => sum + item.total, 0);
-    const totalUsd = totalBs / tasaBCV;
-
-    updated.totalBs = totalBs;
-    updated.totalUsd = Number(totalUsd.toFixed(2));
-
-    setLocalInvoice(updated);
-    onUpdate(updated);
-  };
-
-  const addItem = () => {
-    const newItem: InvoiceItem = {
-      id: `item-${Date.now()}`,
-      quantity: 1,
-      description: '',
-      unitPrice: 0,
-      total: 0
-    };
-
-    const updated = {
-      ...localInvoice,
-      items: [...localInvoice.items, newItem]
-    };
-
-    setLocalInvoice(updated);
-    onUpdate(updated);
-  };
-
-  const removeItem = (itemId: string) => {
-    const updatedItems = localInvoice.items.filter(item => item.id !== itemId);
-
-    if (updatedItems.length === 0) {
-      // Si no hay items, agregar uno vacío
-      updatedItems.push({
-        id: `item-${Date.now()}`,
-        quantity: 1,
-        description: '',
-        unitPrice: 0,
-        total: 0
-      });
-    }
-
-    const updated = {
-      ...localInvoice,
-      items: updatedItems
-    };
-
-    // Recalcular totales
-    const totalBs = updatedItems.reduce((sum, item) => sum + item.total, 0);
-    const totalUsd = totalBs / tasaBCV;
-
-    updated.totalBs = totalBs;
-    updated.totalUsd = Number(totalUsd.toFixed(2));
-
-    setLocalInvoice(updated);
-    onUpdate(updated);
   };
 
   const headerOptions = [
@@ -259,7 +185,7 @@ export function InvoiceCard({
   ]
 
   return (
-    <div className="w-[340px] h-[398px] bg-card rounded-sm shadow-lg flex flex-col relative p-2 pt-5 border-[1px] border-ring">
+    <div className="w-full max-w-full md:max-w-[340px] pb-4 bg-card rounded-sm shadow-lg flex flex-col relative p-2 pt-5 border-[1px] border-ring mx-auto">
       {/* Close Button */}
       <button
         onClick={onRemove}
@@ -311,7 +237,7 @@ export function InvoiceCard({
                   <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
                     <input
                       id={`quantity-${index}`}
-                      value={item.quantity}
+                      value={item.quantity !== 0 ? item.quantity : ""}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, '');
                         updateTableItem(item.id, 'quantity', value)
@@ -333,7 +259,7 @@ export function InvoiceCard({
                     <input
                       id={`unitPrice-${index}`}
                       type="text"
-                      value={item.unitPrice}
+                      value={item.unitPrice !== 0 ? store === "guardians" ? (item.unitPrice / tasaBCV).toFixed(2) : item.unitPrice.toFixed(0) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
                     />
@@ -342,7 +268,7 @@ export function InvoiceCard({
                     <input
                       id={`total-${index}`}
                       type="text"
-                      value={item.total}
+                      value={item.total !== 0 ? store === "guardians" ? (item.total / tasaBCV).toFixed(2) : item.total.toFixed(2) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
                     />
@@ -351,29 +277,33 @@ export function InvoiceCard({
               ))}
             </tbody>
           </table>
-          <div className="flex justify-between text-xs">
-            <div className="flex-1" />
-            <span className="font-medium">TOTAL:</span>
-            <span className="font-bold w-[60px] text-right pr-1">
-              {tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <div className="flex-1" />
-            <span className="font-medium">T DLRS:</span>
-            <span className="font-bold w-[60px] text-right pr-1">
-              {(tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) / tasaBCV).toFixed(2)}
-            </span>
+          <div className={`flex ${store === "guardians" ? "flex-col-reverse" : "flex-col"}`}>
+
+            <div className="flex justify-between text-xs">
+              <div className="flex-1" />
+              <span className="font-medium">TOTAL:</span>
+              <span className="font-bold w-[60px] text-right pr-1">
+                {store === "guardians"
+                  ? (tableItems.reduce((sum, item) => sum + (item.total || 0), 0)).toFixed(2)
+                  : tableItems.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)
+                }
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <div className="flex-1" />
+              <span className="font-medium">T DLRS:</span>
+              <span className="font-bold w-[60px] text-right pr-1">
+                {(tableItems.reduce((sum, item) => sum + (item.total || 0), 0) / tasaBCV).toFixed(2)}
+              </span>
+            </div>
           </div>
           <Button
             onClick={onPay}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
-            disabled={tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) === 0}
+            disabled={localInvoice.totalUsd === 0}
           >
             PAGAR
           </Button>
-
-
         </div>
       </div>
     </div>
