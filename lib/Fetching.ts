@@ -552,4 +552,137 @@ export const queries = {
       fecha
     }
   }`,
+  // Queries para facturas
+  getInvoices: `query getInvoices {
+    getInvoices {
+      total
+      results {
+        _id
+        clientName
+        clientId
+        clientPhone
+        items {
+          id
+          quantity
+          description
+          unitPrice
+          total
+        }
+        totalBs
+        totalUsd
+        store
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }`,
+  getInvoice: `query getInvoice($_id: ID!) {
+    getInvoice(_id: $_id) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items {
+        id
+        quantity
+        description
+        unitPrice
+        total
+      }
+      totalBs
+      totalUsd
+      store
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  // Mutations para facturas
+  createInvoice: `mutation createInvoice($args: CreateInvoiceInput!) {
+    createInvoice(args: $args) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items {
+        id
+        quantity
+        description
+        unitPrice
+        total
+      }
+      totalBs
+      totalUsd
+      store
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateInvoice: `mutation updateInvoice($_id: ID!, $args: UpdateInvoiceInput!) {
+    updateInvoice(_id: $_id, args: $args) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items {
+        id
+        quantity
+        description
+        unitPrice
+        total
+      }
+      totalBs
+      totalUsd
+      store
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteInvoice: `mutation deleteInvoice($_id: ID!) {
+    deleteInvoice(_id: $_id)
+  }`,
+  processPayment: `mutation processPayment($args: ProcessPaymentInput!) {
+    processPayment(args: $args) {
+      success
+      message
+      data {
+        _id
+        invoiceId
+        paymentMethods {
+          id
+          name
+          amountBs
+          amountUsd
+        }
+        totalPaid
+        tasaBCV
+        store
+        status
+        createdAt
+      }
+    }
+  }`,
+  getPayments: `query getPayments($filters: PaymentFiltersInput) {
+    getPayments(filters: $filters) {
+      total
+      results {
+        _id
+        invoiceId
+        paymentMethods {
+          id
+          name
+          amountBs
+          amountUsd
+        }
+        totalPaid
+        tasaBCV
+        store
+        status
+        createdAt
+      }
+    }
+  }`,
 }

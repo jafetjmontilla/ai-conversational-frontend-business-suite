@@ -32,9 +32,10 @@ export const AppSidebar: FC<AppSidebarProps> = ({ setSlugs }) => {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/invoicing', label: 'Facturación Guardians', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG"]) },
-    { href: '/invoicing', label: 'Facturación Jaihom', icon: FileText, condition: hasAnyRole(["admin", "customerServiceJ"]) },
+    { href: '/invoice', label: 'Facturación', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
     { href: '/inventory', label: 'Inventario', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
+    { href: '/reportPayments', label: 'Reporte de Pagos', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
+
   ];
 
   const buildAccountItems = (): NavItem[] => [
