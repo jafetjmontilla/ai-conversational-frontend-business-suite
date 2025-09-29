@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { XIcon, X, Plus, Trash2, Search } from 'lucide-react';
 import { Invoice, InvoiceItem } from '@/lib/schemas/invoice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { customAlphabet } from 'nanoid';
+import { InventorySearch, InventoryItem } from './InventorySearch';
 
 interface InvoiceCardProps {
   invoice: Invoice;
@@ -13,6 +15,7 @@ interface InvoiceCardProps {
   onRemove: () => void;
   onPay: () => void;
   tasaBCV: number;
+  store?: 'guardians' | 'jaihom';
 }
 
 export function InvoiceCard({
@@ -20,7 +23,8 @@ export function InvoiceCard({
   onUpdate,
   onRemove,
   onPay,
-  tasaBCV
+  tasaBCV,
+  store = "guardians"
 }: InvoiceCardProps) {
   const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
 
@@ -29,9 +33,123 @@ export function InvoiceCard({
   }, [invoice]);
 
   const updateField = (field: keyof Invoice, value: any) => {
+    console.log("updateField", field, value);
     const updated = { ...localInvoice, [field]: value };
     setLocalInvoice(updated);
     onUpdate({ [field]: value });
+  };
+
+  // Crear array de 10 items vacíos para la tabla
+  const createEmptyItems = () => {
+    const items = [];
+    for (let i = 0; i < 10; i++) {
+      items.push({
+        id: `item-${i}`,
+        quantity: '',
+        description: '',
+        unitPrice: '',
+        total: '',
+        inventoryItem: null as InventoryItem | null
+      });
+    }
+    return items;
+  };
+
+  const [tableItems, setTableItems] = useState(createEmptyItems());
+  const isUpdatingRef = useRef(false);
+
+  // Función para actualizar un item de la tabla
+  const updateTableItem = (itemId: string, field: string, value: any) => {
+    setTableItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === itemId) {
+          const updatedItem = { ...item, [field]: value };
+
+          // Si se actualiza cantidad o precio unitario, recalcular total
+          if (field === 'quantity' || field === 'unitPrice') {
+            const quantity = parseFloat(updatedItem.quantity) || 0;
+            const unitPrice = parseFloat(updatedItem.unitPrice) || 0;
+            updatedItem.total = (quantity * unitPrice).toFixed(2);
+          }
+
+          return updatedItem;
+        }
+        return item;
+      });
+
+      return updatedItems;
+    });
+  };
+
+  // Efecto para recalcular totales cuando cambian los items de la tabla
+  useEffect(() => {
+    if (isUpdatingRef.current) {
+      isUpdatingRef.current = false;
+      return;
+    }
+
+    const totalBs = tableItems.reduce((sum, item) => {
+      return sum + (parseFloat(item.total) || 0);
+    }, 0);
+    const totalUsd = totalBs / tasaBCV;
+
+    const updatedInvoice = {
+      ...localInvoice,
+      totalBs,
+      totalUsd: Number(totalUsd.toFixed(2))
+    };
+
+    isUpdatingRef.current = true;
+    setLocalInvoice(updatedInvoice);
+    onUpdate(updatedInvoice);
+  }, [tableItems, tasaBCV]);
+
+  // Función para manejar la selección de un artículo del inventario
+  const handleInventoryItemSelect = (itemId: string, inventoryItem: InventoryItem) => {
+    setTableItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === itemId) {
+          const updatedItem = {
+            ...item,
+            description: inventoryItem.description,
+            unitPrice: inventoryItem.salesPrice.toString(),
+            inventoryItem: inventoryItem
+          };
+
+          // Recalcular total si hay cantidad
+          const quantity = parseFloat(updatedItem.quantity) || 0;
+          const unitPrice = inventoryItem.salesPrice;
+          updatedItem.total = (quantity * unitPrice).toFixed(2);
+
+          return updatedItem;
+        }
+        return item;
+      });
+
+      return updatedItems;
+    });
+  };
+
+  const handleInputChange = (option: any, e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // Si es tipo onlyNumbers, solo permitir números
+    if (option.type === 'onlyNumbers') {
+      value = value.replace(/[^0-9]/g, '');
+    }
+
+    // Si es tipo phone, permitir + solo al inicio y el resto números
+    if (option.type === 'phone') {
+      // Si empieza con +, mantener el + y solo números después
+      if (value.startsWith('+')) {
+        value = '+' + value.slice(1).replace(/[^0-9]/g, '');
+      } else {
+        // Si no empieza con +, solo números
+        value = value.replace(/[^0-9]/g, '');
+      }
+    }
+
+    updateField(option.field as keyof Invoice, value);
   };
 
   const updateItem = (itemId: string, field: keyof InvoiceItem, value: any) => {
@@ -110,8 +228,38 @@ export function InvoiceCard({
     onUpdate(updated);
   };
 
+  const headerOptions = [
+    {
+      label: 'Cliente',
+      field: 'clientName',
+      value: localInvoice.clientName,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange({ field: 'clientName', type: 'text' }, e),
+      size: 'col-span-2',
+      type: 'text',
+      maxLength: 34
+    },
+    {
+      label: 'Cédula',
+      field: 'clientId',
+      value: localInvoice.clientId,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange({ field: 'clientId', type: 'onlyNumbers' }, e),
+      size: 'col-span-1',
+      type: 'onlyNumbers',
+      maxLength: 10
+    },
+    {
+      label: 'Teléfono',
+      field: 'clientPhone',
+      value: localInvoice.clientPhone,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => handleInputChange({ field: 'clientPhone', type: 'phone' }, e),
+      size: 'col-span-1',
+      type: 'phone',
+      maxLength: 13
+    }
+  ]
+
   return (
-    <div className="w-[300px] h-[380px] bg-white border-2 border-gray-200 rounded-lg shadow-lg flex flex-col relative">
+    <div className="w-[340px] h-[398px] bg-card rounded-sm shadow-lg flex flex-col relative p-2 pt-5 border-[1px] border-ring">
       {/* Close Button */}
       <button
         onClick={onRemove}
@@ -121,142 +269,112 @@ export function InvoiceCard({
       </button>
 
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold text-lg">Factura</h3>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${localInvoice.store === 'guardians'
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-green-100 text-green-800'
-            }`}>
-            {localInvoice.store === 'guardians' ? 'Guardians' : 'Jaihom'}
-          </span>
-        </div>
+      {/* Client Information */}
+      <div className="grid grid-cols-2 gap-1">
+        {headerOptions.map((option) => (
+          <div key={option.label} className={`${option.size} flex flex-col px-1 relative`}>
+            <label htmlFor={`${option.label}-${invoice._id}`} className="text-xs font-medium text-primary">
+              {option.label}:
+            </label>
+            <input
+              id={`${option.label}-${invoice._id}`}
+              type="text"
+              value={option.value}
+              onChange={option.onChange}
+              placeholder={option.label}
+              maxLength={option.maxLength}
+              className={`pl-2 pr-6 h-6 bg-white dark:bg-gray-100 border-[1px] border-ring rounded-[6px] text-sm text-gray-700 inputInvoice`}
+            />
+            <div onClick={() => updateField(option.field as keyof Invoice, '')} className='w-5 h-5 flex items-center justify-center absolute top-[18px] right-1 text-gray-700 cursor-pointer hover:font-semibold'>
+              <XIcon className='w-3 h-3' />
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-        {/* Client Information */}
-        <div className="space-y-2">
-          <div>
-            <Label htmlFor={`clientName-${invoice._id}`} className="text-sm font-medium">
-              Cliente:
-            </Label>
-            <Input
-              id={`clientName-${invoice._id}`}
-              value={localInvoice.clientName}
-              onChange={(e) => updateField('clientName', e.target.value)}
-              placeholder="Nombre del cliente"
-              className="h-8"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor={`clientId-${invoice._id}`} className="text-sm font-medium">
-              Cédula:
-            </Label>
-            <Input
-              id={`clientId-${invoice._id}`}
-              value={localInvoice.clientId}
-              onChange={(e) => updateField('clientId', e.target.value)}
-              placeholder="Cédula o RIF"
-              className="h-8"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor={`clientPhone-${invoice._id}`} className="text-sm font-medium">
-              Teléfono:
-            </Label>
-            <Input
-              id={`clientPhone-${invoice._id}`}
-              value={localInvoice.clientPhone}
-              onChange={(e) => updateField('clientPhone', e.target.value)}
-              placeholder="Número de teléfono"
-              className="h-8"
-            />
-          </div>
-        </div>
-
+      <div className="flex-1 my-2">
         {/* Items Table */}
-        <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-1 text-xs font-medium text-gray-600">
-            <div>CANI</div>
-            <div>DESCRIPCION</div>
-            <div>P.U.</div>
-            <div>I.BS.</div>
+        <div className="">
+          <table className="w-full text-xs border-[1px] border-ring">
+            <thead>
+              <tr className='w-full'>
+                <th className='w-[45px] border-[1px] border-ring'>Cant.</th>
+                <th className='border-[1px] border-ring'>Descripción</th>
+                <th className='w-[45px] border-[1px] border-ring'>P.U.</th>
+                <th className='w-[60px] border-[1px] border-ring'>I.BS.</th>
+              </tr>
+            </thead>
+            <tbody className='text-gray-700'>
+              {tableItems.map((item, index) => (
+                <tr key={item.id}>
+                  <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
+                    <input
+                      id={`quantity-${index}`}
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        updateTableItem(item.id, 'quantity', value)
+                      }}
+                      className='w-full bg-white dark:bg-gray-100 text-center border-0 outline-none px-1'
+                    />
+                  </td>
+                  <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
+                    <InventorySearch
+                      value={item.description}
+                      onChange={(value) => updateTableItem(item.id, 'description', value)}
+                      onSelectItem={(inventoryItem) => handleInventoryItemSelect(item.id, inventoryItem)}
+                      className="border-0 outline-none"
+                      store={store}
+                      tasaBCV={tasaBCV}
+                    />
+                  </td>
+                  <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
+                    <input
+                      id={`unitPrice-${index}`}
+                      type="text"
+                      value={item.unitPrice}
+                      readOnly
+                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
+                    />
+                  </td>
+                  <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
+                    <input
+                      id={`total-${index}`}
+                      type="text"
+                      value={item.total}
+                      readOnly
+                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="flex justify-between text-xs">
+            <div className="flex-1" />
+            <span className="font-medium">TOTAL:</span>
+            <span className="font-bold w-[60px] text-right pr-1">
+              {tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
+            </span>
           </div>
-
-          <div className="space-y-1">
-            {localInvoice.items.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-4 gap-1">
-                <Input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(item.id, 'quantity', Number(e.target.value) || 0)}
-                  className="h-6 text-xs"
-                  min="0"
-                />
-                <Input
-                  value={item.description}
-                  onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                  placeholder="Descripción"
-                  className="h-6 text-xs"
-                />
-                <Input
-                  type="number"
-                  value={item.unitPrice}
-                  onChange={(e) => updateItem(item.id, 'unitPrice', Number(e.target.value) || 0)}
-                  className="h-6 text-xs"
-                  min="0"
-                  step="0.01"
-                />
-                <div className="flex items-center gap-1">
-                  <Input
-                    value={item.total.toFixed(2)}
-                    readOnly
-                    className="h-6 text-xs bg-gray-100"
-                  />
-                  {localInvoice.items.length > 1 && (
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="w-4 h-4 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center"
-                    >
-                      <Trash2 className="w-2 h-2" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-between text-xs">
+            <div className="flex-1" />
+            <span className="font-medium">T DLRS:</span>
+            <span className="font-bold w-[60px] text-right pr-1">
+              {(tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) / tasaBCV).toFixed(2)}
+            </span>
           </div>
-
-          <button
-            onClick={addItem}
-            className="w-full flex items-center justify-center gap-1 text-blue-600 hover:text-blue-700 text-xs py-1"
+          <Button
+            onClick={onPay}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
+            disabled={tableItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0) === 0}
           >
-            <Plus className="w-3 h-3" />
-            Agregar item
-          </button>
-        </div>
-      </div>
+            PAGAR
+          </Button>
 
-      {/* Footer */}
-      <div className="p-4 border-t bg-gray-50 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="font-medium">TOTAL:</span>
-          <span className="font-bold">{localInvoice.totalBs.toFixed(2)} Bs.</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="font-medium">T DLRS:</span>
-          <span className="font-bold">${localInvoice.totalUsd.toFixed(2)}</span>
-        </div>
 
-        <Button
-          onClick={onPay}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
-          disabled={localInvoice.totalBs === 0}
-        >
-          PAGAR
-        </Button>
+        </div>
       </div>
     </div>
   );

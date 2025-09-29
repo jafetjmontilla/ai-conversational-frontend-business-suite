@@ -152,6 +152,7 @@ export default function InvoicePage() {
                   onRemove={() => removeInvoice(invoice._id)}
                   onPay={() => handlePay(invoice)}
                   tasaBCV={tasaBCV?.tasa || 175}
+                  store={selectedStore}
                 />
               ))}
             </div>

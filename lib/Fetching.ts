@@ -311,6 +311,17 @@ export const queries = {
     }
   }`,
   // Queries para inventario
+  getInventoryItemsByStore: `query getInventoryItemsByStore($description: String, $store: Tienda!) {
+    getInventoryItemsByStore(description: $description, store: $store) {
+      _id
+      code
+      description
+      type
+      store
+      quantity
+      salesPrice
+    }
+  }`,
   getInventoryItems: `query getInventoryItems {
     getInventoryItems {
       _id
