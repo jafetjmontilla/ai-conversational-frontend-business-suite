@@ -242,6 +242,7 @@ export function InvoiceCard({
                         const value = e.target.value.replace(/[^0-9]/g, '');
                         updateTableItem(item.id, 'quantity', value)
                       }}
+                      autoComplete='off'
                       className='w-full bg-white dark:bg-gray-100 text-center border-0 outline-none px-1'
                     />
                   </td>

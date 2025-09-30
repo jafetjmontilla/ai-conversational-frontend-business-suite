@@ -102,48 +102,47 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Procesar Pago</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
+      <DialogContent className="w-[350px] overflow-y-auto">
+        <div className="flex justify-between items-end pr-10">
+          <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
+          <div className="text-sm text-primary">
+            Tasa: {tasaBCV.toFixed(2)}
+          </div>
+        </div>
+        <div className="space-y-1">
           {/* Total Amount */}
-          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-            <div className="text-center space-y-2">
+          <div className="bg-blue-50 dark:bg-gray-300 rounded-md mb-2">
+            <div className="text-center">
               {store === "guardians" ? (
-                <>
-                  <div className="text-3xl font-bold text-green-600">
+                <div className="flex">
+                  <div className="w-1/2 text-xl font-bold text-green-600">
                     $ {invoice.totalUsd.toFixed(2)}
                   </div>
-                  <div className="text-2xl font-bold text-blue-800">
+                  <div className="w-1/2 text-xl font-bold text-blue-800">
                     Bs. {(invoice.totalUsd * tasaBCV).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                   </div>
-                </>
+                </div>
               ) : (
-                <>
-                  <div className="text-3xl font-bold text-blue-800">
+                <div className="flex">
+                  <div className="w-1/2 text-xl font-bold text-blue-800">
                     Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="w-1/2 text-xl font-bold text-green-600">
                     $ {invoice.totalUsd.toFixed(2)}
                   </div>
-                </>
+                </div>
               )}
-              <div className="text-sm text-gray-600">
-                Tasa: {tasaBCV.toFixed(2)}
-              </div>
             </div>
           </div>
 
           {/* Payment Methods */}
-          <div className="space-y-4">
+          <div className="space-y-1">
             {paymentMethods.map((method) => (
-              <div key={method.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold">{method.name}</h3>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">
+              <div key={method.id} className="text-sm relative">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">{method.name}</span>
+                  <div className="text-right absolute right-0 bottom-0">
+                    <div className="text-xs dark:text-gray-300">
                       {method.amountBs > 0 && `${method.amountBs.toFixed(2)} Bs.`}
                     </div>
                     <div className="font-medium">
@@ -151,36 +150,32 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                     </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor={`${method.id}-input`} className="text-sm">
+                <div className="flex gap-4 items-end ml-4">
+                  <div className="flex flex-col">
+                    <label htmlFor={`${method.id}-input`} className="text-[10px]">
                       Ingreso:
-                    </Label>
-                    <Input
+                    </label>
+                    <input
                       id={`${method.id}-input`}
-                      type="number"
+                      type="text"
                       value={method.inputValue}
                       onChange={(e) => updatePaymentMethod(method.id, 'inputValue', e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
+                      autoComplete='off'
+                      className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                     />
                   </div>
-
                   {(method.id === 'cash-bs' || method.id === 'cash-usd') && (
-                    <div>
-                      <Label htmlFor={`${method.id}-change`} className="text-sm">
+                    <div className="flex flex-col">
+                      <label htmlFor={`${method.id}-change`} className="text-[10px]">
                         Vuelto:
-                      </Label>
-                      <Input
+                      </label>
+                      <input
                         id={`${method.id}-change`}
-                        type="number"
+                        type="text"
                         value={method.changeValue}
                         onChange={(e) => updatePaymentMethod(method.id, 'changeValue', e.target.value)}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
+                        autoComplete='off'
+                        className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                       />
                     </div>
                   )}
@@ -190,10 +185,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
           </div>
 
           {/* Total Paid */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-4 py-1">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold">Total pagado:</span>
-              <div className={`px-4 py-2 rounded-lg font-bold text-lg ${isPaymentComplete
+              <span className="text-lg font-semibold text-primary dark:text-primary-foreground">Total pagado:</span>
+              <div className={`px-4 rounded-lg font-bold text-lg ${isPaymentComplete
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
@@ -201,11 +196,9 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
               </div>
             </div>
 
-            {!isPaymentComplete && (
-              <div className="text-sm text-red-600 mt-2">
-                Faltan ${(invoice.totalUsd - totalPaid).toFixed(2)} por pagar
-              </div>
-            )}
+            <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${isPaymentComplete ? 'opacity-0' : 'opacity-100'}`}>
+              Faltan ${(invoice.totalUsd - totalPaid).toFixed(2)} por pagar
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -228,6 +221,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
             </Button>
           </div>
         </div>
+
       </DialogContent>
     </Dialog>
   );

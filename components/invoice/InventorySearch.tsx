@@ -110,6 +110,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
               setIsFocus(false)
             }, 200)
           }}
+          autoComplete='off'
           className={`w-full bg-white dark:bg-gray-100 text-left border-0 outline-none px-1 ${className}`}
         />
         <div

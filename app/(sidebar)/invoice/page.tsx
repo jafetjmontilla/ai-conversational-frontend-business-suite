@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Plus, Receipt } from 'lucide-react';
+import { Plus, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { Invoice } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
@@ -165,8 +165,9 @@ export default function InvoicePage() {
                       />
                     </CarouselItem>
                   ))}
-
                 </CarouselContent>
+                <CarouselPrevious className="fixed md:absolute -left-1.5 md:left-0 md:translate-y-32 bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
+                <CarouselNext className="fixed md:absolute -right-1.5 md:right-0 md:translate-y-32 bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
               </Carousel>
             ) : (
               <div className="flex items-center justify-center h-64 text-gray-500">
