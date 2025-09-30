@@ -279,7 +279,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
                 <th className='w-[45px] border-[1px] border-ring'>Cant.</th>
                 <th className='border-[1px] border-ring'>Descripción</th>
                 <th className='w-[45px] border-[1px] border-ring'>P.U.</th>
-                <th className='w-[60px] border-[1px] border-ring'>I.BS.</th>
+                <th className='w-[60px] border-[1px] border-ring'>Impt.</th>
               </tr>
             </thead>
             <tbody className='text-gray-700'>
@@ -332,7 +332,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
           <div className={`flex ${store === "guardians" ? "flex-col-reverse" : "flex-col"}`}>
             <div className="flex justify-between text-xs">
               <div className="flex-1" />
-              <span className="font-medium">TOTAL:</span>
+              <span className="font-medium">TOTAL Bs:</span>
               <span className="font-bold w-[60px] text-right pr-1">
                 {store === "guardians"
                   ? formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0))
@@ -342,7 +342,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
             </div>
             <div className="flex justify-between text-xs">
               <div className="flex-1" />
-              <span className="font-medium">T DLRS:</span>
+              <span className="font-medium">TOTAL $:</span>
               <span className="font-bold w-[60px] text-right pr-1">
                 {formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0) / tasaBCV)}
               </span>

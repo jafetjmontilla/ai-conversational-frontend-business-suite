@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Invoice } from '@/lib/schemas/invoice';
 import { formatNumber } from './InvoiceCard';
 import { fetchApiImgbbV1 } from '@/lib/Fetching';
+import { Camera, Loader2, Trash2 } from 'lucide-react';
 
 interface PaymentMethod {
   id: string;
@@ -113,10 +114,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
       }
 
       // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen es demasiado grande. El tamaño máximo permitido es 5MB.');
-        return;
-      }
+      // if (file.size > 5 * 1024 * 1024) {
+      //   alert('La imagen es demasiado grande. El tamaño máximo permitido es 5MB.');
+      //   return;
+      // }
 
       handleImageUpload(methodId, file);
     }
@@ -160,7 +161,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
       <DialogContent className="w-[350px] overflow-y-auto">
         <DialogHeader className="flex flex-row justify-between space-y-1.5 text-center sm:text-left">
           <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
-          <DialogDescription className="text-sm text-primary mr-10">
+          <DialogDescription className="text-[10px] text-primary mr-10">
             Tasa: {formatNumber(tasaBCV)}
           </DialogDescription>
         </DialogHeader>
@@ -171,7 +172,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
               {store === "guardians" ? (
                 <div className="flex">
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {formatNumber(invoice.totalUsd * tasaBCV)}
+                    {formatNumber(invoice.totalUsd * tasaBCV)} Bs.
                   </div>
                   <div className="w-1/2 text-xl font-bold text-green-600">
                     $ {formatNumber(invoice.totalUsd)}
@@ -180,7 +181,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
               ) : (
                 <div className="flex">
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {formatNumber(invoice.totalBs)}
+                    {formatNumber(invoice.totalBs)} Bs.
                   </div>
                   <div className="w-1/2 text-xl font-bold text-green-600">
                     $ {formatNumber(invoice.totalUsd)}
@@ -204,7 +205,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                         {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
                       </div>
                       <div className="font-medium">
-                        {method.amountUsd > 0 && `$${formatNumber(method.amountUsd)}`}
+                        {method.amountUsd > 0 && `$ ${formatNumber(method.amountUsd)}`}
                       </div>
                     </div>
                   </div>
@@ -257,7 +258,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                                 onClick={() => removeImage(method.id)}
                                 className="h-8 px-2 text-xs"
                               >
-                                ✕
+                                <Trash2 className="w-6 h-6 text-gray-400" />
                               </Button>
                             </div>
                           ) : (
@@ -272,12 +273,15 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                               />
                               <label
                                 htmlFor={`${method.id}-image`}
-                                className={`w-8 h-8 border-2 border-dashed border-gray-300 rounded flex items-center justify-center cursor-pointer text-xs ${method.uploadingImage
+                                className={`w-8 h-8 border-[1px] border-gray-400 rounded flex items-center justify-center cursor-pointer text-xs ${method.uploadingImage
                                   ? 'opacity-50 cursor-not-allowed'
                                   : 'hover:border-gray-400'
                                   }`}
                               >
-                                {method.uploadingImage ? '⏳' : '📷'}
+                                {method.uploadingImage
+                                  ? <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                                  : <Camera className="w-6 h-6 text-gray-400" />
+                                }
                               </label>
                             </div>
                           )}
@@ -298,18 +302,18 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                Bs.{formatNumber(totalPaid * tasaBCV)}
+                {formatNumber(totalPaid * tasaBCV)} Bs.
               </div>
-              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center  ${isPaymentComplete
+              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${isPaymentComplete
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                ${formatNumber(totalPaid)}
+                $ {formatNumber(totalPaid)}
               </div>
             </div>
 
             <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${isPaymentComplete ? 'opacity-0' : 'opacity-100'}`}>
-              Faltan Bs. {formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} o $ {formatNumber(invoice.totalUsd - totalPaid)} por pagar
+              Faltan {formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} Bs. o $ {formatNumber(invoice.totalUsd - totalPaid)} por pagar
             </div>
           </div>
 

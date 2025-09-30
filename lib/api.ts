@@ -100,6 +100,76 @@ export const apiJaihomV1: Fetching = {
   },
 }
 
+// Función auxiliar para redimensionar imagen
+const resizeImage = async (file: File, maxWidth: number = 640): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Solo redimensionar si la imagen es más grande que maxWidth
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('No se pudo obtener el contexto del canvas'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('No se pudo convertir la imagen'));
+              return;
+            }
+
+            // Crear un nuevo archivo con el blob redimensionado
+            const resizedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+
+            console.log('Imagen redimensionada:', {
+              original: { width: img.width, height: img.height, size: file.size },
+              resized: { width, height, size: resizedFile.size }
+            });
+
+            resolve(resizedFile);
+          },
+          file.type,
+          0.85 // Calidad de compresión (85%)
+        );
+      };
+
+      img.onerror = () => {
+        reject(new Error('Error al cargar la imagen'));
+      };
+
+      img.src = e.target?.result as string;
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Error al leer el archivo'));
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
+
 export const apiImgbbV1 = {
   upload: async (imageFile: File | string, expiration: number = 15552000): Promise<{
     success: boolean;
@@ -122,9 +192,10 @@ export const apiImgbbV1 = {
         formData.append("image", base64Data);
         console.log('Procesando base64, longitud:', base64Data.length);
       } else {
-        // Si es un File, agregarlo directamente
-        formData.append("image", imageFile);
-        console.log('Procesando File:', { name: imageFile.name, size: imageFile.size, type: imageFile.type });
+        // Si es un File, redimensionar antes de subir
+        const resizedFile = await resizeImage(imageFile, 640);
+        formData.append("image", resizedFile);
+        console.log('Procesando File:', { name: resizedFile.name, size: resizedFile.size, type: resizedFile.type });
       }
 
       // Agregar parámetros de la URL
@@ -136,23 +207,28 @@ export const apiImgbbV1 = {
 
       const response = await instanceApiImgbbV1.post(url, formData);
 
-      console.log('Respuesta de ImgBB:', response.data);
+      console.log('Respuesta completa de ImgBB:', response);
+      console.log('Respuesta data de ImgBB:', response.data);
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
+        const imgData = response.data.data;
+        console.log('Data de imagen:', imgData);
+
+        // ImgBB devuelve la estructura: response.data.data = { url, display_url, image: {...}, thumb: {...}, medium: {...}, delete_url }
         return {
           success: true,
           data: {
-            image_url: response.data.data.image.url,
-            medium_url: response.data.data.medium.url,
-            thumb_url: response.data.data.thumb.url,
-            delete_url: response.data.data.delete_url
+            image_url: imgData?.display_url || imgData?.url || '',
+            medium_url: imgData?.medium?.url || imgData?.display_url || '',
+            thumb_url: imgData?.thumb?.url || imgData?.display_url || '',
+            delete_url: imgData?.delete_url || ''
           }
         };
       } else {
         console.error('Error en respuesta de ImgBB:', response.data);
         return {
           success: false,
-          error: response.data.error?.message || 'Error desconocido al subir imagen'
+          error: response.data?.error?.message || 'Error desconocido al subir imagen'
         };
       }
     } catch (error: any) {
