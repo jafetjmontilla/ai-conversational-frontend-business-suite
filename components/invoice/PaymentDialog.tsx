@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Invoice } from '@/lib/schemas/invoice';
 import { formatNumber } from './InvoiceCard';
+import { fetchApiImgbbV1 } from '@/lib/Fetching';
 
 interface PaymentMethod {
   id: string;
@@ -15,6 +16,8 @@ interface PaymentMethod {
   amountUsd: number;
   inputValue: string;
   changeValue: string;
+  urlSuport?: string;
+  uploadingImage?: boolean;
 }
 
 interface PaymentDialogProps {
@@ -28,12 +31,12 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaihom', onProcessPayment }: PaymentDialogProps) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: 'cash-bs', name: 'Efectivo Bs.', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
-    { id: 'point', name: 'Punto', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
-    { id: 'mobile-transfer', name: 'Pago Móvil o Transferencia', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
-    { id: 'cash-usd', name: 'Efectivo Dólar', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
-    { id: 'zelle', name: 'Zelle', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' },
-    { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '' }
+    { id: 'cash-bs', name: 'Efectivo Bs.', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
+    { id: 'point', name: 'Punto', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
+    { id: 'mobile-transfer', name: 'Pago Móvil o Transferencia', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
+    { id: 'cash-usd', name: 'Efectivo Dólar', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
+    { id: 'zelle', name: 'Zelle', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
+    { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false }
   ]);
 
   const [totalPaid, setTotalPaid] = useState(0);
@@ -47,7 +50,8 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     setTotalPaid(total);
   }, [paymentMethods]);
 
-  const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue', value: string) => {
+  const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue' | 'urlSuport' | 'uploadingImage', value: string | boolean) => {
+    console.log(100072, { id, field, value })
     setPaymentMethods(prev =>
       prev.map(method => {
         if (method.id === id) {
@@ -77,6 +81,51 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     );
   };
 
+  const handleImageUpload = async (methodId: string, file: File) => {
+    // Actualizar estado de carga
+    updatePaymentMethod(methodId, 'uploadingImage', true);
+
+    try {
+      const result = await fetchApiImgbbV1(file);
+      console.log(100071, result)
+
+      if (result.success && result.data) {
+        updatePaymentMethod(methodId, 'urlSuport', result.data.image_url);
+      } else {
+        console.error('Error al subir imagen:', result.error);
+        alert('Error al subir la imagen. Por favor, inténtalo de nuevo.');
+      }
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      alert('Error al subir la imagen. Por favor, inténtalo de nuevo.');
+    } finally {
+      updatePaymentMethod(methodId, 'uploadingImage', false);
+    }
+  };
+
+  const handleFileChange = (methodId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecciona un archivo de imagen válido.');
+        return;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen es demasiado grande. El tamaño máximo permitido es 5MB.');
+        return;
+      }
+
+      handleImageUpload(methodId, file);
+    }
+  };
+
+  const removeImage = (methodId: string) => {
+    updatePaymentMethod(methodId, 'urlSuport', '');
+  };
+
   const handleProcessPayment = () => {
     // Filtrar solo los campos que el backend espera
     const cleanPaymentMethods = paymentMethods
@@ -85,7 +134,8 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
         id: method.id,
         name: method.name,
         amountBs: method.amountBs,
-        amountUsd: method.amountUsd
+        amountUsd: method.amountUsd,
+        urlSuport: method.urlSuport
       }));
 
     const paymentData = {
@@ -142,51 +192,102 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
 
           {/* Payment Methods */}
           <div className="space-y-1">
-            {paymentMethods.map((method) => (
-              <div key={method.id} className="text-sm relative">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">{method.name}</span>
-                  <div className="text-right absolute right-0 bottom-0">
-                    <div className="text-xs dark:text-gray-300">
-                      {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
-                    </div>
-                    <div className="font-medium">
-                      {method.amountUsd > 0 && `$${formatNumber(method.amountUsd)}`}
+            {paymentMethods.map((method) => {
+              const requiresImage = ['mobile-transfer', 'zelle', 'binance'].includes(method.id);
+
+              return (
+                <div key={method.id} className="text-sm relative">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{method.name}</span>
+                    <div className="text-right absolute right-0 bottom-0">
+                      <div className="text-xs dark:text-gray-300">
+                        {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
+                      </div>
+                      <div className="font-medium">
+                        {method.amountUsd > 0 && `$${formatNumber(method.amountUsd)}`}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-4 items-end ml-4">
-                  <div className="flex flex-col">
-                    <label htmlFor={`${method.id}-input`} className="text-[10px]">
-                      Ingreso:
-                    </label>
-                    <input
-                      id={`${method.id}-input`}
-                      type="text"
-                      value={method.inputValue}
-                      onChange={(e) => updatePaymentMethod(method.id, 'inputValue', e.target.value)}
-                      autoComplete='off'
-                      className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
-                    />
-                  </div>
-                  {(method.id === 'cash-bs' || method.id === 'cash-usd') && (
+                  <div className="flex gap-4 items-end ml-4">
                     <div className="flex flex-col">
-                      <label htmlFor={`${method.id}-change`} className="text-[10px]">
-                        Vuelto:
+                      <label htmlFor={`${method.id}-input`} className="text-[10px]">
+                        Ingreso:
                       </label>
                       <input
-                        id={`${method.id}-change`}
+                        id={`${method.id}-input`}
                         type="text"
-                        value={method.changeValue}
-                        onChange={(e) => updatePaymentMethod(method.id, 'changeValue', e.target.value)}
+                        value={method.inputValue}
+                        onChange={(e) => updatePaymentMethod(method.id, 'inputValue', e.target.value)}
                         autoComplete='off'
                         className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                       />
                     </div>
-                  )}
+                    {(method.id === 'cash-bs' || method.id === 'cash-usd') && (
+                      <div className="flex flex-col">
+                        <label htmlFor={`${method.id}-change`} className="text-[10px]">
+                          Vuelto:
+                        </label>
+                        <input
+                          id={`${method.id}-change`}
+                          type="text"
+                          value={method.changeValue}
+                          onChange={(e) => updatePaymentMethod(method.id, 'changeValue', e.target.value)}
+                          autoComplete='off'
+                          className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
+                        />
+                      </div>
+                    )}
+                    {requiresImage && (
+                      <div className="flex flex-col">
+                        <label className="text-[10px]">
+                          Soporte:
+                        </label>
+                        <div className="flex gap-1">
+                          {method.urlSuport ? (
+                            <div className="flex items-center gap-1">
+                              <img
+                                src={method.urlSuport}
+                                alt="Soporte"
+                                className="w-8 h-8 object-cover rounded border"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeImage(method.id)}
+                                className="h-8 px-2 text-xs"
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileChange(method.id, e)}
+                                className="hidden"
+                                id={`${method.id}-image`}
+                                disabled={method.uploadingImage}
+                              />
+                              <label
+                                htmlFor={`${method.id}-image`}
+                                className={`w-8 h-8 border-2 border-dashed border-gray-300 rounded flex items-center justify-center cursor-pointer text-xs ${method.uploadingImage
+                                  ? 'opacity-50 cursor-not-allowed'
+                                  : 'hover:border-gray-400'
+                                  }`}
+                              >
+                                {method.uploadingImage ? '⏳' : '📷'}
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Total Paid */}

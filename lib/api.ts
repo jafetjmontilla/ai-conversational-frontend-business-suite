@@ -15,6 +15,11 @@ const instanceApiJaihomV1 = axios.create({
   },
 });
 
+const instanceApiImgbbV1 = axios.create({
+  baseURL: 'https://api.imgbb.com/1',
+  // No establecer Content-Type aquí, axios lo manejará automáticamente para FormData
+});
+
 // Interceptor para adjuntar el token en Authorization
 instanceApiV1.interceptors.request.use(async (config) => {
   try {
@@ -93,4 +98,70 @@ export const apiJaihomV1: Fetching = {
     const config = data instanceof FormData ? {} : {};
     return await instanceApiJaihomV1.post("/graphql", data, config)
   },
+}
+
+export const apiImgbbV1 = {
+  upload: async (imageFile: File | string, expiration: number = 15552000): Promise<{
+    success: boolean;
+    data?: {
+      image_url: string;
+      medium_url: string;
+      thumb_url: string;
+      delete_url: string;
+    };
+    error?: string;
+  }> => {
+    try {
+      console.log('Iniciando subida de imagen...', { imageFile: typeof imageFile, expiration });
+
+      const formData = new FormData();
+
+      // Si es un string (base64), extraer la parte después de "base64,"
+      if (typeof imageFile === 'string') {
+        const base64Data = imageFile.split("base64,")[1];
+        formData.append("image", base64Data);
+        console.log('Procesando base64, longitud:', base64Data.length);
+      } else {
+        // Si es un File, agregarlo directamente
+        formData.append("image", imageFile);
+        console.log('Procesando File:', { name: imageFile.name, size: imageFile.size, type: imageFile.type });
+      }
+
+      // Agregar parámetros de la URL
+      const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY || 'c6f787e40fd29dac790a3e42d38c5078';
+      const url = `/upload?expiration=${expiration}&key=${apiKey}`;
+
+      console.log('Enviando request a:', url);
+      console.log('API Key configurada:', !!apiKey);
+
+      const response = await instanceApiImgbbV1.post(url, formData);
+
+      console.log('Respuesta de ImgBB:', response.data);
+
+      if (response.data.success) {
+        return {
+          success: true,
+          data: {
+            image_url: response.data.data.image.url,
+            medium_url: response.data.data.medium.url,
+            thumb_url: response.data.data.thumb.url,
+            delete_url: response.data.data.delete_url
+          }
+        };
+      } else {
+        console.error('Error en respuesta de ImgBB:', response.data);
+        return {
+          success: false,
+          error: response.data.error?.message || 'Error desconocido al subir imagen'
+        };
+      }
+    } catch (error: any) {
+      console.error('Error completo al subir imagen:', error);
+      console.error('Error response:', error.response?.data);
+      return {
+        success: false,
+        error: error.response?.data?.error?.message || error.message || 'Error al subir imagen'
+      };
+    }
+  }
 }

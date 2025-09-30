@@ -51,7 +51,8 @@ export const paymentMethodSchema = z.object({
   amountBs: z.number().min(0),
   amountUsd: z.number().min(0),
   inputValue: z.string(),
-  changeValue: z.string().optional()
+  changeValue: z.string().optional(),
+  urlSuport: z.string().optional()
 });
 
 // Schema para pago

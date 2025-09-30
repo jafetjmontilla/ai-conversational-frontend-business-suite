@@ -1,4 +1,4 @@
-import { apiJaihomV1, apiV1, Fetching } from "./api";
+import { apiImgbbV1, apiJaihomV1, apiV1, Fetching } from "./api";
 
 interface conector {
   api: Fetching
@@ -13,6 +13,11 @@ export const fetchApiV1: CallableFunction = async ({ query, type, variables }: c
 export const fetchApiJaihomV1: CallableFunction = async ({ query, type, variables }: conector): Promise<any> => {
   return await conector({ api: apiJaihomV1, query, variables, type })
 }
+
+export const fetchApiImgbbV1: CallableFunction = async (imageFile: File | string, expiration?: number): Promise<any> => {
+  return await apiImgbbV1.upload(imageFile, expiration)
+}
+
 
 const conector: CallableFunction = async ({ api, query = ``, variables = {}, type = "json", }: conector): Promise<any> => {
   try {
@@ -667,6 +672,7 @@ export const queries = {
           name
           amountBs
           amountUsd
+          urlSuport
         }
         totalPaid
         tasaBCV
