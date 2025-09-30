@@ -7,7 +7,7 @@ export const invoiceItemSchema = z.object({
   description: z.string().min(1, 'La descripción es requerida'),
   unitPrice: z.number().min(0, 'El precio unitario debe ser mayor o igual a 0'),
   total: z.number().min(0, 'El total debe ser mayor o igual a 0'),
-  inventoryId: z.string()
+  inventoryId: z.string().optional()
 });
 
 // Schema para factura

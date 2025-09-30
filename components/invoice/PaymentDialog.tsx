@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Invoice } from '@/lib/schemas/invoice';
+import { formatNumber } from './InvoiceCard';
 
 interface PaymentMethod {
   id: string;
@@ -36,6 +37,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
   ]);
 
   const [totalPaid, setTotalPaid] = useState(0);
+
+  useEffect(() => {
+    console.log(100040, invoice.items);
+  }, [invoice]);
 
   useEffect(() => {
     const total = paymentMethods.reduce((sum, method) => sum + method.amountUsd, 0);
@@ -106,7 +111,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
         <DialogHeader className="flex flex-row justify-between space-y-1.5 text-center sm:text-left">
           <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
           <DialogDescription className="text-sm text-primary mr-10">
-            Tasa: {tasaBCV.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+            Tasa: {formatNumber(tasaBCV)}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1">
@@ -115,20 +120,20 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
             <div className="text-center">
               {store === "guardians" ? (
                 <div className="flex">
-                  <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {invoice.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
-                  </div>
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {(invoice.totalUsd * tasaBCV).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+                    Bs. {formatNumber(invoice.totalUsd * tasaBCV)}
+                  </div>
+                  <div className="w-1/2 text-xl font-bold text-green-600">
+                    $ {formatNumber(invoice.totalUsd)}
                   </div>
                 </div>
               ) : (
                 <div className="flex">
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+                    Bs. {formatNumber(invoice.totalBs)}
                   </div>
                   <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {invoice.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+                    $ {formatNumber(invoice.totalUsd)}
                   </div>
                 </div>
               )}
@@ -143,10 +148,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                   <span className="font-semibold">{method.name}</span>
                   <div className="text-right absolute right-0 bottom-0">
                     <div className="text-xs dark:text-gray-300">
-                      {method.amountBs > 0 && `${method.amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })} Bs.`}
+                      {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
                     </div>
                     <div className="font-medium">
-                      {method.amountUsd > 0 && `$${method.amountUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}`}
+                      {method.amountUsd > 0 && `$${formatNumber(method.amountUsd)}`}
                     </div>
                   </div>
                 </div>
@@ -185,19 +190,25 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
           </div>
 
           {/* Total Paid */}
-          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-4 py-1">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-primary dark:text-primary-foreground">Total pagado:</span>
-              <div className={`px-4 rounded-lg font-bold text-lg ${isPaymentComplete
+          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1 space-y-1">
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-semibold text-primary dark:text-primary-foreground text-sm">Total pagado:</span>
+              <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${isPaymentComplete
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                ${totalPaid.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+                Bs.{formatNumber(totalPaid * tasaBCV)}
+              </div>
+              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center  ${isPaymentComplete
+                ? 'bg-green-100 text-green-800'
+                : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                ${formatNumber(totalPaid)}
               </div>
             </div>
 
             <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${isPaymentComplete ? 'opacity-0' : 'opacity-100'}`}>
-              Faltan ${(invoice.totalUsd - totalPaid).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })} por pagar
+              Faltan Bs. {formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} o $ {formatNumber(invoice.totalUsd - totalPaid)} por pagar
             </div>
           </div>
 

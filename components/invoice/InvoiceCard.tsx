@@ -1,38 +1,62 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, SetStateAction, Dispatch } from 'react';
 import { XIcon, X } from 'lucide-react';
 import { Invoice, InvoiceItem } from '@/lib/schemas/invoice';
 import { Button } from '@/components/ui/button';
 import { InventorySearch, InventoryItem } from './InventorySearch';
+import { PaymentDialog } from './PaymentDialog';
+import { useInvoices } from '@/hooks/useInvoices';
 
 interface InvoiceCardProps {
   invoice: Invoice;
   onUpdate: (updatedInvoice: Partial<Invoice>) => void;
   onRemove: () => void;
-  onPay: () => void;
   tasaBCV: number;
   store?: 'guardians' | 'jaihom';
+  setLocalInvoices: (Dispatch<SetStateAction<Invoice[]>>)
 }
 
-export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store = "guardians" }: InvoiceCardProps) {
-  const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
+// Función para formatear números con separadores de miles (.) y decimales (,)
+export const formatNumber = (num: number, decimals: number = 2): string => {
+  return num.toLocaleString('es-VE', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
 
-  // Función para formatear números con separadores de miles (.) y decimales (,)
-  const formatNumber = (num: number, decimals: number = 2): string => {
-    return num.toLocaleString('es-VE', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals
-    });
+export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "guardians", setLocalInvoices }: InvoiceCardProps) {
+  const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
+  const [disablePay, setDisablePay] = useState(true);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const { processPayment } = useInvoices();
+  const [tableItems, setTableItems] = useState<InvoiceItem[]>(invoice.items);
+
+  const handlePay = (invoice: Invoice) => {
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleProcessPayment = async (paymentData: any) => {
+    const success = await processPayment(paymentData);
+    if (success) {
+      // Eliminar la factura local después de procesar el pago
+      setLocalInvoices(prev =>
+        prev.filter(invoice => invoice._id !== localInvoice._id)
+      );
+      setIsPaymentDialogOpen(false);
+    }
   };
 
   useEffect(() => {
-  }, [localInvoice])
-
-
-  useEffect(() => {
+    // Solo sincronizar si el invoice._id cambió (nueva factura) o si es la primera carga
+    const invoiceIdChanged = localInvoice._id !== invoice._id;
+    setDisablePay(localInvoice.totalUsd === 0);
+    if (!invoiceIdChanged) {
+      // Si es la misma factura, no hacer nada para preservar tableItems y localInvoice
+      return;
+    }
+    // Si cambió el _id, es una nueva factura, reconstruir todo
     setLocalInvoice(invoice);
-
     // Sincronizar tableItems con los items de la factura
     if (invoice.items && invoice.items.length > 0) {
       const updatedTableItems = createEmptyItems();
@@ -78,8 +102,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
     return items;
   };
 
-  const [tableItems, setTableItems] = useState(createEmptyItems());
-  const isUpdatingRef = useRef(false);
+  // const isUpdatingRef = useRef(false);
 
   // Función para actualizar un item de la tabla
   const updateTableItem = (itemId: string, field: string, value: any) => {
@@ -87,22 +110,19 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
-
           // Si se elimina la descripción, también borrar la cantidad
           if (field === 'description' && (!value || value.trim() === '')) {
             updatedItem.quantity = 0;
             updatedItem.unitPrice = 0;
             updatedItem.total = 0;
-            updatedItem.inventoryItem = null;
+            updatedItem.inventoryId = undefined;
           }
-
           // Si se actualiza cantidad o precio unitario, recalcular total
           if (field === 'quantity' || field === 'unitPrice') {
             const quantity = updatedItem.quantity || 0;
             const unitPrice = updatedItem.unitPrice || 0;
             updatedItem.total = quantity * unitPrice;
           }
-
           return updatedItem;
         }
         return item;
@@ -114,18 +134,11 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
 
   // Efecto para recalcular totales cuando cambian los items de la tabla
   useEffect(() => {
-    if (isUpdatingRef.current) {
-      isUpdatingRef.current = false;
-      return;
-    }
-
     const totalBs = tableItems.reduce((sum, item) => {
       return sum + (item.total || 0);
     }, 0);
     const totalUsd = totalBs / tasaBCV;
-
     // Convertir tableItems a InvoiceItem format
-    console.log(100040, tableItems)
     const invoiceItems: InvoiceItem[] = tableItems
       .filter(item => item.description.trim() !== '' || item.quantity > 0)
       .map(item => ({
@@ -134,9 +147,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
         description: item.description || '',
         unitPrice: item.unitPrice || 0,
         total: item.total || 0,
-        inventoryId: item.inventoryItem?._id || ''
+        inventoryId: item?.inventoryId || ''
       }));
-
     // Para store guardians, los totales deben mostrarse en USD (divididos por tasaBCV)
     // Para store jaihom, los totales se mantienen en Bs
     const updatedInvoice = {
@@ -145,15 +157,13 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
       totalBs: store === "guardians" ? totalUsd : totalBs,
       totalUsd: store === "guardians" ? totalUsd : Number(totalUsd.toFixed(2))
     };
-
-    isUpdatingRef.current = true;
+    // isUpdatingRef.current = true;
     setLocalInvoice(updatedInvoice);
     onUpdate(updatedInvoice);
   }, [tableItems, tasaBCV, store]);
 
   // Función para manejar la selección de un artículo del inventario
   const handleInventoryItemSelect = (itemId: string, inventoryItem: InventoryItem) => {
-    console.log(100041, inventoryItem)
     setTableItems(prevItems => {
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {
@@ -161,31 +171,26 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
             ...item,
             description: inventoryItem.description,
             unitPrice: inventoryItem.salesPrice,
-            inventoryItem: inventoryItem
+            inventoryId: inventoryItem._id
           };
-
           // Recalcular total si hay cantidad
           const quantity = updatedItem.quantity || 0;
           const unitPrice = inventoryItem.salesPrice;
           updatedItem.total = quantity * unitPrice;
-
           return updatedItem;
         }
         return item;
       });
-
       return updatedItems;
     });
   };
 
   const handleInputChange = (option: any, e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-
     // Si es tipo onlyNumbers, solo permitir números
     if (option.type === 'onlyNumbers') {
       value = value.replace(/[^0-9]/g, '');
     }
-
     // Si es tipo phone, permitir + solo al inicio y el resto números
     if (option.type === 'phone') {
       // Si empieza con +, mantener el + y solo números después
@@ -196,7 +201,6 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
         value = value.replace(/[^0-9]/g, '');
       }
     }
-
     updateField(option.field as keyof Invoice, value);
   };
 
@@ -325,7 +329,6 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
             </tbody>
           </table>
           <div className={`flex ${store === "guardians" ? "flex-col-reverse" : "flex-col"}`}>
-
             <div className="flex justify-between text-xs">
               <div className="flex-1" />
               <span className="font-medium">TOTAL:</span>
@@ -345,14 +348,25 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
             </div>
           </div>
           <Button
-            onClick={onPay}
+            onClick={() => handlePay(localInvoice)}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
-            disabled={localInvoice.totalUsd === 0}
+            disabled={disablePay}
           >
             PAGAR
           </Button>
         </div>
       </div>
+      {/* Payment Dialog */}
+      {localInvoice && (
+        <PaymentDialog
+          isOpen={isPaymentDialogOpen}
+          onClose={() => setIsPaymentDialogOpen(false)}
+          invoice={localInvoice}
+          tasaBCV={tasaBCV || 175}
+          store={store}
+          onProcessPayment={handleProcessPayment}
+        />
+      )}
     </div>
   );
 }

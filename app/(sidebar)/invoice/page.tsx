@@ -6,9 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { InvoiceCard } from '@/components/invoice/InvoiceCard';
-import { PaymentDialog } from '@/components/invoice/PaymentDialog';
 import { useTasaBCV } from '@/hooks/useTasaBCV';
-import { useInvoices } from '@/hooks/useInvoices';
 import { Invoice } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -16,11 +14,19 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store>('guardians');
   const { tasaBCV } = useTasaBCV();
-  const { processPayment } = useInvoices();
+
+  const createEmptyItems = () => {
+    return Array.from({ length: 10 }, (_, index) => ({
+      id: `item-${index}`,
+      quantity: 0,
+      description: '',
+      unitPrice: 0,
+      total: 0,
+      inventoryItem: null
+    }));
+  };
 
   const addNewInvoice = () => {
     const newInvoice: Invoice = {
@@ -28,7 +34,7 @@ export default function InvoicePage() {
       clientName: '',
       clientId: '',
       clientPhone: '',
-      items: [],
+      items: createEmptyItems(),
       totalBs: 0,
       totalUsd: 0,
       store: selectedStore,
@@ -36,7 +42,6 @@ export default function InvoicePage() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
     setLocalInvoices(prev => [...prev, newInvoice]);
   };
 
@@ -53,27 +58,6 @@ export default function InvoicePage() {
   const removeInvoice = (id: string) => {
     if (window.confirm('¿Estás seguro de que quieres cerrar esta factura sin guardar?')) {
       setLocalInvoices(prev => prev.filter(invoice => invoice._id !== id));
-    }
-  };
-
-  const handlePay = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setIsPaymentDialogOpen(true);
-  };
-
-  const handleProcessPayment = async (paymentData: any) => {
-    if (selectedInvoice) {
-      const success = await processPayment(paymentData);
-
-      if (success) {
-        // Eliminar la factura local después de procesar el pago
-        setLocalInvoices(prev =>
-          prev.filter(invoice => invoice._id !== selectedInvoice._id)
-        );
-
-        setIsPaymentDialogOpen(false);
-        setSelectedInvoice(null);
-      }
     }
   };
 
@@ -113,7 +97,6 @@ export default function InvoicePage() {
               Nueva Factura
             </Button>
           </div>
-
           <Separator className="my-4" />
           <div className='w-full max-w-full h-full flex overflow-hidden relative'>
             {filteredInvoices.length > 0 ? (
@@ -129,10 +112,10 @@ export default function InvoicePage() {
                   {filteredInvoices.map((invoice) => (
                     <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
                       <InvoiceCard
+                        setLocalInvoices={setLocalInvoices}
                         invoice={invoice}
                         onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
                         onRemove={() => removeInvoice(invoice._id)}
-                        onPay={() => handlePay(invoice)}
                         tasaBCV={tasaBCV?.tasa || 175}
                         store={selectedStore}
                       />
@@ -152,22 +135,8 @@ export default function InvoicePage() {
               </div>
             )}
           </div>
-
-
         </CardContent>
       </Card>
-
-      {/* Payment Dialog */}
-      {selectedInvoice && (
-        <PaymentDialog
-          isOpen={isPaymentDialogOpen}
-          onClose={() => setIsPaymentDialogOpen(false)}
-          invoice={selectedInvoice}
-          tasaBCV={tasaBCV?.tasa || 175}
-          store={selectedStore}
-          onProcessPayment={handleProcessPayment}
-        />
-      )}
     </div>
   );
 }
