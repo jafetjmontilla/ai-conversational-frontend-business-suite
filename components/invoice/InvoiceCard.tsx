@@ -294,7 +294,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
                         updateTableItem(item.id, 'quantity', Number(value) || 0)
                       }}
                       autoComplete='off'
-                      className='w-full bg-white dark:bg-gray-100 text-center border-0 outline-none px-1'
+                      className='w-full bg-white dark:bg-gray-100 text-center border-0 px-1'
                     />
                   </td>
                   <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
@@ -302,7 +302,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
                       value={item.description}
                       onChange={(value) => updateTableItem(item.id, 'description', value)}
                       onSelectItem={(inventoryItem) => handleInventoryItemSelect(item.id, inventoryItem)}
-                      className="border-0 outline-none"
+                      className="border-0"
                       store={store}
                       tasaBCV={tasaBCV}
                     />
@@ -313,7 +313,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
                       type="text"
                       value={item.unitPrice !== 0 ? store === "guardians" ? formatNumber(item.unitPrice / tasaBCV) : formatNumber(item.unitPrice, 0) : ""}
                       readOnly
-                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
+                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 px-1'
                     />
                   </td>
                   <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
@@ -322,7 +322,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
                       type="text"
                       value={item.total !== 0 ? store === "guardians" ? formatNumber(item.total / tasaBCV) : formatNumber(item.total) : ""}
                       readOnly
-                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
+                      className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 px-1'
                     />
                   </td>
                 </tr>

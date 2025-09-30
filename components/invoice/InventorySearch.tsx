@@ -38,7 +38,6 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
       if (value.length > 0) {
         setIsLoading(true);
         setError(null);
-
         try {
           const results = await fetchApiV1({
             query: queries.getInventoryItemsByStore,
@@ -111,7 +110,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
             }, 200)
           }}
           autoComplete='off'
-          className={`w-full bg-white dark:bg-gray-100 text-left border-0 outline-none px-1 ${className}`}
+          className={`w-full bg-white dark:bg-gray-100 text-left border-0 px-1 ${className}`}
         />
         <div
           onClickCapture={() => {
@@ -133,7 +132,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
       {isOpen && (searchResults.length > 0 || isLoading) && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 -left-10 rounded-[3px] w-[320px] *h-[140px] mt-1 bg-white border border-ring shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 -left-10 rounded-[3px] w-[calc(100vw-70px)] md:w-[306px] *h-[140px] mt-1 bg-white border border-ring shadow-lg max-h-60 overflow-y-auto"
         >
           {isLoading ? (
             <div className="text-sm text-gray-500">
@@ -149,7 +148,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
                 <div className="flex justify-between items-start text-xs gap-2">
                   <div className="flex-1">
                     <div className="font-medium">
-                      {item.description}
+                      {item.description} dfdf ssdf dsf df dsf sdf df
                     </div>
                   </div>
                   <div className="font-semibold w-[35px] text-right">
