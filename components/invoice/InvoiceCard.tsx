@@ -125,6 +125,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
     const totalUsd = totalBs / tasaBCV;
 
     // Convertir tableItems a InvoiceItem format
+    console.log(100040, tableItems)
     const invoiceItems: InvoiceItem[] = tableItems
       .filter(item => item.description.trim() !== '' || item.quantity > 0)
       .map(item => ({
@@ -132,7 +133,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
         quantity: item.quantity || 0,
         description: item.description || '',
         unitPrice: item.unitPrice || 0,
-        total: item.total || 0
+        total: item.total || 0,
+        inventoryId: item.inventoryItem?._id || ''
       }));
 
     // Para store guardians, los totales deben mostrarse en USD (divididos por tasaBCV)
@@ -151,6 +153,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store
 
   // Función para manejar la selección de un artículo del inventario
   const handleInventoryItemSelect = (itemId: string, inventoryItem: InventoryItem) => {
+    console.log(100041, inventoryItem)
     setTableItems(prevItems => {
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {

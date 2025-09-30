@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Plus, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -20,15 +20,7 @@ export default function InvoicePage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store>('guardians');
   const { tasaBCV } = useTasaBCV();
-  const {
-    invoices: savedInvoices,
-    loading,
-    error,
-    createInvoice,
-    updateInvoice,
-    deleteInvoice,
-    processPayment
-  } = useInvoices();
+  const { processPayment } = useInvoices();
 
   const addNewInvoice = () => {
     const newInvoice: Invoice = {
@@ -58,15 +50,9 @@ export default function InvoicePage() {
     );
   };
 
-  const removeInvoice = async (id: string) => {
+  const removeInvoice = (id: string) => {
     if (window.confirm('¿Estás seguro de que quieres cerrar esta factura sin guardar?')) {
-      // Si es una factura local, solo eliminarla del estado local
-      if (id.startsWith('local-')) {
-        setLocalInvoices(prev => prev.filter(invoice => invoice._id !== id));
-      } else {
-        // Es una factura guardada, eliminarla de la API
-        await deleteInvoice(id);
-      }
+      setLocalInvoices(prev => prev.filter(invoice => invoice._id !== id));
     }
   };
 
@@ -80,12 +66,10 @@ export default function InvoicePage() {
       const success = await processPayment(paymentData);
 
       if (success) {
-        // Si era una factura local, eliminarla del estado local
-        if (selectedInvoice._id.startsWith('local-')) {
-          setLocalInvoices(prev =>
-            prev.filter(invoice => invoice._id !== selectedInvoice._id)
-          );
-        }
+        // Eliminar la factura local después de procesar el pago
+        setLocalInvoices(prev =>
+          prev.filter(invoice => invoice._id !== selectedInvoice._id)
+        );
 
         setIsPaymentDialogOpen(false);
         setSelectedInvoice(null);
@@ -93,10 +77,8 @@ export default function InvoicePage() {
     }
   };
 
-  // Filtrar facturas por store seleccionado
-  const filteredSavedInvoices = savedInvoices.filter(invoice => invoice.store === selectedStore);
-  const filteredLocalInvoices = localInvoices.filter(invoice => invoice.store === selectedStore);
-  const allInvoices = [...filteredSavedInvoices, ...filteredLocalInvoices];
+  // Filtrar facturas locales por store seleccionado
+  const filteredInvoices = localInvoices.filter(invoice => invoice.store === selectedStore);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full h-full">
@@ -107,7 +89,7 @@ export default function InvoicePage() {
               <Receipt className="h-5 w-5" />
               Facturación
             </CardTitle>
-            <CardDescription>Crear y gestionar facturas</CardDescription>
+            <CardDescription>Crear facturas</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-2 md:p-6 w-full flex flex-col flex-1">
@@ -134,7 +116,7 @@ export default function InvoicePage() {
 
           <Separator className="my-4" />
           <div className='w-full max-w-full h-full flex overflow-hidden relative'>
-            {allInvoices.length > 0 ? (
+            {filteredInvoices.length > 0 ? (
               <Carousel
                 opts={{
                   align: "center",
@@ -144,7 +126,7 @@ export default function InvoicePage() {
                 className="w-full max-w-full h-full flex overflow-hidden absolute"
               >
                 <CarouselContent className='w-full h-full -ml-0 md:-ml-4'>
-                  {allInvoices.map((invoice) => (
+                  {filteredInvoices.map((invoice) => (
                     <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
                       <InvoiceCard
                         invoice={invoice}
