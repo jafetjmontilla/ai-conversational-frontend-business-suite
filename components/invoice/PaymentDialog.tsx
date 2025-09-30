@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,12 +103,12 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[350px] overflow-y-auto">
-        <div className="flex justify-between items-end pr-10">
+        <DialogHeader className="flex flex-row justify-between space-y-1.5 text-center sm:text-left">
           <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
-          <div className="text-sm text-primary">
-            Tasa: {tasaBCV.toFixed(2)}
-          </div>
-        </div>
+          <DialogDescription className="text-sm text-primary mr-10">
+            Tasa: {tasaBCV.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-1">
           {/* Total Amount */}
           <div className="bg-blue-50 dark:bg-gray-300 rounded-md mb-2">
@@ -116,19 +116,19 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
               {store === "guardians" ? (
                 <div className="flex">
                   <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {invoice.totalUsd.toFixed(2)}
+                    $ {invoice.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
                   </div>
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {(invoice.totalUsd * tasaBCV).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                    Bs. {(invoice.totalUsd * tasaBCV).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
                   </div>
                 </div>
               ) : (
                 <div className="flex">
                   <div className="w-1/2 text-xl font-bold text-blue-800">
-                    Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                    Bs. {invoice.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
                   </div>
                   <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {invoice.totalUsd.toFixed(2)}
+                    $ {invoice.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
                   </div>
                 </div>
               )}
@@ -143,10 +143,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                   <span className="font-semibold">{method.name}</span>
                   <div className="text-right absolute right-0 bottom-0">
                     <div className="text-xs dark:text-gray-300">
-                      {method.amountBs > 0 && `${method.amountBs.toFixed(2)} Bs.`}
+                      {method.amountBs > 0 && `${method.amountBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })} Bs.`}
                     </div>
                     <div className="font-medium">
-                      {method.amountUsd > 0 && `$${method.amountUsd.toFixed(2)}`}
+                      {method.amountUsd > 0 && `$${method.amountUsd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}`}
                     </div>
                   </div>
                 </div>
@@ -192,12 +192,12 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                ${totalPaid.toFixed(2)}
+                ${totalPaid.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })}
               </div>
             </div>
 
             <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${isPaymentComplete ? 'opacity-0' : 'opacity-100'}`}>
-              Faltan ${(invoice.totalUsd - totalPaid).toFixed(2)} por pagar
+              Faltan ${(invoice.totalUsd - totalPaid).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true })} por pagar
             </div>
           </div>
 

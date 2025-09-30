@@ -36,15 +36,7 @@ export default function InvoicePage() {
       clientName: '',
       clientId: '',
       clientPhone: '',
-      items: [
-        {
-          id: `item-${Date.now()}`,
-          quantity: 1,
-          description: '',
-          unitPrice: 0,
-          total: 0
-        }
-      ],
+      items: [],
       totalBs: 0,
       totalUsd: 0,
       store: selectedStore,
@@ -79,7 +71,6 @@ export default function InvoicePage() {
   };
 
   const handlePay = (invoice: Invoice) => {
-    console.log(invoice);
     setSelectedInvoice(invoice);
     setIsPaymentDialogOpen(true);
   };

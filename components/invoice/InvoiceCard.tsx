@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { XIcon, X, Plus, Trash2, Search } from 'lucide-react';
+import { XIcon, X } from 'lucide-react';
 import { Invoice, InvoiceItem } from '@/lib/schemas/invoice';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { customAlphabet } from 'nanoid';
 import { InventorySearch, InventoryItem } from './InventorySearch';
 
 interface InvoiceCardProps {
@@ -18,18 +15,45 @@ interface InvoiceCardProps {
   store?: 'guardians' | 'jaihom';
 }
 
-export function InvoiceCard({
-  invoice,
-  onUpdate,
-  onRemove,
-  onPay,
-  tasaBCV,
-  store = "guardians"
-}: InvoiceCardProps) {
+export function InvoiceCard({ invoice, onUpdate, onRemove, onPay, tasaBCV, store = "guardians" }: InvoiceCardProps) {
   const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
+
+  // Función para formatear números con separadores de miles (.) y decimales (,)
+  const formatNumber = (num: number, decimals: number = 2): string => {
+    return num.toLocaleString('es-VE', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  };
+
+  useEffect(() => {
+  }, [localInvoice])
+
 
   useEffect(() => {
     setLocalInvoice(invoice);
+
+    // Sincronizar tableItems con los items de la factura
+    if (invoice.items && invoice.items.length > 0) {
+      const updatedTableItems = createEmptyItems();
+      // Cargar items existentes en las primeras posiciones
+      invoice.items.forEach((item, index) => {
+        if (index < 10) {
+          updatedTableItems[index] = {
+            id: `item-${index}`,
+            quantity: item.quantity || 0,
+            description: item.description || '',
+            unitPrice: item.unitPrice || 0,
+            total: item.total || 0,
+            inventoryItem: null
+          };
+        }
+      });
+      setTableItems(updatedTableItems);
+    } else {
+      // Si no hay items, usar tabla vacía
+      setTableItems(createEmptyItems());
+    }
   }, [invoice]);
 
   const updateField = (field: keyof Invoice, value: any) => {
@@ -59,11 +83,18 @@ export function InvoiceCard({
 
   // Función para actualizar un item de la tabla
   const updateTableItem = (itemId: string, field: string, value: any) => {
-    console.log("updateTableItem", { itemId, field, value, typeofValue: typeof value });
     setTableItems(prevItems => {
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
+
+          // Si se elimina la descripción, también borrar la cantidad
+          if (field === 'description' && (!value || value.trim() === '')) {
+            updatedItem.quantity = 0;
+            updatedItem.unitPrice = 0;
+            updatedItem.total = 0;
+            updatedItem.inventoryItem = null;
+          }
 
           // Si se actualiza cantidad o precio unitario, recalcular total
           if (field === 'quantity' || field === 'unitPrice') {
@@ -93,10 +124,22 @@ export function InvoiceCard({
     }, 0);
     const totalUsd = totalBs / tasaBCV;
 
+    // Convertir tableItems a InvoiceItem format
+    const invoiceItems: InvoiceItem[] = tableItems
+      .filter(item => item.description.trim() !== '' || item.quantity > 0)
+      .map(item => ({
+        id: item.id,
+        quantity: item.quantity || 0,
+        description: item.description || '',
+        unitPrice: item.unitPrice || 0,
+        total: item.total || 0
+      }));
+
     // Para store guardians, los totales deben mostrarse en USD (divididos por tasaBCV)
     // Para store jaihom, los totales se mantienen en Bs
     const updatedInvoice = {
       ...localInvoice,
+      items: invoiceItems,
       totalBs: store === "guardians" ? totalUsd : totalBs,
       totalUsd: store === "guardians" ? totalUsd : Number(totalUsd.toFixed(2))
     };
@@ -240,7 +283,7 @@ export function InvoiceCard({
                       value={item.quantity !== 0 ? item.quantity : ""}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, '');
-                        updateTableItem(item.id, 'quantity', value)
+                        updateTableItem(item.id, 'quantity', Number(value) || 0)
                       }}
                       autoComplete='off'
                       className='w-full bg-white dark:bg-gray-100 text-center border-0 outline-none px-1'
@@ -260,7 +303,7 @@ export function InvoiceCard({
                     <input
                       id={`unitPrice-${index}`}
                       type="text"
-                      value={item.unitPrice !== 0 ? store === "guardians" ? (item.unitPrice / tasaBCV).toFixed(2) : item.unitPrice.toFixed(0) : ""}
+                      value={item.unitPrice !== 0 ? store === "guardians" ? formatNumber(item.unitPrice / tasaBCV) : formatNumber(item.unitPrice, 0) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
                     />
@@ -269,7 +312,7 @@ export function InvoiceCard({
                     <input
                       id={`total-${index}`}
                       type="text"
-                      value={item.total !== 0 ? store === "guardians" ? (item.total / tasaBCV).toFixed(2) : item.total.toFixed(2) : ""}
+                      value={item.total !== 0 ? store === "guardians" ? formatNumber(item.total / tasaBCV) : formatNumber(item.total) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 outline-none px-1'
                     />
@@ -285,8 +328,8 @@ export function InvoiceCard({
               <span className="font-medium">TOTAL:</span>
               <span className="font-bold w-[60px] text-right pr-1">
                 {store === "guardians"
-                  ? (tableItems.reduce((sum, item) => sum + (item.total || 0), 0)).toFixed(2)
-                  : tableItems.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)
+                  ? formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0))
+                  : formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0))
                 }
               </span>
             </div>
@@ -294,7 +337,7 @@ export function InvoiceCard({
               <div className="flex-1" />
               <span className="font-medium">T DLRS:</span>
               <span className="font-bold w-[60px] text-right pr-1">
-                {(tableItems.reduce((sum, item) => sum + (item.total || 0), 0) / tasaBCV).toFixed(2)}
+                {formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0) / tasaBCV)}
               </span>
             </div>
           </div>
