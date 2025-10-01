@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Invoice } from '@/lib/schemas/invoice';
 import { formatNumber } from './InvoiceCard';
 import { fetchApiImgbbV1 } from '@/lib/Fetching';
@@ -43,16 +41,11 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
   const [totalPaid, setTotalPaid] = useState(0);
 
   useEffect(() => {
-    console.log(100040, invoice.items);
-  }, [invoice]);
-
-  useEffect(() => {
     const total = paymentMethods.reduce((sum, method) => sum + method.amountUsd, 0);
     setTotalPaid(total);
   }, [paymentMethods]);
 
   const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue' | 'urlSuport' | 'uploadingImage', value: string | boolean) => {
-    console.log(100072, { id, field, value })
     setPaymentMethods(prev =>
       prev.map(method => {
         if (method.id === id) {
@@ -88,16 +81,12 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
 
     try {
       const result = await fetchApiImgbbV1(file);
-      console.log(100071, result)
-
       if (result.success && result.data) {
         updatePaymentMethod(methodId, 'urlSuport', result.data.image_url);
       } else {
-        console.error('Error al subir imagen:', result.error);
         alert('Error al subir la imagen. Por favor, inténtalo de nuevo.');
       }
     } catch (error) {
-      console.error('Error al subir imagen:', error);
       alert('Error al subir la imagen. Por favor, inténtalo de nuevo.');
     } finally {
       updatePaymentMethod(methodId, 'uploadingImage', false);
@@ -149,12 +138,23 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     if (onProcessPayment) {
       onProcessPayment(paymentData);
     } else {
-      console.log('Procesando pago:', paymentData);
       onClose();
     }
   };
 
   const isPaymentComplete = totalPaid >= invoice.totalUsd;
+
+  // Validar si se han subido las imágenes requeridas
+  const hasRequiredImages = () => {
+    const methodsRequiringImage = paymentMethods.filter(method =>
+      ['mobile-transfer', 'zelle', 'binance'].includes(method.id) &&
+      method.amountUsd > 0
+    );
+
+    return methodsRequiringImage.every(method => method.urlSuport);
+  };
+
+  const canProcessPayment = isPaymentComplete && hasRequiredImages();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -295,16 +295,16 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
           </div>
 
           {/* Total Paid */}
-          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1 space-y-1">
+          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1.5   space-y-1 h-14">
             <div className="flex justify-between items-center gap-2">
               <span className="font-semibold text-primary dark:text-primary-foreground text-sm">Total pagado:</span>
-              <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${isPaymentComplete
+              <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
                 {formatNumber(totalPaid * tasaBCV)} Bs.
               </div>
-              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${isPaymentComplete
+              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
@@ -312,8 +312,13 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
               </div>
             </div>
 
-            <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${isPaymentComplete ? 'opacity-0' : 'opacity-100'}`}>
-              Faltan {formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} Bs. o $ {formatNumber(invoice.totalUsd - totalPaid)} por pagar
+            <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${canProcessPayment ? 'opacity-0' : 'opacity-100'}`}>
+              {!isPaymentComplete
+                ? `Faltan ${formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} Bs. o $ ${formatNumber(invoice.totalUsd - totalPaid)} por pagar`
+                : !hasRequiredImages()
+                  ? 'Requerido subir imágen de soporte de pago'
+                  : ''
+              }
             </div>
           </div>
 
@@ -327,8 +332,8 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
             </Button>
             <Button
               onClick={handleProcessPayment}
-              disabled={!isPaymentComplete}
-              className={`${isPaymentComplete
+              disabled={!canProcessPayment}
+              className={`${canProcessPayment
                 ? 'bg-green-600 hover:bg-green-700'
                 : 'bg-gray-400 cursor-not-allowed'
                 }`}

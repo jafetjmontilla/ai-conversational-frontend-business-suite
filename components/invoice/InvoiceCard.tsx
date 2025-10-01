@@ -37,7 +37,6 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
   };
 
   const handleProcessPayment = async (paymentData: any) => {
-    console.log(100061, paymentData)
     const success = await processPayment(paymentData);
     if (success) {
       // Eliminar la factura local después de procesar el pago

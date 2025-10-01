@@ -13,6 +13,7 @@ import UserFormModal from "@/components/UserFormModal";
 import { Copy, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function UsersPage() {
   const [role, setRole] = useState<string | null>(null);
@@ -163,28 +164,29 @@ export default function UsersPage() {
   }, [users, role, active, query]);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col">
-            <CardTitle>Usuarios e Invitaciones</CardTitle>
-            <CardDescription>Gestionar usuarios e invitaciones pendientes</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-2 md:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="flex-1">
-                <InputSearch
-                  placeholder="Buscar usuario o invitación por nombre, email o teléfono"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <Button onClick={handleNewUser}>Nuevo usuario</Button>
+    <TooltipProvider>
+      <div className="p-4 md:p-6 lg:p-8">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col">
+              <CardTitle>Usuarios e Invitaciones</CardTitle>
+              <CardDescription>Gestionar usuarios e invitaciones pendientes</CardDescription>
             </div>
-            {/* <div className="flex items-center gap-2">
+          </CardHeader>
+          <CardContent className="p-2 md:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="flex-1">
+                  <InputSearch
+                    placeholder="Buscar usuario o invitación por nombre, email o teléfono"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <Button onClick={handleNewUser}>Nuevo usuario</Button>
+              </div>
+              {/* <div className="flex items-center gap-2">
                 <ToggleWithBorder
                   type="single"
                   items={[
@@ -204,125 +206,143 @@ export default function UsersPage() {
                   size="sm"
                 />
               </div> */}
-          </div>
-          <Separator className="my-4" />
-          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'md:w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
-            <div className="overflow-x-auto">
-              <Table className="md:min-w-full">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="md:sticky md:left-0 bg-card z-10 w-16" />
-                    <TableHead className="md:sticky md:left-14 bg-card z-10 min-w-[200px]">Nombre</TableHead>
-                    <TableHead className="min-w-[200px]">Email</TableHead>
-                    <TableHead className="min-w-[150px]">Teléfono</TableHead>
-                    <TableHead className="min-w-[100px]">Activo</TableHead>
-                    <TableHead className="min-w-[100px]">Rol</TableHead>
-                    <TableHead className="min-w-[150px]">Email verificado</TableHead>
-                    <TableHead className="min-w-[150px]">Actualizado el</TableHead>
-                    <TableHead className="min-w-[150px]">Creado el</TableHead>
-                    <TableHead className="min-w-[200px]">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered?.map((u) => {
-                    const isInvitation = !u.uid; // Las invitaciones no tienen uid
-                    return (
-                      <TableRow
-                        key={u._id}
-                        className={`cursor-pointer hover:!bg-transparent`}
-                        onClick={() => handleEditUser(u)}
-                      >
-                        <TableCell className={`md:sticky md:left-0 md:z-10 md:bg-card w-16`}>
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={u.photoURL as string ?? ""} />
-                            <AvatarFallback>
-                              {u.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                        </TableCell>
-                        <TableCell className={`md:stickymd: md:left-14 md:z-10 md:bg-card min-w-[200px]`}>
-                          {u.name}
-                          {isInvitation && (
-                            <span className="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
-                              Invitación
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="min-w-[200px]">{u.email}</TableCell>
-                        <TableCell className="min-w-[150px]">{u.phone}</TableCell>
-                        <TableCell className="min-w-[100px]">
-                          {isInvitation ? (
-                            u.used ? "usada" : "pendiente"
-                          ) : (
-                            u.active ? "activo" : "inactivo"
-                          )}
-                        </TableCell>
-                        <TableCell className="min-w-[100px]">{u.role}</TableCell>
-                        <TableCell className="min-w-[150px]">
-                          {isInvitation ? (
-                            u.whatsappSent ? "enviado" : "no enviado"
-                          ) : (
-                            u.emailVerified ? "verificado" : "no verificado"
-                          )}
-                        </TableCell>
-                        <TableCell className="min-w-[150px]">{u.updatedAt}</TableCell>
-                        <TableCell className="min-w-[150px]">{u.createdAt}</TableCell>
-                        <TableCell className="min-w-[200px]">
-                          {isInvitation && u.token && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopyInvitationLink(u.token!);
-                                }}
-                                tooltip="Copiar link de invitación"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleResendInvitation(u._id);
-                                }}
-                                tooltip="Reenviar por WhatsApp"
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteInvitation(u._id);
-                                }}
-                                tooltip="Eliminar invitación"
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {isModalOpen && <UserFormModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        user={selectedUser}
-        onSuccess={handleUserSuccess}
-      />}
-    </div>
+            <Separator className="my-4" />
+            <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'md:w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
+              <div className="overflow-x-auto">
+                <Table className="md:min-w-full">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="md:sticky md:left-0 bg-card z-10 w-16" />
+                      <TableHead className="md:sticky md:left-14 bg-card z-10 min-w-[200px]">Nombre</TableHead>
+                      <TableHead className="min-w-[200px]">Email</TableHead>
+                      <TableHead className="min-w-[150px]">Teléfono</TableHead>
+                      <TableHead className="min-w-[100px]">Activo</TableHead>
+                      <TableHead className="min-w-[100px]">Rol</TableHead>
+                      <TableHead className="min-w-[150px]">Email verificado</TableHead>
+                      <TableHead className="min-w-[150px]">Actualizado el</TableHead>
+                      <TableHead className="min-w-[150px]">Creado el</TableHead>
+                      <TableHead className="min-w-[200px]">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered?.map((u) => {
+                      const isInvitation = !u.uid; // Las invitaciones no tienen uid
+                      return (
+                        <TableRow
+                          key={u._id}
+                          className={`cursor-pointer hover:!bg-transparent`}
+                          onClick={() => handleEditUser(u)}
+                        >
+                          <TableCell className={`md:sticky md:left-0 md:z-10 md:bg-card w-16`}>
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={u.photoURL as string ?? ""} />
+                              <AvatarFallback>
+                                {u.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TableCell>
+                          <TableCell className={`md:stickymd: md:left-14 md:z-10 md:bg-card min-w-[200px]`}>
+                            {u.name}
+                            {isInvitation && (
+                              <span className="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                                Invitación
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="min-w-[200px]">{u.email}</TableCell>
+                          <TableCell className="min-w-[150px]">{u.phone}</TableCell>
+                          <TableCell className="min-w-[100px]">
+                            {isInvitation ? (
+                              u.used ? "usada" : "pendiente"
+                            ) : (
+                              u.active ? "activo" : "inactivo"
+                            )}
+                          </TableCell>
+                          <TableCell className="min-w-[100px]">{u.role}</TableCell>
+                          <TableCell className="min-w-[150px]">
+                            {isInvitation ? (
+                              u.whatsappSent ? "enviado" : "no enviado"
+                            ) : (
+                              u.emailVerified ? "verificado" : "no verificado"
+                            )}
+                          </TableCell>
+                          <TableCell className="min-w-[150px]">{u.updatedAt}</TableCell>
+                          <TableCell className="min-w-[150px]">{u.createdAt}</TableCell>
+                          <TableCell className="min-w-[200px]">
+                            {isInvitation && u.token && (
+                              <div className="flex items-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCopyInvitationLink(u.token!);
+                                      }}
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copiar link de invitación</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleResendInvitation(u._id);
+                                      }}
+                                    >
+                                      <Send className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Reenviar por WhatsApp</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteInvitation(u._id);
+                                      }}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Eliminar invitación</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {isModalOpen && <UserFormModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          user={selectedUser}
+          onSuccess={handleUserSuccess}
+        />}
+      </div>
+    </TooltipProvider>
   );
 }

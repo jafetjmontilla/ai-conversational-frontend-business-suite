@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 
 export interface InventoryItem {
@@ -18,18 +18,18 @@ interface InventorySearchProps {
   value: string;
   onChange: (value: string) => void;
   onSelectItem: (item: InventoryItem) => void;
-  placeholder?: string;
   className?: string;
   store?: 'guardians' | 'jaihom';
   tasaBCV: number;
 }
 
-export function InventorySearch({ value, onChange, onSelectItem, placeholder = "Buscar artículo...", className = "", store = "guardians", tasaBCV }: InventorySearchProps) {
+export function InventorySearch({ value, onChange, onSelectItem, className = "", store = "guardians", tasaBCV }: InventorySearchProps) {
   const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -48,15 +48,17 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
             }
           });
           setSearchResults(results || []);
+          setSelectedIndex(-1); // Reset selected index when new results arrive
         } catch (err) {
-          console.error('Error al buscar en inventario:', err);
           setError(err instanceof Error ? err.message : 'Error desconocido');
           setSearchResults([]);
+          setSelectedIndex(-1);
         } finally {
           setIsLoading(false);
         }
       } else {
         setSearchResults([]);
+        setSelectedIndex(-1);
       }
     }, 300);
 
@@ -73,7 +75,37 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
   const handleItemSelect = useCallback((item: InventoryItem) => {
     onSelectItem(item);
     setIsOpen(false);
+    setSelectedIndex(-1);
   }, [onSelectItem]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isOpen || searchResults.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev =>
+          prev < searchResults.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev =>
+          prev > 0 ? prev - 1 : searchResults.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+          handleItemSelect(searchResults[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setIsOpen(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  }, [isOpen, searchResults, selectedIndex, handleItemSelect]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -100,6 +132,7 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
           type="text"
           value={value}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onFocus={() => {
             setIsOpen(true)
             setIsFocus(true)
@@ -114,7 +147,6 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
         />
         <div
           onClickCapture={() => {
-            console.log('clearInput');
             onChange('');
             setIsOpen(false);
           }}
@@ -139,16 +171,17 @@ export function InventorySearch({ value, onChange, onSelectItem, placeholder = "
               Buscando...
             </div>
           ) : (
-            searchResults.map((item) => (
+            searchResults.map((item, index) => (
               <div
                 key={item._id}
                 onClick={() => handleItemSelect(item)}
-                className="px-2.5 py-2.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0"
+                className={`px-2.5 py-2.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedIndex === index ? 'bg-blue-100 hover:bg-blue-200' : ''
+                  }`}
               >
                 <div className="flex justify-between items-start text-xs gap-2">
                   <div className="flex-1">
                     <div className="font-medium">
-                      {item.description} dfdf ssdf dsf df dsf sdf df
+                      {item.description}
                     </div>
                   </div>
                   <div className="font-semibold w-[35px] text-right">
