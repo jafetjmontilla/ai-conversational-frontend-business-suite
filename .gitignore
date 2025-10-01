@@ -63,9 +63,9 @@ coverage/
 # Archivos de imágenes optimizadas
 public/images/optimized/
 
-# Archivos de PWA
-public/sw.js
-public/workbox-*.js
+# Archivos de PWA generados automáticamente (no aplica, usamos PWA manual)
+# public/sw.js
+# public/workbox-*.js
 
 # Archivos de análisis de bundle
 .next/analyze/

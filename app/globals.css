@@ -137,7 +137,52 @@
     @apply border-border;
   }
 
+  html {
+    /* Altura completa */
+    height: 100%;
+    /* Evita el pull-to-refresh en móviles */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    /* Safari iOS: evita el bounce effect */
+    -webkit-overflow-scrolling: auto;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Altura completa */
+    min-height: 100%;
+    height: 100%;
+    /* Evita el pull-to-refresh y el bounce effect */
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    /* Safari iOS: previene el comportamiento de overscroll */
+    -webkit-overflow-scrolling: auto;
+    /* Previene gestos de navegación */
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  /* Contenedor principal para scroll */
+  #__next {
+    min-height: 100%;
+    overscroll-behavior: none;
+  }
+
+  /* Evita el zoom automático en inputs de Safari iOS */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Asegura que los inputs mantengan un tamaño mínimo de fuente */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  textarea {
+    font-size: 16px !important;
   }
 }

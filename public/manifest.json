@@ -1,0 +1,68 @@
+{
+  "name": "sistemasJaihom - ERP",
+  "short_name": "Jaihom ERP",
+  "description": "Aplicación SaaS ERP de sistemasJaihom",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/images/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ir al panel principal",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/images/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Facturas",
+      "short_name": "Facturas",
+      "description": "Gestión de facturas",
+      "url": "/invoice",
+      "icons": [
+        {
+          "src": "/images/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Gestión de inventario",
+      "url": "/inventory",
+      "icons": [
+        {
+          "src": "/images/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

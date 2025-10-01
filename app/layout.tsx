@@ -16,8 +16,15 @@ export const metadata: Metadata = {
   ),
   title: 'sistemasJaihom - ERP',
   description: 'ERP de sistemasJaihom',
+  manifest: '/manifest.json',
   icons: {
     icon: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://sistemasJaihom.com.ve/&size=16',
+    apple: '/images/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'sistemasJaihom ERP',
   },
   openGraph: {
     title: 'sistemasJaihom - ERP',
@@ -26,15 +33,28 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
+}
+
 export default function RootLayout({ children, }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      {/* <head>
-        <meta
-          name="viewport"
-          content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"
-        />
-      </head> */}
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-touch-fullscreen" content="yes" />
+        <script src="/register-sw.js" defer></script>
+      </head>
       <body className={`${manrope.className} bg-background text-foreground transition-colors duration-200`}>
         <ThemeProvider
           attribute="class"
