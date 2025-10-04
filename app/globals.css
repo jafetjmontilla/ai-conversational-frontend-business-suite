@@ -171,7 +171,7 @@
   input,
   textarea,
   select {
-    font-size: 16px !important;
+    font-size: 11px !important;
   }
 
   /* Asegura que los inputs mantengan un tamaño mínimo de fuente */
@@ -183,6 +183,58 @@
   input[type="search"],
   input[type="url"],
   textarea {
-    font-size: 16px !important;
+    font-size: 11px !important;
   }
+
+  /* Estilos personalizados para focus en modo claro y oscuro */
+  .focus-outline-green:focus {
+    outline-color: #22c55e !important;
+    outline-offset: 0px !important;
+  }
+
+  .dark .focus-outline-yellow:focus {
+    outline: 2px solid #eab308 !important;
+    outline-color: #eab308 !important;
+    outline-offset: -1px !important;
+  }
+
+  /* Estilos específicos para el contenedor de lista de facturas */
+  #invoices-list-container {
+    height: 0;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #invoices-list {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Estilos para barras de scroll delgadas sin flechas */
+  #invoices-list::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  #invoices-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #invoices-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  #invoices-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Para Firefox */
+  #invoices-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  }
+
 }

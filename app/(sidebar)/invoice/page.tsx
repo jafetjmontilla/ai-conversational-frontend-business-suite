@@ -1,21 +1,43 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { InvoiceCard } from '@/components/invoice/InvoiceCard';
 import { useTasaBCV } from '@/hooks/useTasaBCV';
-import { Invoice } from '@/lib/schemas/invoice';
+import { usePayments } from '@/hooks/usePayments';
+import { Invoice, Payment } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { useSidebar } from '@/components/ui/sidebar';
+import { fetchApiV1, queries } from '@/lib/Fetching';
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store>('guardians');
   const { tasaBCV } = useTasaBCV();
+  const { state } = useSidebar();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  useEffect(() => {
+    fetchApiV1({
+      query: queries.getInvoices,
+      type: 'json',
+      variables: {
+        store: selectedStore,
+        skip: 0,
+        limit: 5,
+        sort: { createdAt: -1 }
+      }
+    }).then((res: any) => {
+      // console.log(res); // Removido para evitar Fast Refresh reloads
+      setInvoices(res.results);
+    })
+  }, [])
+
 
   const createEmptyItems = () => {
     return Array.from({ length: 10 }, (_, index) => ({
@@ -66,9 +88,9 @@ export default function InvoicePage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full h-full">
-      <Card className='flex flex-col w-full h-full'>
-        <CardHeader>
-          <div className="flex flex-col">
+      <Card className='flex flex-col w-full h-full overflow-hidden'>
+        <CardHeader className='h-[72px]'>
+          <div className="flex flex-col w-1/3">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               Facturación
@@ -76,8 +98,8 @@ export default function InvoicePage() {
             <CardDescription>Crear facturas</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-2 md:p-6 w-full flex flex-col flex-1">
-          <div className="flex items-center justify-between gap-4 mb-6">
+        <CardContent className="p-2 md:px-6 w-full flex-1 flex flex-col">
+          <div className="flex items-center justify-between gap-4 pb-2">
             <div className="flex items-center gap-2 flex-1"></div>
             <ToggleGroup
               type="single"
@@ -94,46 +116,59 @@ export default function InvoicePage() {
             </ToggleGroup>
             <Button onClick={addNewInvoice} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Nueva Factura
+              Nueva Factura1
             </Button>
           </div>
-          <Separator className="my-4" />
-          <div className='w-full max-w-full h-full flex overflow-hidden relative'>
-            {filteredInvoices.length > 0 ? (
-              <Carousel
-                opts={{
-                  align: "center",
-                  skipSnaps: false,
-                  dragFree: false,
-                }}
-                className="w-full max-w-full h-full flex overflow-hidden absolute"
-              >
-                <CarouselContent className='w-full h-full -ml-0 md:-ml-4'>
-                  {filteredInvoices.map((invoice) => (
-                    <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
-                      <InvoiceCard
-                        setLocalInvoices={setLocalInvoices}
-                        invoice={invoice}
-                        onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
-                        onRemove={() => removeInvoice(invoice._id)}
-                        tasaBCV={tasaBCV?.tasa || 175}
-                        store={selectedStore}
-                      />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="fixed md:absolute -left-1.5 md:left-0 md:translate-y-32 bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
-                <CarouselNext className="fixed md:absolute -right-1.5 md:right-0 md:translate-y-32 bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
-              </Carousel>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-500">
-                <div className="text-center">
-                  <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg mb-2">No hay facturas</p>
-                  <p className="text-sm text-gray-400">Haz clic en "Nueva Factura" para crear una nueva factura</p>
+          {/* <div className="h-[95%] bg-blue-200 flex"></div> */}
+          <div className='flex flex-col h-full overflow-hidden'>
+            <div className='w-full h-[410px] flex relative flex-shrink-0'>
+              {filteredInvoices.length > 0 ? (
+                <Carousel
+                  opts={{
+                    align: "center",
+                    skipSnaps: false,
+                    dragFree: false,
+                  }}
+                  className="w-full max-w-full flex-1 flex overflow-hidden absolute"
+                >
+                  <CarouselContent className='w-full h-full -ml-0 md:-ml-4'>
+                    {filteredInvoices.map((invoice) => (
+                      <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
+                        <InvoiceCard
+                          setLocalInvoices={setLocalInvoices}
+                          invoice={invoice}
+                          onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
+                          onRemove={() => removeInvoice(invoice._id)}
+                          tasaBCV={tasaBCV?.tasa || 175}
+                          store={selectedStore}
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className={`${state === "collapsed" ? "md:translate-x-[90px]" : "md:translate-x-[266px]"} fixed -left-1.5 md:left-0 md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md"`} />
+                  <CarouselNext className="fixed -right-1.5 md:right-0  md:-translate-x-[10px] md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
+                </Carousel>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-500 w-full">
+                  <div className="text-center">
+                    <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg mb-2">No hay facturas</p>
+                    <p className="text-sm text-gray-400">Haz clic en "Nueva Factura" para crear una nueva factura</p>
+                  </div>
                 </div>
+              )}
+            </div>
+            <div id='invoices-list-container' className='flex justify-end items-end w-full mt-2 md:mt-0'>
+              <div id='invoices-list' className='flex flex-col w-full md:w-[320px] md:max-h-[125px]'>
+                {invoices.map((invoice, index) => (
+                  <li key={invoice._id} className='w-full flex items-center text-xs text-primary hover:bg-accent flex-shrink-0'>
+                    <span className={`flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{new Date(invoice.createdAt).toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                    <span className={`flex items-center flex-1 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{invoice.totalBs}</span>
+                    <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{invoice.totalUsd.toFixed(2)}</span>
+                  </li>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
