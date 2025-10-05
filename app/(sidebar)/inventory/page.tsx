@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
 import QuantityUpdateDialog from "@/components/QuantityUpdateDialog";
 import { useTasaBCV } from "@/hooks/useTasaBCV";
+import { useAllowed } from "@/lib/hooks/useAllowed";
 
 // Función utilitaria para redondear a 2 decimales
 const roundToTwoDecimals = (num: number): number => {
@@ -36,6 +37,16 @@ export default function InventoryPage() {
   const [excelImportOpen, setExcelImportOpen] = useState(false);
   const { open } = useSidebar();
   const { tasaBCV } = useTasaBCV();
+  const { hasRole, getCurrentRole } = useAllowed();
+
+  // Aplicar filtro automático de tienda según el rol del usuario
+  useEffect(() => {
+    if (hasRole('customerServiceG')) {
+      setSelectedStore('guardians');
+    } else if (hasRole('customerServiceJ')) {
+      setSelectedStore('jaihom');
+    }
+  }, [hasRole]);
 
   const fetchItems = async () => {
     try {
@@ -379,22 +390,24 @@ export default function InventoryPage() {
               </div>
             </div>
             {/* Filtros de tienda */}
-            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
-              <span className="font-medium">Tienda:</span>
-              <ToggleGroup
-                type="single"
-                value={selectedStore}
-                onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
-                className="border rounded-md"
-              >
-                <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
-                  Guardians
-                </ToggleGroupItem>
-                <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
-                  Jaihom
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            {!hasRole('customerServiceG') && !hasRole('customerServiceJ') && (
+              <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
+                <span className="font-medium">Tienda:</span>
+                <ToggleGroup
+                  type="single"
+                  value={selectedStore}
+                  onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
+                  className="border rounded-md"
+                >
+                  <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
+                    Guardians
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
+                    Jaihom
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
           </div>
           <div id="scrolls-table-container" className={`${open ? 'md:w-[calc(100vw-338px)]' : 'md:w-[calc(100vw-164px)]'} relative`}>
             <Table>

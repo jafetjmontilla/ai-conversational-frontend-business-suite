@@ -15,6 +15,7 @@ import { queries } from "@/lib/Fetching";
 import { Payment } from "@/lib/schemas/invoice";
 import { DateFilter } from "@/components/payments/DateFilter";
 import { PaymentFilters } from "@/lib/schemas/invoice";
+import { useAllowed } from "@/lib/hooks/useAllowed";
 
 export default function ReportPaymentsPage() {
   const [filters, setFilters] = useState<PaymentFilters>({});
@@ -24,6 +25,7 @@ export default function ReportPaymentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { open } = useSidebar();
+  const { hasRole, getCurrentRole } = useAllowed();
 
   const fetchPayments = useCallback(async (filters: PaymentFilters = {}) => {
     try {
@@ -56,7 +58,7 @@ export default function ReportPaymentsPage() {
     }
   }, []);
 
-  // Cargar filtros desde localStorage al inicializar
+  // Cargar filtros desde localStorage al inicializar y aplicar restricciones de rol
   useEffect(() => {
     const savedFilters = localStorage.getItem('reportPayments-filters');
     const savedSearchQuery = localStorage.getItem('reportPayments-searchQuery');
@@ -64,11 +66,25 @@ export default function ReportPaymentsPage() {
     let hasFilters = false;
     let filtersToApply = {};
 
+    // Determinar la tienda permitida según el rol del usuario
+    const userRole = getCurrentRole();
+    let allowedStore: 'guardians' | 'jaihom' | null = null;
+
+    if (hasRole('customerServiceG')) {
+      allowedStore = 'guardians';
+    } else if (hasRole('customerServiceJ')) {
+      allowedStore = 'jaihom';
+    }
+
     if (savedFilters) {
       try {
         const parsedFilters = JSON.parse(savedFilters);
         // Verificar si hay filtros válidos (no solo un objeto vacío)
         if (Object.keys(parsedFilters).length > 0) {
+          // Si el usuario tiene restricción de tienda, aplicar automáticamente
+          if (allowedStore) {
+            parsedFilters.store = allowedStore;
+          }
           setFilters(parsedFilters);
           filtersToApply = parsedFilters;
           hasFilters = true;
@@ -78,16 +94,22 @@ export default function ReportPaymentsPage() {
       }
     }
 
+    // Si no hay filtros guardados pero el usuario tiene restricción de tienda, aplicar automáticamente
+    if (!hasFilters && allowedStore) {
+      filtersToApply = { store: allowedStore };
+      setFilters(filtersToApply);
+      hasFilters = true;
+    }
+
     if (savedSearchQuery) {
       setSearchQuery(savedSearchQuery);
     }
 
-    // Solo hacer fetch si hay filtros guardados, de lo contrario no hacer nada
-    // El hook usePayments ya hace un fetch inicial, así que evitamos duplicar
+    // Solo hacer fetch si hay filtros guardados o restricciones de rol
     if (hasFilters) {
       fetchPayments(filtersToApply);
     }
-  }, [fetchPayments]);
+  }, [fetchPayments, hasRole, getCurrentRole]);
 
   const handleFilterChange = useCallback((newFilters: Partial<PaymentFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
@@ -230,25 +252,27 @@ export default function ReportPaymentsPage() {
               </div>
             </div>
             {/* Filtros de tienda y estado */}
-            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
-              <span className="font-medium">Tienda:</span>
-              <ToggleGroup
-                type="single"
-                value={filters.store || ""}
-                onValueChange={handleStoreFilter}
-                className="border rounded-md"
-              >
-                <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
-                  Guardians
-                </ToggleGroupItem>
-                <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
-                  Jaihom
-                </ToggleGroupItem>
-                <ToggleGroupItem value="" className="px-3 py-1 text-[10px] md:text-sm">
-                  Todas
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            {!hasRole('customerServiceG') && !hasRole('customerServiceJ') && (
+              <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
+                <span className="font-medium">Tienda:</span>
+                <ToggleGroup
+                  type="single"
+                  value={filters.store || ""}
+                  onValueChange={handleStoreFilter}
+                  className="border rounded-md"
+                >
+                  <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
+                    Guardians
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
+                    Jaihom
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="" className="px-3 py-1 text-[10px] md:text-sm">
+                    Todas
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            )}
             <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
               <span className="font-medium">Estado:</span>
               <ToggleGroup

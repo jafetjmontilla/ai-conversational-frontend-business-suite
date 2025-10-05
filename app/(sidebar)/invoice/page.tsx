@@ -14,6 +14,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useSidebar } from '@/components/ui/sidebar';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import { useAllowed } from '@/lib/hooks/useAllowed';
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
@@ -21,6 +22,18 @@ export default function InvoicePage() {
   const { tasaBCV } = useTasaBCV();
   const { state, isMobile } = useSidebar();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const { hasRole, getCurrentRole } = useAllowed();
+
+  // Aplicar filtro automático de tienda según el rol del usuario
+  useEffect(() => {
+    const userRole = getCurrentRole();
+
+    if (hasRole('customerServiceG')) {
+      setSelectedStore('guardians');
+    } else if (hasRole('customerServiceJ')) {
+      setSelectedStore('jaihom');
+    }
+  }, [hasRole, getCurrentRole]);
 
   useEffect(() => {
     fetchApiV1({
@@ -36,7 +49,7 @@ export default function InvoicePage() {
       // console.log(res); // Removido para evitar Fast Refresh reloads
       setInvoices(res.results);
     })
-  }, [])
+  }, [selectedStore])
 
 
   const createEmptyItems = () => {
@@ -101,19 +114,21 @@ export default function InvoicePage() {
         <CardContent className="p-2 md:px-6 w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between gap-4 pb-2">
             <div className="flex items-center gap-2 flex-1"></div>
-            <ToggleGroup
-              type="single"
-              value={selectedStore}
-              onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
-              className="border rounded-md"
-            >
-              <ToggleGroupItem value="guardians" className="px-3 py-2">
-                Guardians
-              </ToggleGroupItem>
-              <ToggleGroupItem value="jaihom" className="px-3 py-2">
-                Jaihom
-              </ToggleGroupItem>
-            </ToggleGroup>
+            {!hasRole('customerServiceG') && !hasRole('customerServiceJ') && (
+              <ToggleGroup
+                type="single"
+                value={selectedStore}
+                onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="guardians" className="px-3 py-2">
+                  Guardians
+                </ToggleGroupItem>
+                <ToggleGroupItem value="jaihom" className="px-3 py-2">
+                  Jaihom
+                </ToggleGroupItem>
+              </ToggleGroup>
+            )}
             <Button onClick={addNewInvoice} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Nueva Factura1
