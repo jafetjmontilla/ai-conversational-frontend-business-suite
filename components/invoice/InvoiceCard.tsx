@@ -172,15 +172,19 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
     setTableItems(prevItems => {
       const updatedItems = prevItems.map(item => {
         if (item.id === itemId) {
+          // Usar el precio correcto según el store
+          const unitPrice = store === 'guardians'
+            ? inventoryItem.salesPriceUsd * tasaBCV  // Para guardians: usar priceUsd convertido a Bs
+            : inventoryItem.salesPrice;              // Para jaihom: usar price directamente
+
           const updatedItem = {
             ...item,
             description: inventoryItem.description,
-            unitPrice: inventoryItem.salesPrice,
+            unitPrice: roundToTwoDecimals(unitPrice),
             inventoryId: inventoryItem._id
           };
           // Recalcular total si hay cantidad
           const quantity = updatedItem.quantity || 0;
-          const unitPrice = inventoryItem.salesPrice;
           updatedItem.total = roundToTwoDecimals(quantity * unitPrice);
           return updatedItem;
         }

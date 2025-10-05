@@ -187,10 +187,16 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
                     </div>
                   </div>
                   <div className="font-semibold w-[35px] text-right">
-                    {(item.salesPrice / tasaBCV).toFixed(2)}
+                    {store === 'guardians'
+                      ? item.salesPriceUsd.toFixed(2)
+                      : (item.salesPrice / tasaBCV).toFixed(2)
+                    }
                   </div>
                   <div className="font-semibold w-[55px] text-right">
-                    {item.salesPrice.toFixed(2)}
+                    {store === 'guardians'
+                      ? (item.salesPriceUsd * tasaBCV).toFixed(2)
+                      : item.salesPrice.toFixed(2)
+                    }
                   </div>
                   <div className="w-5 flex justify-center text-green-600">
                     {"(" + item.quantity + ")"}
