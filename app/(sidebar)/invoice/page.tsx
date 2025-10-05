@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store>('guardians');
   const { tasaBCV } = useTasaBCV();
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function InvoicePage() {
               {filteredInvoices.length > 0 ? (
                 <Carousel
                   opts={{
-                    align: "center",
+                    align: (isMobile ? "center" : "start") as "center" | "start", // Centrado en móvil, inicio en web
                     skipSnaps: false,
                     dragFree: false,
                   }}

@@ -16,6 +16,12 @@ import ExcelImportDialog from "@/components/ExcelImportDialog";
 import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
 import QuantityUpdateDialog from "@/components/QuantityUpdateDialog";
+import { useTasaBCV } from "@/hooks/useTasaBCV";
+
+// Función utilitaria para redondear a 2 decimales
+const roundToTwoDecimals = (num: number): number => {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+};
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -24,10 +30,12 @@ export default function InventoryPage() {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  const [originalValue, setOriginalValue] = useState<string>("");
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [excelImportOpen, setExcelImportOpen] = useState(false);
   const { open } = useSidebar();
+  const { tasaBCV } = useTasaBCV();
 
   const fetchItems = async () => {
     try {
@@ -60,7 +68,8 @@ export default function InventoryPage() {
             quantity: 0,
             unitCost: 0,
             salesPrice: 0,
-            status: true
+            status: true,
+            tasaBCV: tasaBCV?.tasa || 0
           }
         }
       });
@@ -69,6 +78,7 @@ export default function InventoryPage() {
       setEditingItem(newItem._id);
       setEditingField("code");
       setEditValue(newItem.code);
+      setOriginalValue(newItem.code);
       toast.success("Nuevo producto agregado");
     } catch (error) {
       console.error("Error al crear producto:", error);
@@ -100,10 +110,17 @@ export default function InventoryPage() {
       case "salesPrice":
         value = item.salesPrice.toString();
         break;
+      case "unitCostUsd":
+        value = (item.unitCostUsd || 0).toString();
+        break;
+      case "salesPriceUsd":
+        value = (item.salesPriceUsd || 0).toString();
+        break;
       default:
         value = "";
     }
     setEditValue(value);
+    setOriginalValue(value); // Guardar el valor original
   };
 
   const handleSave = async () => {
@@ -116,13 +133,13 @@ export default function InventoryPage() {
         updateData[editingField] = editValue.trim();
       } else if (editingField === "type" || editingField === "store") {
         updateData[editingField] = editValue;
-      } else if (editingField === "unitCost" || editingField === "salesPrice") {
+      } else if (editingField === "unitCost" || editingField === "salesPrice" || editingField === "unitCostUsd" || editingField === "salesPriceUsd") {
         const numValue = parseFloat(editValue);
         if (isNaN(numValue) || numValue < 0) {
           toast.error("El valor debe ser un número válido mayor o igual a 0");
           return;
         }
-        updateData[editingField] = numValue;
+        updateData[editingField] = roundToTwoDecimals(numValue);
       }
 
       const updatedItem = await fetchApiV1({
@@ -130,7 +147,10 @@ export default function InventoryPage() {
         type: "json",
         variables: {
           _id: editingItem,
-          args: updateData
+          args: {
+            ...updateData,
+            tasaBCV: tasaBCV?.tasa || 0
+          }
         }
       });
 
@@ -141,6 +161,7 @@ export default function InventoryPage() {
       setEditingItem(null);
       setEditingField(null);
       setEditValue("");
+      setOriginalValue("");
       toast.success("Producto actualizado correctamente");
     } catch (error) {
       console.error("Error al actualizar producto:", error);
@@ -148,10 +169,21 @@ export default function InventoryPage() {
     }
   };
 
+  const handleBlur = () => {
+    // Solo guardar si el valor realmente cambió
+    if (editValue.trim() !== originalValue.trim()) {
+      handleSave();
+    } else {
+      // Si no cambió, solo cancelar la edición
+      handleCancel();
+    }
+  };
+
   const handleCancel = () => {
     setEditingItem(null);
     setEditingField(null);
     setEditValue("");
+    setOriginalValue("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -163,6 +195,10 @@ export default function InventoryPage() {
   };
 
   const handleQuantityClick = (item: InventoryItem) => {
+    // No permitir editar cantidad para servicios
+    if (item.type === "servicio") {
+      return;
+    }
     setSelectedItem(item);
     setQuantityDialogOpen(true);
   };
@@ -214,7 +250,7 @@ export default function InventoryPage() {
     });
   }, [items, query, selectedStore]);
 
-  const renderEditableCell = (item: InventoryItem, field: string, value: any, isNumber = false, isSelect = false, selectOptions?: { value: string; label: string }[]) => {
+  const renderEditableCell = (item: InventoryItem, field: string, value: any, isNumber = false, isSelect = false, selectOptions?: { value: string; label: string }[], isUSD = false) => {
     const isEditing = editingItem === item._id && editingField === field;
 
     if (isEditing) {
@@ -222,10 +258,37 @@ export default function InventoryPage() {
         return (
           <Select
             value={editValue}
-            onValueChange={(newValue) => {
+            onValueChange={async (newValue) => {
               setEditValue(newValue);
-              // Auto-save for selects
-              setTimeout(() => handleSave(), 100);
+              // Auto-save for selects with the new value
+              const updateData: any = {};
+              updateData[editingField] = newValue;
+
+              try {
+                const updatedItem = await fetchApiV1({
+                  query: queries.updateInventoryItem,
+                  type: "json",
+                  variables: {
+                    _id: editingItem,
+                    args: {
+                      ...updateData,
+                      tasaBCV: tasaBCV?.tasa || 0
+                    }
+                  }
+                });
+
+                setItems(prev => prev.map(item =>
+                  item._id === editingItem ? updatedItem : item
+                ));
+
+                setEditingItem(null);
+                setEditingField(null);
+                setEditValue("");
+                toast.success("Producto actualizado correctamente");
+              } catch (error) {
+                console.error("Error al actualizar producto:", error);
+                toast.error("Error al actualizar el producto");
+              }
             }}
           >
             <SelectTrigger className="h-8 text-sm">
@@ -247,7 +310,7 @@ export default function InventoryPage() {
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyPress}
-          onBlur={handleSave}
+          onBlur={handleBlur}
           type={isNumber ? "number" : "text"}
           step={isNumber ? "0.01" : undefined}
           min={isNumber ? "0" : undefined}
@@ -263,7 +326,9 @@ export default function InventoryPage() {
         onClick={() => handleEdit(item, field)}
       >
         {isNumber ? (
-          typeof value === 'number' ? value.toFixed(2) : value
+          typeof value === 'number' ? (
+            isUSD ? `$${value.toFixed(2)}` : value.toFixed(2)
+          ) : value
         ) : (
           value
         )}
@@ -332,6 +397,8 @@ export default function InventoryPage() {
                     <TableHead className="min-w-[100px]">Cantidad</TableHead>
                     <TableHead className="min-w-[120px]">Costo Unitario</TableHead>
                     <TableHead className="min-w-[120px]">Precio Venta</TableHead>
+                    <TableHead className="min-w-[120px]">Costo USD</TableHead>
+                    <TableHead className="min-w-[120px]">Precio USD</TableHead>
                     <TableHead className="min-w-[120px]">% Ganancia</TableHead>
                     <TableHead className="min-w-[150px]">Creado el</TableHead>
                     <TableHead className="min-w-[150px]">Actualizado el</TableHead>
@@ -355,8 +422,12 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="min-w-[100px]">
                         <div
-                          className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[32px] flex items-center font-medium"
+                          className={`p-1 rounded min-h-[32px] flex items-center font-medium ${item.type === "servicio"
+                            ? "text-muted-foreground cursor-default"
+                            : "cursor-pointer hover:bg-muted/50"
+                            }`}
                           onClick={() => handleQuantityClick(item)}
+                          title={item.type === "servicio" ? "Los servicios no tienen cantidad" : "Hacer clic para editar cantidad"}
                         >
                           {item.quantity}
                         </div>
@@ -366,6 +437,12 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="min-w-[120px]">
                         {renderEditableCell(item, "salesPrice", item.salesPrice, true)}
+                      </TableCell>
+                      <TableCell className="min-w-[120px]">
+                        {renderEditableCell(item, "unitCostUsd", item.unitCostUsd, true, false, undefined, true)}
+                      </TableCell>
+                      <TableCell className="min-w-[120px]">
+                        {renderEditableCell(item, "salesPriceUsd", item.salesPriceUsd, true, false, undefined, true)}
                       </TableCell>
                       <TableCell className="min-w-[120px]">
                         <span className={`font-medium ${item.profitPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>

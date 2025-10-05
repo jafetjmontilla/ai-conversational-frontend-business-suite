@@ -62,6 +62,7 @@ export interface OptionSelect {
 // Interfaces para inventario
 export interface PriceHistory {
   value: number;
+  valorUsd: number;
   updatedAt: string;
   userId: string;
 }
@@ -82,6 +83,8 @@ export interface InventoryItem {
   quantity: number;
   unitCost: number;
   salesPrice: number;
+  unitCostUsd: number;
+  salesPriceUsd: number;
   profitPercentage: number;
   status: boolean;
   costHistory: PriceHistory[];

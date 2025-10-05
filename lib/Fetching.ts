@@ -324,7 +324,10 @@ export const queries = {
       type
       store
       quantity
+      unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
     }
   }`,
   getInventoryItems: `query getInventoryItems {
@@ -337,6 +340,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -370,6 +375,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -403,6 +410,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -436,6 +445,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -469,6 +480,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -502,6 +515,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {
@@ -538,6 +553,8 @@ export const queries = {
       quantity
       unitCost
       salesPrice
+      unitCostUsd
+      salesPriceUsd
       profitPercentage
       status
       costHistory {

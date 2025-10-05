@@ -25,6 +25,11 @@ export const formatNumber = (num: number, decimals: number = 2): string => {
   });
 };
 
+// Función utilitaria para redondear a 2 decimales
+export const roundToTwoDecimals = (num: number): number => {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+};
+
 export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "guardians", setLocalInvoices }: InvoiceCardProps) {
   const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
   const [disablePay, setDisablePay] = useState(true);
@@ -121,7 +126,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
           if (field === 'quantity' || field === 'unitPrice') {
             const quantity = updatedItem.quantity || 0;
             const unitPrice = updatedItem.unitPrice || 0;
-            updatedItem.total = quantity * unitPrice;
+            updatedItem.total = roundToTwoDecimals(quantity * unitPrice);
           }
           return updatedItem;
         }
@@ -134,19 +139,19 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
 
   // Efecto para recalcular totales cuando cambian los items de la tabla
   useEffect(() => {
-    const totalBs = tableItems.reduce((sum, item) => {
+    const totalBs = roundToTwoDecimals(tableItems.reduce((sum, item) => {
       return sum + (item.total || 0);
-    }, 0);
-    const totalUsd = totalBs / tasaBCV;
+    }, 0));
+    const totalUsd = roundToTwoDecimals(totalBs / tasaBCV);
     // Convertir tableItems a InvoiceItem format
     const invoiceItems: InvoiceItem[] = tableItems
       .filter(item => item.description.trim() !== '' || item.quantity > 0)
       .map(item => ({
         id: item.id,
-        quantity: item.quantity || 0,
+        quantity: roundToTwoDecimals(item.quantity || 0),
         description: item.description || '',
-        unitPrice: item.unitPrice || 0,
-        total: item.total || 0,
+        unitPrice: roundToTwoDecimals(item.unitPrice || 0),
+        total: roundToTwoDecimals(item.total || 0),
         inventoryId: item?.inventoryId || ''
       }));
     // Para store guardians, los totales deben mostrarse en USD (divididos por tasaBCV)
@@ -155,7 +160,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
       ...localInvoice,
       items: invoiceItems,
       totalBs: store === "guardians" ? totalUsd : totalBs,
-      totalUsd: store === "guardians" ? totalUsd : Number(totalUsd.toFixed(2))
+      totalUsd: store === "guardians" ? totalUsd : totalUsd
     };
     // isUpdatingRef.current = true;
     setLocalInvoice(updatedInvoice);
@@ -176,7 +181,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
           // Recalcular total si hay cantidad
           const quantity = updatedItem.quantity || 0;
           const unitPrice = inventoryItem.salesPrice;
-          updatedItem.total = quantity * unitPrice;
+          updatedItem.total = roundToTwoDecimals(quantity * unitPrice);
           return updatedItem;
         }
         return item;

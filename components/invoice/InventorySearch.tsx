@@ -10,6 +10,8 @@ export interface InventoryItem {
   description: string;
   salesPrice: number;
   quantity: number;
+  unitCostUsd: number;
+  salesPriceUsd: number;
   type: 'mercancia' | 'servicio';
   store: 'guardians' | 'jaihom';
 }
