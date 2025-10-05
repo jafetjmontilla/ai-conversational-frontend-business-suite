@@ -198,6 +198,13 @@
     outline-offset: -1px !important;
   }
 
+  #scrolls-table-container {
+    height: 0;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
   /* Estilos específicos para el contenedor de lista de facturas */
   #invoices-list-container {
     height: 0;

@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InputSearch } from "@/components/InputSearch";
 import { useState, useCallback } from "react";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Receipt, DollarSign, Calendar, Store, RefreshCw } from "lucide-react";
+import { Receipt, Calendar, RefreshCw } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
 import { DateFilter } from "@/components/payments/DateFilter";
 import { PaymentFilters } from "@/lib/schemas/invoice";
@@ -117,87 +116,82 @@ export default function ReportPaymentsPage() {
             <CardDescription>Visualizar y filtrar todos los pagos procesados</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-2 md:p-6 w-full flex-1 flex flex-col">
-          {/* Barra de búsqueda */}
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="flex-1">
-                <InputSearch
-                  placeholder="Buscar pagos por ID, factura, tienda, cliente o método de pago"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full"
-                />
+        <CardContent className="p-0 md:p-2 w-full flex-1 flex flex-col">
+          <div className="flex flex-col md:flex-row md:flex-wrap md:justify-end gap-1 md:gap-2 p-2 pt-0">
+
+            {/* Barra de búsqueda */}
+            <div className="flex items-center w-full justify-between gap-1 md:gap-4 text-[10px] md:text-sm">
+              <div className="flex items-center gap-1 md:gap-2 flex-1">
+                <div className="flex-1">
+                  <InputSearch
+                    placeholder="Buscar pagos por ID, factura, tienda, cliente o método de pago"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchPayments(filters)}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchPayments(filters)}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-            {/* Botón para limpiar filtros */}
-            {hasActiveFilters && (
+              {/* Botón para limpiar filtros */}
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={clearAllFilters}
                   className="text-gray-600"
+                  disabled={!hasActiveFilters}
                 >
                   Limpiar Filtros
                 </Button>
               </div>
-            )}
-          </div>
-
-          {/* Filtros */}
-          <div className="space-y-4 mb-4">
-            {/* Filtros de tienda y estado */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Store className="h-4 w-4" />
-                <span className="text-sm font-medium">Tienda:</span>
-                <ToggleGroup
-                  type="single"
-                  value={filters.store || ""}
-                  onValueChange={handleStoreFilter}
-                  className="border rounded-md"
-                >
-                  <ToggleGroupItem value="guardians" className="px-3 py-1 text-sm">
-                    Guardians
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="jaihom" className="px-3 py-1 text-sm">
-                    Jaihom
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="" className="px-3 py-1 text-sm">
-                    Todas
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Estado:</span>
-                <ToggleGroup
-                  type="single"
-                  value={filters.status || ""}
-                  onValueChange={handleStatusFilter}
-                  className="border rounded-md"
-                >
-                  <ToggleGroupItem value="completed" className="px-3 py-1 text-sm">
-                    Completado
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="pending" className="px-3 py-1 text-sm">
-                    Pendiente
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="" className="px-3 py-1 text-sm">
-                    Todos
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
             </div>
+            {/* Filtros de tienda y estado */}
+            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
+              <span className="font-medium">Tienda:</span>
+              <ToggleGroup
+                type="single"
+                value={filters.store || ""}
+                onValueChange={handleStoreFilter}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
+                  Guardians
+                </ToggleGroupItem>
+                <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
+                  Jaihom
+                </ToggleGroupItem>
+                <ToggleGroupItem value="" className="px-3 py-1 text-[10px] md:text-sm">
+                  Todas
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
+              <span className="font-medium">Estado:</span>
+              <ToggleGroup
+                type="single"
+                value={filters.status || ""}
+                onValueChange={handleStatusFilter}
+                className="border rounded-md"
+              >
+                <ToggleGroupItem value="completed" className="px-3 py-1 text-[10px] md:text-sm">
+                  Completado
+                </ToggleGroupItem>
+                <ToggleGroupItem value="pending" className="px-3 py-1 text-[10px] md:text-sm">
+                  Pendiente
+                </ToggleGroupItem>
+                <ToggleGroupItem value="" className="px-3 py-1 text-[10px] md:text-sm">
+                  Todos
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
             {/* Filtros de fecha */}
             <DateFilter
               value={{
@@ -209,14 +203,11 @@ export default function ReportPaymentsPage() {
               onChange={handleDateFilter}
             />
           </div>
-          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)]' : 'md:w-[calc(100vw-195px)]'} h-[calc(100vh-436px)] overflow-auto relative`}>
+          <div id="scrolls-table-container" className={`${open ? 'md:w-[calc(100vw-338px)]' : 'md:w-[calc(100vw-164px)]'} relative`}>
             <Table>
               <TableHeader className="sticky top-0 z-20 bg-background">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="md:sticky md:left-0 md:bg-background md:z-30 w-16 md:border-r">
-                    <DollarSign className="h-4 w-4" />
-                  </TableHead>
-                  <TableHead className="md:sticky md:left-16 md:bg-background md:z-30 min-w-[120px] md:border-r">ID Pago</TableHead>
+                  <TableHead className="md:sticky md:left-0 md:bg-background md:z-30 min-w-[120px] md:border-r">ID Pago</TableHead>
                   <TableHead className="min-w-[120px]">ID Factura</TableHead>
                   <TableHead className="min-w-[100px]">Tienda</TableHead>
                   <TableHead className="min-w-[120px]">Total Pagado</TableHead>
@@ -226,7 +217,7 @@ export default function ReportPaymentsPage() {
                   <TableHead className="min-w-[150px]">Fecha</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="border">
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
@@ -279,12 +270,7 @@ export default function ReportPaymentsPage() {
                 ) : (
                   payments?.map((payment) => (
                     <TableRow key={payment._id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell className="md:sticky md:left-0 md:bg-background md:z-10 w-16 md:border-r">
-                        <div className="flex items-center justify-center">
-                          <DollarSign className="h-4 w-4 text-green-600" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="md:sticky md:left-16 md:bg-background md:z-10 min-w-[120px] md:border-r">
+                      <TableCell className="md:sticky md:left-0 md:bg-background md:z-10 min-w-[120px] md:border-r">
                         <span className="font-mono text-sm">{payment._id.slice(-8)}</span>
                       </TableCell>
                       <TableCell className="min-w-[120px]">
@@ -335,10 +321,9 @@ export default function ReportPaymentsPage() {
               </TableBody>
             </Table>
           </div>
-
           {/* Resumen */}
           {payments && payments.length > 0 && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+            <div className="p-4 mt-2 bg-muted/50 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Mostrando {payments.length} de {total} pagos

@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, X } from "lucide-react";
+import { X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
@@ -85,9 +85,9 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
   const hasActiveFilters = value.dateFilter || value.dateFrom || value.dateTo;
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-2">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Fechas:</span>
+    <div className="flex gap-1 md:gap-2">
+      <div className="flex items-center gap-1 md:gap-2">
+        <span className="text-[10px] md:text-sm font-medium">Fechas:</span>
         {/* Filtros rápidos */}
         <ToggleGroup
           type="single"
@@ -95,29 +95,27 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
           onValueChange={handleDateFilterChange}
           className="border rounded-md"
         >
-          <ToggleGroupItem value="today" className="px-3 py-1 text-sm">
+          <ToggleGroupItem value="today" className="px-2 py-1 text-[10px] md:text-sm">
             Hoy
           </ToggleGroupItem>
-          <ToggleGroupItem value="week" className="px-3 py-1 text-sm">
+          <ToggleGroupItem value="week" className="px-2 py-1 text-[10px] md:text-sm">
             Esta Semana
           </ToggleGroupItem>
-          <ToggleGroupItem value="month" className="px-3 py-1 text-sm">
+          <ToggleGroupItem value="month" className="px-2 py-1 text-[10px] md:text-sm">
             Este Mes
           </ToggleGroupItem>
-          <ToggleGroupItem value="year" className="px-3 py-1 text-sm">
+          <ToggleGroupItem value="year" className="px-2 py-1 text-[10px] md:text-sm">
             Este Año
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
-
       {/* Selector de rango personalizado */}
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="px-3 py-1 text-sm"
+            className="px-3 py-1 text-[10px] md:text-sm"
           >
-            <CalendarIcon className="h-4 w-4 mr-2" />
             {dateRange?.from ? (
               dateRange?.to ? (
                 <>
@@ -128,7 +126,7 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
                 format(dateRange.from, "dd/MM/yyyy", { locale: es })
               )
             ) : (
-              "Rango Personalizado"
+              "Rango"
             )}
           </Button>
         </PopoverTrigger>
@@ -180,7 +178,6 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
           </Button>
         )}
       </Popover>
-
     </div>
   );
 }
