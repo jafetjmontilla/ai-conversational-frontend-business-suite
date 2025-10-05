@@ -9,6 +9,12 @@ interface TasaBCVResponse {
 const TASA_BCV_STORAGE_KEY = 'tasaBCV';
 const TASA_BCV_DATE_KEY = 'tasaBCVDate';
 
+// Función utilitaria para redondear la tasa BCV hacia arriba a 2 decimales
+const roundTasaBCV = (tasa: number): number => {
+  const rounded = Math.ceil(tasa);
+  return rounded;
+};
+
 export const useTasaBCV = () => {
   const [tasaBCV, setTasaBCV] = useState<TasaBCV | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,8 +85,13 @@ export const useTasaBCV = () => {
 
       if (response && response.length > 0) {
         const tasaData = response[0];
-        storeTasaBCV(tasaData);
-        return tasaData;
+        // Redondear la tasa BCV al recibirla del API
+        const roundedTasaData = {
+          ...tasaData,
+          tasa: roundTasaBCV(tasaData.tasa)
+        };
+        storeTasaBCV(roundedTasaData);
+        return roundedTasaData;
       }
 
       return null;
@@ -99,7 +110,12 @@ export const useTasaBCV = () => {
     const storedTasa = getStoredTasaBCV();
 
     if (storedTasa && !shouldUpdateTasa()) {
-      setTasaBCV(storedTasa);
+      // Redondear la tasa almacenada por si hay datos antiguos sin redondear
+      const roundedStoredTasa = {
+        ...storedTasa,
+        tasa: roundTasaBCV(storedTasa.tasa)
+      };
+      setTasaBCV(roundedStoredTasa);
       return;
     }
 
@@ -108,8 +124,12 @@ export const useTasaBCV = () => {
     if (freshTasa) {
       setTasaBCV(freshTasa);
     } else if (storedTasa) {
-      // Si falla el fetch pero tenemos datos almacenados, usar los almacenados
-      setTasaBCV(storedTasa);
+      // Si falla el fetch pero tenemos datos almacenados, usar los almacenados (redondeados)
+      const roundedStoredTasa = {
+        ...storedTasa,
+        tasa: roundTasaBCV(storedTasa.tasa)
+      };
+      setTasaBCV(roundedStoredTasa);
     }
   };
 
@@ -129,6 +149,6 @@ export const useTasaBCV = () => {
     loading,
     error,
     refreshTasaBCV,
-    loadTasaBCV
+    loadTasaBCV,
   };
 };
