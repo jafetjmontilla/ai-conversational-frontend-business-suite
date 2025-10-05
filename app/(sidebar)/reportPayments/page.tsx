@@ -4,25 +4,96 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InputSearch } from "@/components/InputSearch";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Receipt, Calendar, RefreshCw } from "lucide-react";
 import { usePayments } from "@/hooks/usePayments";
+import { fetchApiV1 } from "@/lib/Fetching";
+import { queries } from "@/lib/Fetching";
+import { Payment } from "@/lib/schemas/invoice";
 import { DateFilter } from "@/components/payments/DateFilter";
 import { PaymentFilters } from "@/lib/schemas/invoice";
 
 export default function ReportPaymentsPage() {
   const [filters, setFilters] = useState<PaymentFilters>({});
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { open } = useSidebar();
 
-  const { payments, total, loading, error, fetchPayments } = usePayments();
+  const fetchPayments = useCallback(async (filters: PaymentFilters = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchApiV1({
+        query: queries.getPayments,
+        type: 'json',
+        variables: {
+          filters: Object.keys(filters).length > 0 ? filters : undefined
+        }
+      });
+
+      if (response && response.results) {
+        setPayments(response.results);
+        setTotal(response.total);
+      } else {
+        setPayments([]);
+        setTotal(0);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      console.error('Error obteniendo pagos:', err);
+      setPayments([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Cargar filtros desde localStorage al inicializar
+  useEffect(() => {
+    const savedFilters = localStorage.getItem('reportPayments-filters');
+    const savedSearchQuery = localStorage.getItem('reportPayments-searchQuery');
+
+    let hasFilters = false;
+    let filtersToApply = {};
+
+    if (savedFilters) {
+      try {
+        const parsedFilters = JSON.parse(savedFilters);
+        // Verificar si hay filtros válidos (no solo un objeto vacío)
+        if (Object.keys(parsedFilters).length > 0) {
+          setFilters(parsedFilters);
+          filtersToApply = parsedFilters;
+          hasFilters = true;
+        }
+      } catch (error) {
+        console.error('Error al cargar filtros desde localStorage:', error);
+      }
+    }
+
+    if (savedSearchQuery) {
+      setSearchQuery(savedSearchQuery);
+    }
+
+    // Solo hacer fetch si hay filtros guardados, de lo contrario no hacer nada
+    // El hook usePayments ya hace un fetch inicial, así que evitamos duplicar
+    if (hasFilters) {
+      fetchPayments(filtersToApply);
+    }
+  }, [fetchPayments]);
 
   const handleFilterChange = useCallback((newFilters: Partial<PaymentFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
+    // Guardar filtros en localStorage
+    localStorage.setItem('reportPayments-filters', JSON.stringify(updatedFilters));
     fetchPayments(updatedFilters);
   }, [filters, fetchPayments]);
 
@@ -30,6 +101,9 @@ export default function ReportPaymentsPage() {
     setSearchQuery(query);
     const updatedFilters = { ...filters, search: query || undefined };
     setFilters(updatedFilters);
+    // Guardar query de búsqueda y filtros en localStorage
+    localStorage.setItem('reportPayments-searchQuery', query);
+    localStorage.setItem('reportPayments-filters', JSON.stringify(updatedFilters));
     fetchPayments(updatedFilters);
   }, [filters, fetchPayments]);
 
@@ -57,6 +131,9 @@ export default function ReportPaymentsPage() {
   const clearAllFilters = useCallback(() => {
     setFilters({});
     setSearchQuery("");
+    // Limpiar localStorage
+    localStorage.removeItem('reportPayments-filters');
+    localStorage.removeItem('reportPayments-searchQuery');
     fetchPayments({});
   }, [fetchPayments]);
 

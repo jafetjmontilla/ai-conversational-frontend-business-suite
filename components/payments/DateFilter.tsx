@@ -167,16 +167,15 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
           </div>
         </PopoverContent>
         {/* Botón para limpiar filtros */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearFilters}
+          disabled={!hasActiveFilters}
+          className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </Popover>
     </div>
   );
