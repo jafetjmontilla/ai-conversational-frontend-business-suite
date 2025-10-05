@@ -106,9 +106,9 @@ export default function ReportPaymentsPage() {
   const hasActiveFilters = Object.keys(filters).length > 0;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <Card>
-        <CardHeader>
+    <div className="p-4 md:p-6 lg:p-8 w-full h-full">
+      <Card className='flex flex-col w-full h-full overflow-hidden'>
+        <CardHeader className='h-[72px]'>
           <div className="flex flex-col">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
@@ -117,7 +117,7 @@ export default function ReportPaymentsPage() {
             <CardDescription>Visualizar y filtrar todos los pagos procesados</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-2 md:p-6">
+        <CardContent className="p-2 md:p-6 w-full flex-1 flex flex-col">
           {/* Barra de búsqueda */}
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2 flex-1">
@@ -138,6 +138,19 @@ export default function ReportPaymentsPage() {
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
+            {/* Botón para limpiar filtros */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-gray-600"
+                >
+                  Limpiar Filtros
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Filtros */}
@@ -185,7 +198,6 @@ export default function ReportPaymentsPage() {
                 </ToggleGroup>
               </div>
             </div>
-
             {/* Filtros de fecha */}
             <DateFilter
               value={{
@@ -196,151 +208,132 @@ export default function ReportPaymentsPage() {
               }}
               onChange={handleDateFilter}
             />
-
-            {/* Botón para limpiar filtros */}
-            {hasActiveFilters && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearAllFilters}
-                  className="text-gray-600"
-                >
-                  Limpiar Filtros
-                </Button>
-              </div>
-            )}
           </div>
-
-          <Separator className="my-4" />
-
-          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'md:w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
-            <div className="overflow-x-auto">
-              <Table className="md:min-w-full">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="md:sticky md:left-0 bg-card z-10 w-16">
-                      <DollarSign className="h-4 w-4" />
-                    </TableHead>
-                    <TableHead className="md:sticky md:left-14 bg-card z-10 min-w-[120px]">ID Pago</TableHead>
-                    <TableHead className="min-w-[120px]">ID Factura</TableHead>
-                    <TableHead className="min-w-[100px]">Tienda</TableHead>
-                    <TableHead className="min-w-[120px]">Total Pagado</TableHead>
-                    <TableHead className="min-w-[100px]">Tasa BCV</TableHead>
-                    <TableHead className="min-w-[150px]">Métodos de Pago</TableHead>
-                    <TableHead className="min-w-[100px]">Estado</TableHead>
-                    <TableHead className="min-w-[150px]">Fecha</TableHead>
+          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)]' : 'md:w-[calc(100vw-195px)]'} h-[calc(100vh-436px)] overflow-auto relative`}>
+            <Table>
+              <TableHeader className="sticky top-0 z-20 bg-background">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="md:sticky md:left-0 md:bg-background md:z-30 w-16 md:border-r">
+                    <DollarSign className="h-4 w-4" />
+                  </TableHead>
+                  <TableHead className="md:sticky md:left-16 md:bg-background md:z-30 min-w-[120px] md:border-r">ID Pago</TableHead>
+                  <TableHead className="min-w-[120px]">ID Factura</TableHead>
+                  <TableHead className="min-w-[100px]">Tienda</TableHead>
+                  <TableHead className="min-w-[120px]">Total Pagado</TableHead>
+                  <TableHead className="min-w-[100px]">Tasa BCV</TableHead>
+                  <TableHead className="min-w-[150px]">Métodos de Pago</TableHead>
+                  <TableHead className="min-w-[100px]">Estado</TableHead>
+                  <TableHead className="min-w-[150px]">Fecha</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        Cargando pagos...
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                          Cargando pagos...
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : error ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
-                        <div className="flex flex-col items-center gap-2">
-                          <p className="text-red-600">Error: {error}</p>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <p className="text-red-600">Error: {error}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchPayments(filters)}
+                        >
+                          Reintentar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : payments?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Receipt className="h-16 w-16 text-gray-300" />
+                        <p className="text-lg text-gray-500">No hay pagos</p>
+                        <p className="text-sm text-gray-400">
+                          {hasActiveFilters
+                            ? "No se encontraron pagos con los filtros aplicados"
+                            : "No hay pagos registrados en el sistema"
+                          }
+                        </p>
+                        {hasActiveFilters && (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => fetchPayments(filters)}
+                            onClick={clearAllFilters}
+                            className="mt-2"
                           >
-                            Reintentar
+                            Limpiar Filtros
                           </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  payments?.map((payment) => (
+                    <TableRow key={payment._id} className="cursor-pointer hover:bg-muted/50">
+                      <TableCell className="md:sticky md:left-0 md:bg-background md:z-10 w-16 md:border-r">
+                        <div className="flex items-center justify-center">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="md:sticky md:left-16 md:bg-background md:z-10 min-w-[120px] md:border-r">
+                        <span className="font-mono text-sm">{payment._id.slice(-8)}</span>
+                      </TableCell>
+                      <TableCell className="min-w-[120px]">
+                        <span className="font-mono text-sm">{payment.invoiceId.slice(-8)}</span>
+                      </TableCell>
+                      <TableCell className="min-w-[100px]">
+                        {getStoreBadge(payment.store)}
+                      </TableCell>
+                      <TableCell className="min-w-[120px]">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">
+                            {formatCurrency(payment.totalPaid, 'USD')}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatCurrency(payment.totalPaid * payment.tasaBCV, 'VES')}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-[100px]">
+                        <span className="font-mono text-sm">{payment.tasaBCV.toLocaleString()}</span>
+                      </TableCell>
+                      <TableCell className="min-w-[150px]">
+                        <div className="flex flex-col gap-1">
+                          {payment.paymentMethods.map((method, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {method.name}
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {formatCurrency(method.amountUsd, 'USD')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-[100px]">
+                        {getStatusBadge(payment.status)}
+                      </TableCell>
+                      <TableCell className="min-w-[150px]">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm">{formatDate(payment.createdAt)}</span>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : payments?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
-                        <div className="flex flex-col items-center gap-2">
-                          <Receipt className="h-16 w-16 text-gray-300" />
-                          <p className="text-lg text-gray-500">No hay pagos</p>
-                          <p className="text-sm text-gray-400">
-                            {hasActiveFilters
-                              ? "No se encontraron pagos con los filtros aplicados"
-                              : "No hay pagos registrados en el sistema"
-                            }
-                          </p>
-                          {hasActiveFilters && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={clearAllFilters}
-                              className="mt-2"
-                            >
-                              Limpiar Filtros
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    payments?.map((payment) => (
-                      <TableRow key={payment._id} className="cursor-pointer hover:bg-muted/50">
-                        <TableCell className="md:sticky md:left-0 md:z-10 md:bg-card w-16">
-                          <div className="flex items-center justify-center">
-                            <DollarSign className="h-4 w-4 text-green-600" />
-                          </div>
-                        </TableCell>
-                        <TableCell className="md:sticky md:left-14 md:z-10 md:bg-card min-w-[120px]">
-                          <span className="font-mono text-sm">{payment._id.slice(-8)}</span>
-                        </TableCell>
-                        <TableCell className="min-w-[120px]">
-                          <span className="font-mono text-sm">{payment.invoiceId.slice(-8)}</span>
-                        </TableCell>
-                        <TableCell className="min-w-[100px]">
-                          {getStoreBadge(payment.store)}
-                        </TableCell>
-                        <TableCell className="min-w-[120px]">
-                          <div className="flex flex-col">
-                            <span className="font-semibold">
-                              {formatCurrency(payment.totalPaid, 'USD')}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {formatCurrency(payment.totalPaid * payment.tasaBCV, 'VES')}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="min-w-[100px]">
-                          <span className="font-mono text-sm">{payment.tasaBCV.toLocaleString()}</span>
-                        </TableCell>
-                        <TableCell className="min-w-[150px]">
-                          <div className="flex flex-col gap-1">
-                            {payment.paymentMethods.map((method, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {method.name}
-                                </Badge>
-                                <span className="text-xs text-gray-500">
-                                  {formatCurrency(method.amountUsd, 'USD')}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="min-w-[100px]">
-                          {getStatusBadge(payment.status)}
-                        </TableCell>
-                        <TableCell className="min-w-[150px]">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm">{formatDate(payment.createdAt)}</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
 
           {/* Resumen */}

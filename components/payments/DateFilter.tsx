@@ -85,29 +85,30 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
   const hasActiveFilters = value.dateFilter || value.dateFrom || value.dateTo;
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-medium">Fechas:</span>
-
-      {/* Filtros rápidos */}
-      <ToggleGroup
-        type="single"
-        value={value.dateFilter || ""}
-        onValueChange={handleDateFilterChange}
-        className="border rounded-md"
-      >
-        <ToggleGroupItem value="today" className="px-3 py-1 text-sm">
-          Hoy
-        </ToggleGroupItem>
-        <ToggleGroupItem value="week" className="px-3 py-1 text-sm">
-          Esta Semana
-        </ToggleGroupItem>
-        <ToggleGroupItem value="month" className="px-3 py-1 text-sm">
-          Este Mes
-        </ToggleGroupItem>
-        <ToggleGroupItem value="year" className="px-3 py-1 text-sm">
-          Este Año
-        </ToggleGroupItem>
-      </ToggleGroup>
+    <div className="flex flex-col md:flex-row items-center gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Fechas:</span>
+        {/* Filtros rápidos */}
+        <ToggleGroup
+          type="single"
+          value={value.dateFilter || ""}
+          onValueChange={handleDateFilterChange}
+          className="border rounded-md"
+        >
+          <ToggleGroupItem value="today" className="px-3 py-1 text-sm">
+            Hoy
+          </ToggleGroupItem>
+          <ToggleGroupItem value="week" className="px-3 py-1 text-sm">
+            Esta Semana
+          </ToggleGroupItem>
+          <ToggleGroupItem value="month" className="px-3 py-1 text-sm">
+            Este Mes
+          </ToggleGroupItem>
+          <ToggleGroupItem value="year" className="px-3 py-1 text-sm">
+            Este Año
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
       {/* Selector de rango personalizado */}
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -167,19 +168,19 @@ export function DateFilter({ value, onChange }: DateFilterProps) {
             </div>
           </div>
         </PopoverContent>
+        {/* Botón para limpiar filtros */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </Popover>
 
-      {/* Botón para limpiar filtros */}
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 }
