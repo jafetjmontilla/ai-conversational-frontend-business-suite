@@ -337,9 +337,9 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <Card>
-        <CardHeader>
+    <div className="p-4 md:p-6 lg:p-8 w-full h-full">
+      <Card className='flex flex-col w-full h-full overflow-hidden'>
+        <CardHeader className='h-[72px]'>
           <div className="flex flex-col">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -348,67 +348,92 @@ export default function InventoryPage() {
             <CardDescription>Gestionar productos y servicios</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-2 md:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="flex-1">
-                <InputSearch
-                  placeholder="Buscar por código o descripción"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="w-full"
-                />
+        <CardContent className="p-0 md:p-2 w-full flex-1 flex flex-col">
+          <div className="flex flex-col md:flex-row md:flex-wrap md:justify-end gap-1 md:gap-2 p-2 pt-0">
+            {/* Barra de búsqueda */}
+            <div className="flex items-center w-full justify-between gap-1 md:gap-4 text-[10px] md:text-sm">
+              <div className="flex items-center gap-1 md:gap-2 flex-1">
+                <div className="flex-1">
+                  <InputSearch
+                    placeholder="Buscar por código o descripción"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
+              {/* Botones de acción */}
+              <div className="flex items-center gap-2">
+                <Button onClick={handleAddNewItem} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExcelImportOpen(true)}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importar Excel
+                </Button>
+              </div>
+            </div>
+            {/* Filtros de tienda */}
+            <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-sm">
+              <span className="font-medium">Tienda:</span>
               <ToggleGroup
                 type="single"
                 value={selectedStore}
                 onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
                 className="border rounded-md"
               >
-                <ToggleGroupItem value="guardians" className="px-3 py-2">
+                <ToggleGroupItem value="guardians" className="px-3 py-1 text-[10px] md:text-sm">
                   Guardians
                 </ToggleGroupItem>
-                <ToggleGroupItem value="jaihom" className="px-3 py-2">
+                <ToggleGroupItem value="jaihom" className="px-3 py-1 text-[10px] md:text-sm">
                   Jaihom
                 </ToggleGroupItem>
               </ToggleGroup>
-              <Button onClick={handleAddNewItem}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setExcelImportOpen(true)}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Importar Excel
-              </Button>
             </div>
           </div>
-          <Separator className="my-4" />
-          <div id="scrolls-container" className={`${open ? 'md:w-[calc(100vw-370px)] h-[calc(100vh-245px)]' : 'md:w-[calc(100vw-195px)] h-[calc(100vh-245px)]'} overflow-auto`}>
-            <div className="overflow-x-auto">
-              <Table className="md:min-w-full">
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="md:sticky md:left-0 bg-card z-10 min-w-[120px]">Código</TableHead>
-                    <TableHead className="min-w-[200px]">Descripción</TableHead>
-                    <TableHead className="min-w-[120px]">Tipo</TableHead>
-                    <TableHead className="min-w-[100px]">Cantidad</TableHead>
-                    <TableHead className="min-w-[120px]">Costo Unitario</TableHead>
-                    <TableHead className="min-w-[120px]">Precio Venta</TableHead>
-                    <TableHead className="min-w-[120px]">Costo USD</TableHead>
-                    <TableHead className="min-w-[120px]">Precio USD</TableHead>
-                    <TableHead className="min-w-[120px]">% Ganancia</TableHead>
-                    <TableHead className="min-w-[150px]">Creado el</TableHead>
-                    <TableHead className="min-w-[150px]">Actualizado el</TableHead>
-                    <TableHead className="min-w-[100px]">Acciones</TableHead>
+          <div id="scrolls-table-container" className={`${open ? 'md:w-[calc(100vw-338px)]' : 'md:w-[calc(100vw-164px)]'} relative`}>
+            <Table>
+              <TableHeader className="sticky top-0 z-20 bg-background">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="md:sticky md:left-0 md:bg-background md:z-30 min-w-[120px] md:border-r">Código</TableHead>
+                  <TableHead className="min-w-[200px]">Descripción</TableHead>
+                  <TableHead className="min-w-[120px]">Tipo</TableHead>
+                  <TableHead className="min-w-[100px]">Cantidad</TableHead>
+                  <TableHead className="min-w-[120px]">Costo Unitario</TableHead>
+                  <TableHead className="min-w-[120px]">Precio Venta</TableHead>
+                  <TableHead className="min-w-[120px]">Costo USD</TableHead>
+                  <TableHead className="min-w-[120px]">Precio USD</TableHead>
+                  <TableHead className="min-w-[120px]">% Ganancia</TableHead>
+                  <TableHead className="min-w-[150px]">Creado el</TableHead>
+                  <TableHead className="min-w-[150px]">Actualizado el</TableHead>
+                  <TableHead className="min-w-[100px]">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="border">
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={12} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Package className="h-16 w-16 text-gray-300" />
+                        <p className="text-lg text-gray-500">No hay productos</p>
+                        <p className="text-sm text-gray-400">
+                          {query
+                            ? "No se encontraron productos con los filtros aplicados"
+                            : "No hay productos registrados en el sistema"
+                          }
+                        </p>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((item) => (
-                    <TableRow key={item._id} className="hover:bg-muted/50">
-                      <TableCell className="md:sticky md:left-0 md:z-10 md:bg-card min-w-[120px]">
+                ) : (
+                  filtered.map((item) => (
+                    <TableRow key={item._id} className="cursor-pointer hover:bg-muted/50">
+                      <TableCell className="md:sticky md:left-0 md:bg-background md:z-10 min-w-[120px] md:border-r">
                         {renderEditableCell(item, "code", item.code)}
                       </TableCell>
                       <TableCell className="min-w-[200px]">
@@ -468,11 +493,30 @@ export default function InventoryPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
+          {/* Resumen */}
+          {filtered && filtered.length > 0 && (
+            <div className="p-4 mt-2 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  Mostrando {filtered.length} productos
+                  {query && " (filtrados)"}
+                </span>
+                <div className="flex items-center gap-4 text-sm">
+                  <span>
+                    Total Mercancías: <strong>{filtered.filter(item => item.type === 'mercancia').length}</strong>
+                  </span>
+                  <span>
+                    Total Servicios: <strong>{filtered.filter(item => item.type === 'servicio').length}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
