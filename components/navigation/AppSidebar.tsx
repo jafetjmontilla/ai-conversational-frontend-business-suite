@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, FileText, Receipt, BarChart3, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Home, FileText, Receipt, BarChart3, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Loader2, Package, Banknote } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -58,9 +58,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ setSlugs }) => {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/invoice', label: 'Facturación', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
-    { href: '/inventory', label: 'Inventario', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
-    { href: '/reportPayments', label: 'Reporte de Pagos', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
+    { href: '/invoice', label: 'Facturación', icon: Receipt, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
+    { href: '/inventory', label: 'Inventario', icon: Package, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
+    { href: '/reportPayments', label: 'Reporte de Pagos', icon: Banknote, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
 
   ];
 

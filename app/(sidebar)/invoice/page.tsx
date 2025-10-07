@@ -24,7 +24,6 @@ export default function InvoicePage() {
   const { hasRole, getCurrentRole } = useAllowed();
   const { socket } = useWebSocketContext();
   const [isMounted, setIsMounted] = useState(false);
-  const [triggerInvoiceCreated, setTriggerInvoiceCreated] = useState({ date: new Date(), data: null as Invoice | null });
 
   useEffect(() => {
     setIsMounted(true);
@@ -44,18 +43,15 @@ export default function InvoicePage() {
   }, [hasRole, getCurrentRole]);
 
   useEffect(() => {
-    if (triggerInvoiceCreated.data) {
-      invoices.unshift(triggerInvoiceCreated.data as Invoice);
-      setInvoices([...invoices]);
-    }
-  }, [triggerInvoiceCreated]);
-
-  useEffect(() => {
     if (!isMounted) return;
     if (!socket) return;
-    socket.on<SocketEvent>('invoice:created', (data: Invoice) => {
-      setTriggerInvoiceCreated({ date: new Date(), data });
-    });
+    const handleInvoiceCreated = (data: Invoice) => {
+      setInvoices(prevInvoices => [data, ...prevInvoices]);
+    };
+    socket.on<SocketEvent>('invoice:created', handleInvoiceCreated);
+    return () => {
+      socket.off<SocketEvent>('invoice:created', handleInvoiceCreated);
+    };
   }, [socket, isMounted]);
 
   useEffect(() => {
@@ -153,7 +149,7 @@ export default function InvoicePage() {
             )}
             <Button onClick={addNewInvoice} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Nueva Factura1
+              Nueva Factura
             </Button>
           </div>
           {/* <div className="h-[95%] bg-blue-200 flex"></div> */}

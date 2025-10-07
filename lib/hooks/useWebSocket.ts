@@ -36,6 +36,7 @@ export const useWebSocket = (url: string, getToken: () => Promise<string | null>
         }
 
         // Crear conexión Socket.IO con token en header Authorization
+        console.log(100030, url);
         const socket = io(url, {
           auth: {
             token: token

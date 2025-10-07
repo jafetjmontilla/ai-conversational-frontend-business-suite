@@ -90,7 +90,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const shouldConnect = !loading && !!user;
 
   const { socket, isConnected, error } = useWebSocket(
-    shouldConnect ? (process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'https://api-erp-v1.sistemasjaihom.com') : '',
+    shouldConnect ? (process.env.NEXT_PUBLIC_WEBSOCKET_URL || '') : '',
     shouldConnect ? getAuthToken : async () => null
   );
 
