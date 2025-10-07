@@ -159,8 +159,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
     const updatedInvoice = {
       ...localInvoice,
       items: invoiceItems,
-      totalBs: store === "guardians" ? totalUsd : totalBs,
-      totalUsd: store === "guardians" ? totalUsd : totalUsd
+      totalBs: totalBs,
+      totalUsd: totalUsd
     };
     // isUpdatingRef.current = true;
     setLocalInvoice(updatedInvoice);

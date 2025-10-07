@@ -38,11 +38,30 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false }
   ]);
 
-  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalPaidBs, setTotalPaidBs] = useState(0);
+  const [totalPaidUsd, setTotalPaidUsd] = useState(0);
 
   useEffect(() => {
-    const total = paymentMethods.reduce((sum, method) => sum + method.amountUsd, 0);
-    setTotalPaid(total);
+    console.log("-----------------------------------------")
+    console.log("totalPaidBs", totalPaidBs)
+    console.log("totalPaidUsd", totalPaidUsd)
+    paymentMethods.map(method => {
+      method.amountBs > 0 && console.log("method", method.id, method.amountBs, "Bs", "$", method.amountUsd)
+    })
+    console.log("invoice.totalBs", invoice.totalBs)
+    console.log("invoice.totalUsd", invoice.totalUsd)
+  }, [totalPaidBs, invoice])
+
+
+  useEffect(() => {
+    const totalBs = paymentMethods.reduce((sum, method) => {
+      return sum + method.amountBs;
+    }, 0);
+    setTotalPaidBs(totalBs);
+    const totalUsd = paymentMethods.reduce((sum, method) => {
+      return sum + method.amountUsd;
+    }, 0);
+    setTotalPaidUsd(totalUsd);
   }, [paymentMethods]);
 
   const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue' | 'urlSuport' | 'uploadingImage', value: string | boolean) => {
@@ -57,7 +76,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
           if (method.id === 'cash-bs' || method.id === 'point' || method.id === 'mobile-transfer') {
             // Métodos en Bs.
             updated.amountBs = inputAmount;
-            updated.amountUsd = inputAmount / tasaBCV;
+            updated.amountUsd = parseFloat((inputAmount / tasaBCV).toFixed(2));
           } else if (method.id === 'cash-usd') {
             // Efectivo en dólares
             updated.amountUsd = inputAmount - changeAmount;
@@ -67,7 +86,6 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
             updated.amountUsd = inputAmount;
             updated.amountBs = inputAmount * tasaBCV;
           }
-
           return updated;
         }
         return method;
@@ -131,7 +149,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     const paymentData = {
       invoice,
       paymentMethods: cleanPaymentMethods,
-      totalPaid,
+      totalPaid: totalPaidUsd,
       tasaBCV
     };
 
@@ -141,8 +159,6 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
       onClose();
     }
   };
-
-  const isPaymentComplete = totalPaid >= invoice.totalUsd;
 
   // Validar si se han subido las imágenes requeridas
   const hasRequiredImages = () => {
@@ -154,6 +170,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     return methodsRequiringImage.every(method => method.urlSuport);
   };
 
+  const isPaymentComplete = totalPaidBs >= invoice.totalBs;
   const canProcessPayment = isPaymentComplete && hasRequiredImages();
 
   return (
@@ -169,25 +186,14 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
           {/* Total Amount */}
           <div className="bg-blue-50 dark:bg-gray-300 rounded-md mb-2">
             <div className="text-center">
-              {store === "guardians" ? (
-                <div className="flex">
-                  <div className="w-1/2 text-xl font-bold text-blue-800">
-                    {formatNumber(invoice.totalUsd * tasaBCV)} Bs.
-                  </div>
-                  <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {formatNumber(invoice.totalUsd)}
-                  </div>
+              <div className="flex">
+                <div className="w-1/2 text-xl font-bold text-blue-800">
+                  {formatNumber(invoice.totalBs)} Bs.
                 </div>
-              ) : (
-                <div className="flex">
-                  <div className="w-1/2 text-xl font-bold text-blue-800">
-                    {formatNumber(invoice.totalBs)} Bs.
-                  </div>
-                  <div className="w-1/2 text-xl font-bold text-green-600">
-                    $ {formatNumber(invoice.totalUsd)}
-                  </div>
+                <div className="w-1/2 text-xl font-bold text-green-600">
+                  $ {formatNumber(invoice.totalUsd)}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -296,25 +302,27 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
 
           {/* Total Paid */}
           <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1.5   space-y-1 h-14">
-            <div className="flex justify-between items-center gap-2">
+            <div className="flex justify-between items-center gap-1">
               <span className="font-semibold text-primary dark:text-primary-foreground text-sm">Total pagado:</span>
               <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                {formatNumber(totalPaid * tasaBCV)} Bs.
+                {formatNumber(totalPaidBs)} Bs.
               </div>
-              <div className={`px-2 w-[70px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
+              <div className={`px-2 w-[78px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
                 ? 'bg-green-100 text-green-800'
                 : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                $ {formatNumber(totalPaid)}
+                $ {formatNumber(totalPaidUsd)}
               </div>
             </div>
 
             <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${canProcessPayment ? 'opacity-0' : 'opacity-100'}`}>
+
               {!isPaymentComplete
-                ? `Faltan ${formatNumber((invoice.totalUsd - totalPaid) * tasaBCV)} Bs. o $ ${formatNumber(invoice.totalUsd - totalPaid)} por pagar`
+                ?
+                `Faltan ${formatNumber((invoice.totalBs - totalPaidBs))} Bs. o $ ${formatNumber(invoice.totalUsd - totalPaidUsd)} por pagar`
                 : !hasRequiredImages()
                   ? 'Requerido subir imágen de soporte de pago'
                   : ''
