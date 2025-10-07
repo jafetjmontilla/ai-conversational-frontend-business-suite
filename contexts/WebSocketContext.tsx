@@ -7,6 +7,8 @@ import { Invoice } from '@/lib/schemas/invoice';
 import { getIdToken } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 
+export type SocketEvent = "invoice:created" | "invoice:updated" | "invoice:deleted" | "invoices-list-updated";
+
 // Tipos para notificaciones
 interface NotificationData {
   id: string;
@@ -94,7 +96,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
   // Manejadores de eventos WebSocket (sin dependencias que causen re-renders)
   const handleInvoiceCreated = useCallback((invoice: Invoice) => {
-    console.log('📡 Nueva factura recibida via WebSocket:', invoice._id);
     invoiceCallbacksRef.current.onInvoiceCreated.forEach(callback => callback(invoice));
   }, []);
 
@@ -137,9 +138,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     console.log('🔌 Configurando eventos WebSocket para socket:', socket);
     // Suscribirse a eventos de facturas
-    socket.on('invoice-created', handleInvoiceCreated);
-    socket.on('invoice-updated', handleInvoiceUpdated);
-    socket.on('invoice-deleted', handleInvoiceDeleted);
+    socket.on('invoice:created', handleInvoiceCreated);
+    socket.on('invoice:updated', handleInvoiceUpdated);
+    socket.on('invoice:deleted', handleInvoiceDeleted);
     socket.on('invoices-list-updated', handleInvoicesListUpdated);
 
     // Suscribirse a eventos de notificaciones
@@ -148,9 +149,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     // Cleanup
     return () => {
-      socket.off('invoice-created', handleInvoiceCreated);
-      socket.off('invoice-updated', handleInvoiceUpdated);
-      socket.off('invoice-deleted', handleInvoiceDeleted);
+      socket.off('invoice:created', handleInvoiceCreated);
+      socket.off('invoice:updated', handleInvoiceUpdated);
+      socket.off('invoice:deleted', handleInvoiceDeleted);
       socket.off('invoices-list-updated', handleInvoicesListUpdated);
       socket.off('notification', handleNotification);
       socket.off('connected', handleConnected);

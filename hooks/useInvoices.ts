@@ -135,7 +135,6 @@ export const useInvoices = () => {
       // Si la factura es local, guardarla primero
       if (invoiceId.startsWith('local-')) {
         console.log('Guardando factura local antes del pago...');
-        console.log(100042, paymentData)
         const savedInvoice = await createInvoice({
           clientName: paymentData.invoice.clientName ? paymentData.invoice.clientName : undefined,
           clientId: paymentData.invoice.clientId ? paymentData.invoice.clientId : undefined,

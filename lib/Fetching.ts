@@ -543,8 +543,8 @@ export const queries = {
   deleteInventoryItem: `mutation deleteInventoryItem($_id: ID!) {
     deleteInventoryItem(_id: $_id)
   }`,
-  bulkCreateInventoryItems: `mutation bulkCreateInventoryItems($items: [BulkInventoryItemInput!]!) {
-    bulkCreateInventoryItems(items: $items) {
+  bulkCreateInventoryItems: `mutation bulkCreateInventoryItems($items: [BulkInventoryItemInput!]!, $tasaBCV: Float!) {
+    bulkCreateInventoryItems(items: $items, tasaBCV: $tasaBCV) {
       _id
       code
       description

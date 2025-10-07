@@ -2,20 +2,14 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { Upload, Download, FileSpreadsheet, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useTasaBCV } from "@/hooks/useTasaBCV";
 
 interface ExcelImportDialogProps {
   isOpen: boolean;
@@ -34,16 +28,13 @@ interface ImportItem {
   status: boolean;
 }
 
-export default function ExcelImportDialog({
-  isOpen,
-  onClose,
-  onSuccess,
-}: ExcelImportDialogProps) {
+export default function ExcelImportDialog({ isOpen, onClose, onSuccess }: ExcelImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [importData, setImportData] = useState<ImportItem[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { tasaBCV } = useTasaBCV();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -123,7 +114,8 @@ export default function ExcelImportDialog({
         query: queries.bulkCreateInventoryItems,
         type: "json",
         variables: {
-          items: importData
+          items: importData,
+          tasaBCV: tasaBCV
         }
       });
 

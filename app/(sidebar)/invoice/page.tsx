@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { InvoiceCard } from '@/components/invoice/InvoiceCard';
 import { useTasaBCV } from '@/hooks/useTasaBCV';
-import { usePayments } from '@/hooks/usePayments';
-import { Invoice, Payment } from '@/lib/schemas/invoice';
+import { Invoice } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useSidebar } from '@/components/ui/sidebar';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { useAllowed } from '@/lib/hooks/useAllowed';
+import { SocketEvent, useWebSocketContext } from '@/contexts/WebSocketContext';
 
 export default function InvoicePage() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
@@ -23,17 +22,41 @@ export default function InvoicePage() {
   const { state, isMobile } = useSidebar();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const { hasRole, getCurrentRole } = useAllowed();
+  const { socket } = useWebSocketContext();
+  const [isMounted, setIsMounted] = useState(false);
+  const [triggerInvoiceCreated, setTriggerInvoiceCreated] = useState({ date: new Date(), data: null as Invoice | null });
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   // Aplicar filtro automático de tienda según el rol del usuario
   useEffect(() => {
     const userRole = getCurrentRole();
-
     if (hasRole('customerServiceG')) {
       setSelectedStore('guardians');
     } else if (hasRole('customerServiceJ')) {
       setSelectedStore('jaihom');
     }
   }, [hasRole, getCurrentRole]);
+
+  useEffect(() => {
+    if (triggerInvoiceCreated.data) {
+      invoices.unshift(triggerInvoiceCreated.data as Invoice);
+      setInvoices([...invoices]);
+    }
+  }, [triggerInvoiceCreated]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (!socket) return;
+    socket.on<SocketEvent>('invoice:created', (data: Invoice) => {
+      setTriggerInvoiceCreated({ date: new Date(), data });
+    });
+  }, [socket, isMounted]);
 
   useEffect(() => {
     fetchApiV1({
@@ -46,7 +69,6 @@ export default function InvoicePage() {
         sort: { createdAt: -1 }
       }
     }).then((res: any) => {
-      // console.log(res); // Removido para evitar Fast Refresh reloads
       setInvoices(res.results);
     })
   }, [selectedStore])

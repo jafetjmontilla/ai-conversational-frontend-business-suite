@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface NotificationData {
@@ -15,37 +15,27 @@ interface NotificationData {
 }
 
 const NotificationHandler: React.FC = () => {
-  const { 
-    isConnected, 
-    onNotification, 
-    onConnected, 
-    subscribeToNotifications 
-  } = useWebSocketContext();
+  const { onNotification } = useWebSocketContext();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (isConnected) {
-      console.log('🔔 Suscribiéndose a notificaciones...');
-      subscribeToNotifications();
-    }
-  }, [isConnected, subscribeToNotifications]);
+    setIsMounted(true);
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
-    // Escuchar confirmación de conexión
-    onConnected((data) => {
-      console.log('✅ Conexión confirmada:', data);
-    });
-  }, [onConnected]);
-
-  useEffect(() => {
+    if (!isMounted) return;
     // Escuchar notificaciones
     onNotification((notification: NotificationData) => {
       console.log('🔔 Notificación recibida:', notification);
-      
+
       // Aquí puedes mostrar la notificación en la UI
       // Por ejemplo, usando un toast, modal, o sistema de notificaciones
-      showNotificationToast(notification);
+      // showNotificationToast(notification);
     });
-  }, [onNotification]);
+  }, [onNotification, isMounted]);
 
   const showNotificationToast = (notification: NotificationData) => {
     // Ejemplo de cómo mostrar la notificación
@@ -61,13 +51,13 @@ const NotificationHandler: React.FC = () => {
 
     // Ejemplo usando console para debugging
     console.log('📢 Mostrando toast:', toast);
-    
+
     // Aquí puedes integrar con tu sistema de notificaciones:
     // - React Toastify
     // - Chakra UI Toast
     // - Ant Design notification
     // - Custom toast component
-    
+
     // Ejemplo con alert (solo para testing)
     if (typeof window !== 'undefined') {
       alert(`${notification.type.toUpperCase()}: ${notification.title}\n${notification.message}`);
