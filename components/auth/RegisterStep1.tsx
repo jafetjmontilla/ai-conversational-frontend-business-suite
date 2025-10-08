@@ -26,7 +26,7 @@ interface RegisterStep1Props {
   onSwitchToLogin: () => void;
 }
 
-export const RegisterStep1: React.FC<RegisterStep1Props> = ({ onNext, onSwitchToLogin, userData }) => {
+export function RegisterStep1({ onNext, onSwitchToLogin, userData }: RegisterStep1Props) {
   const { signInGoogle } = useAuth();
   const [isCheckingEmail, setIsCheckingEmail] = React.useState(false);
   const { theme } = useTheme();

@@ -24,7 +24,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const PasswordRecoveryForm: React.FC<PasswordRecoveryFormProps> = ({ onBackToLogin }) => {
+export function PasswordRecoveryForm({ onBackToLogin }: PasswordRecoveryFormProps) {
   const { sendPasswordResetEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);

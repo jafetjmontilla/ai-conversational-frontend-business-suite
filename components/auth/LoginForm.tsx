@@ -22,8 +22,7 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
-
-export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
+export function LoginForm({ onSwitchToRegister, onSuccess }: LoginFormProps) {
   const { signIn, signInGoogle, errorAuth } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

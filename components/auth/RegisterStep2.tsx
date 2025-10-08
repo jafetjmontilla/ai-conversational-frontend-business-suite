@@ -24,7 +24,7 @@ interface RegisterStep2Props {
   onSuccess: () => void;
 }
 
-export const RegisterStep2: React.FC<RegisterStep2Props> = ({ userData, onBack, onSuccess }) => {
+export function RegisterStep2({ userData, onBack, onSuccess }: RegisterStep2Props) {
   const { authUser, setAuthUser } = useAuth();
 
   const [loading, setLoading] = useState(false);

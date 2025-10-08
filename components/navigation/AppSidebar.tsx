@@ -24,7 +24,7 @@ export interface AppSidebarProps {
   setSlugs: Dispatch<React.SetStateAction<{ name: string, href: string }[]>>
 }
 
-export const AppSidebar: FC<AppSidebarProps> = ({ setSlugs }) => {
+export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { state, toggleSidebar } = useSidebar()

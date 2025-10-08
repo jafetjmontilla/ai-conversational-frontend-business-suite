@@ -54,7 +54,7 @@ interface WebSocketProviderProps {
   children: React.ReactNode;
 }
 
-export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
+export function WebSocketProvider({ children }: WebSocketProviderProps) {
   // Obtener estado de autenticación
   const { user, loading } = useAuth();
 
@@ -229,4 +229,4 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       {children}
     </WebSocketContext.Provider>
   );
-};
+}

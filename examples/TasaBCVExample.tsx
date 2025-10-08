@@ -5,7 +5,7 @@ import { useTasaBCV } from '@/hooks/useTasaBCV';
  * Ejemplo de uso del hook useTasaBCV
  * Este componente demuestra diferentes formas de usar el sistema de caché
  */
-export const TasaBCVExample: React.FC = () => {
+export function TasaBCVExample() {
   const {
     tasaBCV,
     loading,

@@ -14,7 +14,7 @@ interface NotificationData {
   metadata?: Record<string, any>;
 }
 
-const NotificationHandler: React.FC = () => {
+export default function NotificationHandler() {
   const { onNotification } = useWebSocketContext();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -65,6 +65,4 @@ const NotificationHandler: React.FC = () => {
   };
 
   return null; // Este componente no renderiza nada visible
-};
-
-export default NotificationHandler;
+}

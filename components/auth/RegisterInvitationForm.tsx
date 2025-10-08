@@ -59,7 +59,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const RegisterInvitationForm: React.FC<RegisterInvitationFormProps> = ({ token, onSuccess }) => {
+export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationFormProps) {
   const { signInGoogle } = useAuth();
   const router = useRouter();
   const { theme, isDark } = useThemeContext();
