@@ -7,14 +7,15 @@ import { Invoice } from '@/lib/schemas/invoice';
 import { formatNumber } from './InvoiceCard';
 import { fetchApiImgbbV1 } from '@/lib/Fetching';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
+import { InputContable } from '@/components/inputContable';
 
 interface PaymentMethod {
   id: string;
   name: string;
   amountBs: number;
   amountUsd: number;
-  inputValue: string;
-  changeValue: string;
+  inputValue: number | null;
+  changeValue: number | null;
   urlSuport?: string;
   uploadingImage?: boolean;
 }
@@ -30,12 +31,12 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaihom', onProcessPayment }: PaymentDialogProps) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: 'cash-bs', name: 'Efectivo Bs.', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
-    { id: 'point', name: 'Punto', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
-    { id: 'mobile-transfer', name: 'Pago Móvil o Transferencia', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
-    { id: 'cash-usd', name: 'Efectivo Dólar', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
-    { id: 'zelle', name: 'Zelle', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false },
-    { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: '', changeValue: '', urlSuport: undefined, uploadingImage: false }
+    { id: 'cash-bs', name: 'Efectivo Bs.', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
+    { id: 'point', name: 'Punto', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
+    { id: 'mobile-transfer', name: 'Pago Móvil o Transferencia', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
+    { id: 'cash-usd', name: 'Efectivo Dólar', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
+    { id: 'zelle', name: 'Zelle', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
+    { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false }
   ]);
 
   const [totalPaidBs, setTotalPaidBs] = useState(0);
@@ -64,14 +65,14 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     setTotalPaidUsd(totalUsd);
   }, [paymentMethods]);
 
-  const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue' | 'urlSuport' | 'uploadingImage', value: string | boolean) => {
+  const updatePaymentMethod = (id: string, field: 'inputValue' | 'changeValue' | 'urlSuport' | 'uploadingImage', value: number | null | string | boolean) => {
     setPaymentMethods(prev =>
       prev.map(method => {
         if (method.id === id) {
           const updated = { ...method, [field]: value };
 
-          const inputAmount = parseFloat(updated.inputValue) || 0;
-          const changeAmount = parseFloat(updated.changeValue) || 0;
+          const inputAmount = updated.inputValue ?? 0;
+          const changeAmount = updated.changeValue ?? 0;
 
           if (method.id === 'cash-bs' || method.id === 'point' || method.id === 'mobile-transfer') {
             // Métodos en Bs.
@@ -220,11 +221,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                       <label htmlFor={`${method.id}-input`} className="text-[10px]">
                         Ingreso:
                       </label>
-                      <input
+                      <InputContable
                         id={`${method.id}-input`}
-                        type="text"
                         value={method.inputValue}
-                        onChange={(e) => updatePaymentMethod(method.id, 'inputValue', e.target.value)}
+                        onChange={(value) => updatePaymentMethod(method.id, 'inputValue', value)}
                         autoComplete='off'
                         className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                       />
@@ -234,11 +234,10 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                         <label htmlFor={`${method.id}-change`} className="text-[10px]">
                           Vuelto:
                         </label>
-                        <input
+                        <InputContable
                           id={`${method.id}-change`}
-                          type="text"
                           value={method.changeValue}
-                          onChange={(e) => updatePaymentMethod(method.id, 'changeValue', e.target.value)}
+                          onChange={(value) => updatePaymentMethod(method.id, 'changeValue', value)}
                           autoComplete='off'
                           className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                         />

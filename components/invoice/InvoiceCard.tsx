@@ -366,7 +366,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
         </div>
       </div>
       {/* Payment Dialog */}
-      {localInvoice && (
+      {isPaymentDialogOpen && (
         <PaymentDialog
           isOpen={isPaymentDialogOpen}
           onClose={() => setIsPaymentDialogOpen(false)}

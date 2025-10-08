@@ -54,21 +54,26 @@ export default function InvoicePage() {
     };
   }, [socket, isMounted]);
 
+  const td = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const gt = new Date(td);
+  const lt = new Date(new Date(td).getTime() + 86400000 - 1000);
+
   useEffect(() => {
     fetchApiV1({
       query: queries.getInvoices,
       type: 'json',
       variables: {
         store: selectedStore,
-        skip: 0,
-        limit: 5,
-        sort: { createdAt: -1 }
+        sort: { createdAt: -1 },
+        rangeDate: {
+          gt: gt.toISOString(),
+          lt: lt.toISOString()
+        }
       }
     }).then((res: any) => {
       setInvoices(res.results);
     })
   }, [selectedStore])
-
 
   const createEmptyItems = () => {
     return Array.from({ length: 10 }, (_, index) => ({

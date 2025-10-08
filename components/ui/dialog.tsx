@@ -42,18 +42,30 @@ const DialogContent = React.forwardRef<
   }, []);
 
   React.useEffect(() => {
-    if ('virtualKeyboard' in navigator) {
-      (navigator.virtualKeyboard as any).overlaysContent = true;
-      const handleGeometryChange = (event: any) => {
-        const { height } = event.target.boundingRect;
-        setHeightKeyboard(height);
-      };
-      (navigator.virtualKeyboard as any).addEventListener('geometrychange', handleGeometryChange);
-      return () => {
-        if ('virtualKeyboard' in navigator) {
-          (navigator.virtualKeyboard as any).removeEventListener('geometrychange', handleGeometryChange);
-        }
-      };
+    try {
+      if (typeof navigator !== 'undefined' && 'virtualKeyboard' in navigator) {
+        (navigator.virtualKeyboard as any).overlaysContent = true;
+        const handleGeometryChange = (event: any) => {
+          try {
+            const { height } = event.target.boundingRect;
+            setHeightKeyboard(height);
+          } catch (error) {
+            console.warn('Error al manejar geometrychange:', error);
+          }
+        };
+        (navigator.virtualKeyboard as any).addEventListener('geometrychange', handleGeometryChange);
+        return () => {
+          try {
+            if (typeof navigator !== 'undefined' && 'virtualKeyboard' in navigator) {
+              (navigator.virtualKeyboard as any).removeEventListener('geometrychange', handleGeometryChange);
+            }
+          } catch (error) {
+            console.warn('Error al remover event listener:', error);
+          }
+        };
+      }
+    } catch (error) {
+      console.warn('Error al configurar virtualKeyboard:', error);
     }
   }, []);
 

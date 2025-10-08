@@ -62,37 +62,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
-      setLoading(true);
-      if (window.location.pathname !== '/register-invitation') {
-        // aqui verificar si el usuario esta en la base de datos
-        const userData = await fetchApiV1({
-          query: queries.getUser,
-          variables: {
-            uid: user?.uid
+      try {
+        setLoading(true);
+        if (window.location.pathname !== '/register-invitation') {
+          // aqui verificar si el usuario esta en la base de datos
+          try {
+            const userData = await fetchApiV1({
+              query: queries.getUser,
+              variables: {
+                uid: user?.uid
+              }
+            });
+            //Modificar para el primer usuario que se registre sea admin
+            if (!userData?._id && user?.uid) {
+              setUser(null);
+              setAuthUser(null);
+              //borrar el usuario de firebase
+              const auth = getAuth();
+              auth.currentUser?.delete();
+              setTimeout(() => {
+                setLoading(false);
+              }, 100);
+              return;
+            }
+          } catch (error) {
+            console.error('Error al verificar usuario en base de datos:', error);
+            // Si hay error en la API, continuar con el flujo normal
           }
-        });
-        //Modificar para el primer usuario que se registre sea admin
-        if (!userData?._id && user?.uid) {
-          setUser(null);
-          setAuthUser(null);
-          //borrar el usuario de firebase
-          const auth = getAuth();
-          auth.currentUser?.delete();
-          setTimeout(() => {
-            setLoading(false);
-          }, 100);
-          return;
         }
+        setErrorAuth(undefined);
+        setUser(user);
+        if (user) {
+          try {
+            const authUser = await convertToAuthUser(user);
+            setAuthUser(authUser);
+          } catch (error) {
+            console.error('Error al convertir usuario:', error);
+            setAuthUser(null);
+          }
+        } else {
+          setAuthUser(null);
+        }
+      } catch (error) {
+        console.error('Error en onAuthStateChange:', error);
+        setErrorAuth('Error de autenticación');
+      } finally {
+        setLoading(false);
       }
-      setErrorAuth(undefined);
-      setUser(user);
-      if (user) {
-        const authUser = await convertToAuthUser(user);
-        setAuthUser(authUser);
-      } else {
-        setAuthUser(null);
-      }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { fetchApiV1 } from '../lib/Fetching';
 import { queries } from '../lib/Fetching';
 import { Invoice, CreateInvoiceInput, UpdateInvoiceInput, ProcessPaymentInput } from '../lib/schemas/invoice';
@@ -8,15 +8,33 @@ export const useInvoices = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (params?: {
+    store?: 'guardians' | 'jaihom';
+    skip?: number;
+    limit?: number;
+    sort?: { createdAt?: -1 | 1; updatedAt?: -1 | 1 };
+    rangeDate?: { gt: string; lt: string };
+  }) => {
     try {
       setLoading(true);
       setError(null);
 
+      const variables: any = {
+        store: params?.store || 'jaihom',
+        skip: params?.skip || 0,
+        limit: params?.limit || 100,
+        sort: params?.sort || { createdAt: -1 }
+      };
+
+      // Solo agregar rangeDate si se proporciona
+      if (params?.rangeDate) {
+        variables.rangeDate = params.rangeDate;
+      }
+
       const response = await fetchApiV1({
         query: queries.getInvoices,
         type: 'json',
-        variables: {}
+        variables
       });
 
       if (response && response.results) {
@@ -188,10 +206,6 @@ export const useInvoices = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
 
   return {
     invoices,

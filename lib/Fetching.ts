@@ -586,8 +586,8 @@ export const queries = {
     }
   }`,
   // Queries para facturas
-  getInvoices: `query getInvoices {
-    getInvoices {
+  getInvoices: `query getInvoices($store: Store!, $skip: Int, $limit: Int, $sort: sortCriteriaInvoice, $rangeDate: rangeDate) {
+    getInvoices(store: $store, skip: $skip, limit: $limit, sort: $sort, rangeDate: $rangeDate) {
       total
       results {
         _id

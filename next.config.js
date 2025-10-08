@@ -22,6 +22,32 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    // Configuración para manejar mejor los errores de webpack
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    };
+
+    // Configuración para módulos de cliente
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false,
+      };
+    }
+
+    return config;
+  },
+  experimental: {
+    // Mejorar la estabilidad del servidor
+    serverComponentsExternalPackages: ['firebase'],
+  },
 }
 
 module.exports = nextConfig 
