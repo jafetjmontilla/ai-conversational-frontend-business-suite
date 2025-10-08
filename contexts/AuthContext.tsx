@@ -1,9 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuth, User } from 'firebase/auth';
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, registerWithEmail, signOutUser, getIdToken, sendPasswordResetEmail, AuthUser, AuthResponse, auth } from '../lib/firebase';
-import { fetchApiV1, queries } from '@/lib/Fetching';
+import type { User } from 'firebase/auth';
+import type { AuthUser, AuthResponse, } from '../lib/firebase';
 
 // Tipos para el contexto
 interface AuthContextType {
@@ -23,114 +22,151 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Proveedor del contexto
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorAuth, setErrorAuth] = useState<string | undefined>(undefined);
 
-  // Función para convertir User de Firebase a AuthUser
-  const convertToAuthUser = async (user: User): Promise<AuthUser> => {
-    // Obtener el token para acceder a los custom claims
-    const token = await user.getIdToken(true); // Force refresh to get latest claims
 
-    // Decodificar el token para obtener los custom claims
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    const decodedToken = JSON.parse(jsonPayload);
-
-    return {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-      emailVerified: user.emailVerified,
-      providerId: user.providerData[0]?.providerId || 'password',
-      customClaims: decodedToken.role ? {
-        _id: decodedToken._id,
-        role: decodedToken.role,
-        phone: decodedToken.phone,
-        assignedAt: decodedToken.assignedAt
-      } : undefined
-    };
-  };
-
-  // Escuchar cambios en el estado de autenticación
+  // useEffect con inicialización de Firebase
   useEffect(() => {
-    const unsubscribe = onAuthStateChange(async (user) => {
+    // Importación dinámica de firebase solo en el cliente
+    const initAuth = async () => {
       try {
-        setLoading(true);
-        if (window.location.pathname !== '/register-invitation') {
-          // aqui verificar si el usuario esta en la base de datos
+        const { onAuthStateChange, auth } = await import('@/lib/firebase');
+        const { fetchApiV1, queries } = await import('@/lib/Fetching');
+
+        const unsubscribe = onAuthStateChange(async (user) => {
           try {
-            const userData = await fetchApiV1({
-              query: queries.getUser,
-              variables: {
-                uid: user?.uid
+            setLoading(true);
+
+            if (typeof window !== 'undefined' && window.location.pathname !== '/register-invitation') {
+              try {
+                if (user?.uid) {
+                  const userData = await fetchApiV1({
+                    query: queries.getUser,
+                    variables: {
+                      uid: user.uid
+                    }
+                  });
+
+                  if (!userData?._id) {
+                    setUser(null);
+                    setAuthUser(null);
+                    await auth.currentUser?.delete();
+                    setLoading(false);
+                    return;
+                  }
+                }
+              } catch (error) {
+                console.error('Error al verificar usuario en base de datos:', error);
               }
-            });
-            //Modificar para el primer usuario que se registre sea admin
-            if (!userData?._id && user?.uid) {
-              setUser(null);
+            }
+
+            setErrorAuth(undefined);
+            setUser(user);
+
+            if (user) {
+              try {
+                // Convertir user a AuthUser
+                const token = await user.getIdToken(true);
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+
+                const decodedToken = JSON.parse(jsonPayload);
+
+                const authUser: AuthUser = {
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL,
+                  emailVerified: user.emailVerified,
+                  providerId: user.providerData[0]?.providerId || 'password',
+                  customClaims: decodedToken.role ? {
+                    _id: decodedToken._id,
+                    role: decodedToken.role,
+                    phone: decodedToken.phone,
+                    assignedAt: decodedToken.assignedAt
+                  } : undefined
+                };
+
+                setAuthUser(authUser);
+              } catch (error) {
+                console.error('Error al convertir usuario:', error);
+                setAuthUser(null);
+              }
+            } else {
               setAuthUser(null);
-              //borrar el usuario de firebase
-              const auth = getAuth();
-              auth.currentUser?.delete();
-              setTimeout(() => {
-                setLoading(false);
-              }, 100);
-              return;
             }
           } catch (error) {
-            console.error('Error al verificar usuario en base de datos:', error);
-            // Si hay error en la API, continuar con el flujo normal
+            console.error('Error en onAuthStateChange:', error);
+            setErrorAuth('Error de autenticación');
+          } finally {
+            setLoading(false);
           }
-        }
-        setErrorAuth(undefined);
-        setUser(user);
-        if (user) {
-          try {
-            const authUser = await convertToAuthUser(user);
-            setAuthUser(authUser);
-          } catch (error) {
-            console.error('Error al convertir usuario:', error);
-            setAuthUser(null);
-          }
-        } else {
-          setAuthUser(null);
-        }
+        });
+
+        return unsubscribe;
       } catch (error) {
-        console.error('Error en onAuthStateChange:', error);
-        setErrorAuth('Error de autenticación');
-      } finally {
+        console.error('Error al inicializar auth:', error);
         setLoading(false);
       }
+    };
+
+    let unsubscribe: (() => void) | undefined;
+    initAuth().then(unsub => {
+      if (unsub) unsubscribe = unsub;
     });
-    return () => unsubscribe();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
-  // Función para iniciar sesión con email y contraseña
   const signIn = async (email: string, password: string): Promise<AuthResponse> => {
+    const { signInWithEmail, auth } = await import('@/lib/firebase');
     const response = await signInWithEmail(email, password);
     if (response.success && response.user) {
-      // Obtener el usuario actual de Firebase y convertir para incluir custom claims
       const currentUser = auth.currentUser;
       if (currentUser) {
-        const authUser = await convertToAuthUser(currentUser);
+        const token = await currentUser.getIdToken(true);
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const decodedToken = JSON.parse(jsonPayload);
+
+        const authUser: AuthUser = {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL,
+          emailVerified: currentUser.emailVerified,
+          providerId: currentUser.providerData[0]?.providerId || 'password',
+          customClaims: decodedToken.role ? {
+            _id: decodedToken._id,
+            role: decodedToken.role,
+            phone: decodedToken.phone,
+            assignedAt: decodedToken.assignedAt
+          } : undefined
+        };
+
         setAuthUser(authUser);
       } else {
-        setAuthUser(response.user);
+        setAuthUser(response.user as AuthUser);
       }
     }
     return response;
   };
 
-  // Función para iniciar sesión con Google
-  const signInGoogle = async (isRegister: boolean = false): Promise<AuthResponse> => {
+  const signInGoogle = async (): Promise<AuthResponse> => {
+    const { signInWithGoogle } = await import('@/lib/firebase');
     const response = await signInWithGoogle();
     if (response.success) {
       return response;
@@ -139,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return response;
   };
 
-  // Función para cerrar sesión
   const logout = async (): Promise<AuthResponse> => {
+    const { signOutUser } = await import('@/lib/firebase');
     const response = await signOutUser();
     if (response.success) {
       setUser(null);
@@ -149,9 +185,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return response;
   };
 
-  // Función para obtener token
   const getToken = async (): Promise<string | null> => {
+    const { getIdToken } = await import('@/lib/firebase');
     return await getIdToken();
+  };
+
+  const handleSendPasswordResetEmail = async (email: string): Promise<AuthResponse> => {
+    const { sendPasswordResetEmail } = await import('@/lib/firebase');
+    return await sendPasswordResetEmail(email);
   };
 
   const value: AuthContextType = {
@@ -163,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     getToken,
     setAuthUser,
-    sendPasswordResetEmail,
+    sendPasswordResetEmail: handleSendPasswordResetEmail,
     errorAuth,
   };
 
@@ -181,4 +222,4 @@ export const useAuth = (): AuthContextType => {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
-}; 
+};
