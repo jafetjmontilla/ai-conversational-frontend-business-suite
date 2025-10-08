@@ -371,7 +371,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
           isOpen={isPaymentDialogOpen}
           onClose={() => setIsPaymentDialogOpen(false)}
           invoice={localInvoice}
-          tasaBCV={tasaBCV || 175}
+          tasaBCV={tasaBCV}
           store={store}
           onProcessPayment={handleProcessPayment}
         />

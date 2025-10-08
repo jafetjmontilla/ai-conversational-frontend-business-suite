@@ -29,10 +29,10 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             <span className="md:hidden">logo</span>
             <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span>
           </div>
-          <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
-          <span id="tasaBCV" className="hidden md:block">
+          <span id="tasaBCV" className="block">
             {tasaLoading ? 'Cargando...' : tasaError ? 'Error' : tasaBCV ? `$ ${tasaBCV.tasa.toFixed(2)}` : '$ 0.00'}
           </span>
+          <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
           <span className="hidden md:block first-letter:uppercase">{currentDate.toLocaleDateString('es-VE', {
             weekday: 'long',
             year: 'numeric', month: 'numeric',

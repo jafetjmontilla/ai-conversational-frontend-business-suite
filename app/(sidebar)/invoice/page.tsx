@@ -141,7 +141,7 @@ export default function InvoicePage() {
               <ToggleGroup
                 type="single"
                 value={selectedStore}
-                onValueChange={(value) => setSelectedStore(value as "guardians" | "jaihom")}
+                onValueChange={(value: string) => setSelectedStore(value as "guardians" | "jaihom")}
                 className="border rounded-md"
               >
                 <ToggleGroupItem value="guardians" className="px-3 py-2">
@@ -177,7 +177,7 @@ export default function InvoicePage() {
                           invoice={invoice}
                           onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
                           onRemove={() => removeInvoice(invoice._id)}
-                          tasaBCV={tasaBCV?.tasa || 175}
+                          tasaBCV={tasaBCV?.tasa || 0}
                           store={selectedStore}
                         />
                       </CarouselItem>

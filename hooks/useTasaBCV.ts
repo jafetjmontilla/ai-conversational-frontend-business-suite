@@ -62,7 +62,9 @@ export const useTasaBCV = () => {
       setError(null);
 
       // Obtener la fecha actual en formato YYYY-MM-DD
-      const today = new Date().toISOString().split('T')[0];
+      const d = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const today = new Date(new Date(d).getTime()).toISOString().split('T')[0];
+      console.log({ today });
 
       const query = `
         query getTasasBCV($fecha: String!, $skip: Int!, $limit: Int!) {
