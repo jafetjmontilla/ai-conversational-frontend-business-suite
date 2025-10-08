@@ -5,12 +5,15 @@ import { AppSidebar } from "@/components/navigation/AppSidebar"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useTasaBCV } from "@/hooks/useTasaBCV"
+import { useThemeContext } from "@/contexts/ThemeContext"
+import Image from "next/image"
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
   const [slugs, setSlugs] = useState<{ name: string, href: string }[]>([])
   const [currentDate, setCurrentDate] = useState(new Date())
   const pathname = usePathname()
   const { tasaBCV, loading: tasaLoading, error: tasaError } = useTasaBCV()
+  const { theme } = useThemeContext();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -26,8 +29,10 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
       <div className="flex flex-col w-[100vw] h-[100vh]">
         <div className="flex items-center w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
           <div className="flex-1 flex gap-4 items-center" >
-            <span className="md:hidden">logo</span>
-            <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span>
+            <span className="md:hidden">
+              <Image src={theme === "dark" ? `/images/sistemasJaihomLogoBorderNone.png` : `/images/sistemasJaihomLogoBorderNone.png`} alt="Logo" width={50} height={30} className="rounded-md" />
+            </span>
+            {/* <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span> */}
           </div>
           <span id="tasaBCV" className="block">
             {tasaLoading ? 'Cargando...' : tasaError ? 'Error' : tasaBCV ? `$ ${tasaBCV.tasa.toFixed(2)}` : '$ 0.00'}

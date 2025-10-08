@@ -106,7 +106,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
           <SidebarMenu>
             <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
               <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-                <Image src={theme === "dark" ? `/images/sistemasJaihomLogo.png` : `/images/sistemasJaihomLogo.png`} alt="Logo" width={50} height={30} className="rounded-md" />
+                <Image src={theme === "dark" ? `/images/sistemasJaihomLogoBorderNone.png` : `/images/sistemasJaihomLogoBorderNone.png`} alt="Logo" width={50} height={30} className="rounded-md" />
                 {state == "expanded" && <span className="font-bold text-sm">Erp v1.0</span>}
 
               </div>
