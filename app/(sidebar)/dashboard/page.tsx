@@ -4,8 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAllowed } from '@/lib/hooks/useAllowed';
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -14,7 +13,6 @@ export default function DashboardPage() {
   const { authUser, loading, logout } = useAuth();
   const { getCurrentRole } = useAllowed();
   const router = useRouter();
-
 
   useEffect(() => {
     if (!loading && !authUser) {

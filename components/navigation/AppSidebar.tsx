@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, FileText, Receipt, BarChart3, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Loader2, Package, Banknote } from 'lucide-react';
+import { Home, Receipt, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Package, Banknote } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -27,7 +27,7 @@ export interface AppSidebarProps {
 export const AppSidebar: FC<AppSidebarProps> = ({ setSlugs }) => {
   const router = useRouter()
   const pathname = usePathname()
-  const { state, toggleSidebar, setOpenMobile } = useSidebar()
+  const { state, toggleSidebar } = useSidebar()
   const { theme } = useThemeContext();
   const { hasRole, hasAnyRole } = useAllowed();
   const { user } = useAuth();

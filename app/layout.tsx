@@ -2,9 +2,9 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google'
 import './globals.css'
-import { AuthProvider } from '../contexts/AuthContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from 'next-themes'
-import AuthGuard from '../components/AuthGuard'
+import AuthGuard from '@/components/AuthGuard'
 import { Toaster } from "@/components/ui/sonner"
 const manrope = Manrope({ subsets: ['latin'] })
 

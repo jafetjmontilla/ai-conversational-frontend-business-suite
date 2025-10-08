@@ -1,3 +1,5 @@
+// 'use client';
+
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -24,7 +26,7 @@ const firebaseConfig = {
 
 // Verificar que las variables de entorno estén disponibles
 if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  throw new Error('Faltan las variables de entorno de Firebase');
+  console.error('Faltan las variables de entorno de Firebase');
 }
 
 // Inicializar Firebase
