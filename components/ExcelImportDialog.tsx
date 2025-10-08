@@ -10,6 +10,7 @@ import { fetchApiV1, queries } from "@/lib/Fetching";
 import { Upload, Download, FileSpreadsheet, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTasaBCV } from "@/hooks/useTasaBCV";
+import * as XLSX from "xlsx";
 
 interface ExcelImportDialogProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export default function ExcelImportDialog({ isOpen, onClose, onSuccess }: ExcelI
   };
 
   const handleFileUpload = async () => {
+    console.log("handleFileUpload");
     if (!file) {
       toast.error("Por favor selecciona un archivo");
       return;
@@ -60,37 +62,96 @@ export default function ExcelImportDialog({ isOpen, onClose, onSuccess }: ExcelI
     setErrors([]);
 
     try {
-      // Crear FormData para enviar el archivo
-      const formData = new FormData();
-      formData.append("file", file);
+      // Leer el archivo Excel
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
 
-      // Simular procesamiento del archivo Excel
-      // En una implementación real, aquí procesarías el Excel
-      const mockData: ImportItem[] = [
-        {
-          code: "ITEM-001",
-          description: "Producto de prueba 1",
-          type: "mercancia",
-          store: "guardians",
-          quantity: 10,
-          unitCost: 100,
-          salesPrice: 150,
-          status: true,
-        },
-        {
-          code: "ITEM-002",
-          description: "Producto de prueba 2",
-          type: "servicio",
-          store: "jaihom",
-          quantity: 5,
-          unitCost: 200,
-          salesPrice: 300,
-          status: true,
+      // Obtener la primera hoja
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convertir a JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (jsonData.length === 0) {
+        toast.error("El archivo está vacío");
+        setErrors(["El archivo no contiene datos"]);
+        return;
+      }
+
+      // Validar y transformar los datos
+      const validationErrors: string[] = [];
+      const processedData: ImportItem[] = [];
+      console.log("jsonData", jsonData);
+
+      jsonData.forEach((row, index) => {
+        const rowNumber = index + 2; // +2 porque la fila 1 es el encabezado
+
+        // Validar campos requeridos
+        if (!row.code) {
+          validationErrors.push(`Fila ${rowNumber}: Falta el código`);
+          return;
         }
-      ];
+        if (!row.description) {
+          validationErrors.push(`Fila ${rowNumber}: Falta la descripción`);
+          return;
+        }
+        if (!row.type || (row.type !== "mercancia" && row.type !== "servicio")) {
+          validationErrors.push(`Fila ${rowNumber}: Tipo inválido (debe ser "mercancia" o "servicio")`);
+          return;
+        }
+        if (!row.store || (row.store !== "guardians" && row.store !== "jaihom")) {
+          validationErrors.push(`Fila ${rowNumber}: Tienda inválida (debe ser "guardians" o "jaihom")`);
+          return;
+        }
 
-      setImportData(mockData);
-      toast.success("Archivo procesado correctamente. Revisa los datos antes de importar.");
+        // Validar y convertir números
+        const quantity = Number(row.quantity);
+        const unitCost = Number(row.unitCost);
+        const salesPrice = Number(row.salesPrice);
+
+        if (isNaN(quantity) || quantity < 0) {
+          validationErrors.push(`Fila ${rowNumber}: Cantidad inválida`);
+          return;
+        }
+        if (isNaN(unitCost) || unitCost < 0) {
+          validationErrors.push(`Fila ${rowNumber}: Costo unitario inválido`);
+          return;
+        }
+        if (isNaN(salesPrice) || salesPrice < 0) {
+          validationErrors.push(`Fila ${rowNumber}: Precio de venta inválido`);
+          return;
+        }
+
+        // Convertir status a boolean
+        const status = row.status === true || row.status === "true" || row.status === 1 || row.status === "1";
+
+        processedData.push({
+          code: String(row.code).trim(),
+          description: String(row.description).trim(),
+          type: row.type,
+          store: row.store,
+          quantity,
+          unitCost,
+          salesPrice,
+          status,
+        });
+      });
+
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors);
+        toast.error(`Se encontraron ${validationErrors.length} errores de validación`);
+        return;
+      }
+
+      if (processedData.length === 0) {
+        toast.error("No se pudieron procesar los datos");
+        setErrors(["No hay datos válidos para importar"]);
+        return;
+      }
+
+      setImportData(processedData);
+      toast.success(`${processedData.length} productos listos para importar`);
     } catch (error) {
       console.error("Error al procesar archivo:", error);
       toast.error("Error al procesar el archivo Excel");
@@ -115,7 +176,7 @@ export default function ExcelImportDialog({ isOpen, onClose, onSuccess }: ExcelI
         type: "json",
         variables: {
           items: importData,
-          tasaBCV: tasaBCV
+          tasaBCV: tasaBCV?.tasa || 0
         }
       });
 
@@ -146,20 +207,37 @@ export default function ExcelImportDialog({ isOpen, onClose, onSuccess }: ExcelI
   };
 
   const downloadTemplate = () => {
-    // Crear un CSV de ejemplo para descargar
-    const csvContent = "code,description,type,store,quantity,unitCost,salesPrice,status\n" +
-      "ITEM-001,Producto de ejemplo 1,mercancia,guardians,10,100,150,true\n" +
-      "ITEM-002,Servicio de ejemplo,servicio,jaihom,5,200,300,true";
+    // Crear datos de ejemplo
+    const templateData = [
+      {
+        code: "ITEM-001",
+        description: "Producto de ejemplo 1",
+        type: "mercancia",
+        store: "guardians",
+        quantity: 10,
+        unitCost: 100,
+        salesPrice: 150,
+        status: true,
+      },
+      {
+        code: "ITEM-002",
+        description: "Servicio de ejemplo",
+        type: "servicio",
+        store: "jaihom",
+        quantity: 5,
+        unitCost: 200,
+        salesPrice: 300,
+        status: true,
+      }
+    ];
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "plantilla_inventario.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Crear un libro de Excel
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventario");
+
+    // Descargar el archivo
+    XLSX.writeFile(workbook, "plantilla_inventario.xlsx");
 
     toast.success("Plantilla descargada correctamente");
   };

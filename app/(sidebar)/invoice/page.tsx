@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { InvoiceCard } from '@/components/invoice/InvoiceCard';
+import { formatNumber, InvoiceCard } from '@/components/invoice/InvoiceCard';
 import { useTasaBCV } from '@/hooks/useTasaBCV';
 import { Invoice } from '@/lib/schemas/invoice';
 import { Store } from '@/components/invoice/StoreToggle';
@@ -201,8 +201,13 @@ export default function InvoicePage() {
                 {invoices.map((invoice, index) => (
                   <li key={invoice._id} className='w-full flex items-center text-xs text-primary hover:bg-accent flex-shrink-0'>
                     <span className={`flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{new Date(invoice.createdAt).toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                    <span className={`flex items-center flex-1 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{invoice.totalBs}</span>
-                    <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>{invoice.totalUsd.toFixed(2)}</span>
+                    <span className={`flex items-center flex-1 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>
+                      {formatNumber(invoice.totalBs)}
+
+                    </span>
+                    <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? 'border-t' : ''}`}>
+                      {formatNumber(invoice.totalUsd)}
+                    </span>
                   </li>
                 ))}
               </div>

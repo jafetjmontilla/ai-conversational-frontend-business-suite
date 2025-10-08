@@ -125,6 +125,19 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Scroll automático al item seleccionado
+  useEffect(() => {
+    if (selectedIndex >= 0 && dropdownRef.current) {
+      const selectedElement = dropdownRef.current.children[selectedIndex] as HTMLElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
+    }
+  }, [selectedIndex]);
+
 
   return (
     <div className="relative">

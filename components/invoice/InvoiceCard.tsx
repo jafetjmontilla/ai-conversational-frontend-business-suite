@@ -117,7 +117,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, tasaBCV, store = "gua
           const updatedItem = { ...item, [field]: value };
           // Si se elimina la descripción, también borrar la cantidad
           if (field === 'description' && (!value || value.trim() === '')) {
-            updatedItem.quantity = 0;
+            //updatedItem.quantity = 0;
             updatedItem.unitPrice = 0;
             updatedItem.total = 0;
             updatedItem.inventoryId = undefined;

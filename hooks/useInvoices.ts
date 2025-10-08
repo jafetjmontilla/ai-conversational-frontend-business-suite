@@ -147,7 +147,7 @@ export const useInvoices = () => {
     try {
       setLoading(true);
       setError(null);
-
+      console.log("paymentData", paymentData);
       let invoiceId = paymentData.invoice._id;
 
       // Si la factura es local, guardarla primero

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Invoice } from '@/lib/schemas/invoice';
+import { Invoice, InvoiceItem } from '@/lib/schemas/invoice';
 import { formatNumber } from './InvoiceCard';
 import { fetchApiImgbbV1 } from '@/lib/Fetching';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
@@ -147,13 +147,17 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
         urlSuport: method.urlSuport
       }));
 
+    const items = invoice.items.reduce((acc: InvoiceItem[], item) => {
+      item.total && acc.push(item)
+      return acc;
+    }, [])
     const paymentData = {
-      invoice,
+      invoice: { ...invoice, items },
       paymentMethods: cleanPaymentMethods,
       totalPaid: totalPaidUsd,
       tasaBCV
     };
-
+    console.log("paymentData", paymentData);
     if (onProcessPayment) {
       onProcessPayment(paymentData);
     } else {
