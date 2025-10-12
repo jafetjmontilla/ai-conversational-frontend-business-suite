@@ -1,7 +1,8 @@
 // Service Worker Manual para PWA - sistemasJaihom
-const CACHE_NAME = 'jaihom-erp-v1';
-const RUNTIME_CACHE = 'jaihom-runtime-v1';
-const IMAGE_CACHE = 'jaihom-images-v1';
+// Versión: 1.0.0 - Generado: 2025-10-12T01:48:15.887Z
+const CACHE_NAME = 'jaihom-erp-v1-0-0';
+const RUNTIME_CACHE = 'jaihom-runtime-v1-0-0';
+const IMAGE_CACHE = 'jaihom-images-v1-0-0';
 
 // Archivos estáticos para cachear en la instalación
 const STATIC_ASSETS = [

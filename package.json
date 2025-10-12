@@ -5,10 +5,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "node scripts/update-sw-version.js && next build",
     "start": "next start -p 3001",
     "lint": "next lint",
-    "pwa:test": "npm run build && npm start"
+    "pwa:test": "npm run build && npm start",
+    "pwa:version": "node scripts/update-sw-version.js",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major",
+    "release:patch": "bash scripts/release.sh patch",
+    "release:minor": "bash scripts/release.sh minor",
+    "release:major": "bash scripts/release.sh major"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

@@ -18,13 +18,8 @@ if ('serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // Hay un nuevo service worker disponible
-              console.log('[PWA] Nuevo contenido disponible, por favor recarga la página');
-
-              // Opcional: Mostrar notificación al usuario
-              if (confirm('Hay una nueva versión disponible. ¿Deseas actualizar?')) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
+              console.log('[PWA] Nuevo contenido disponible');
+              // El modal de React en el dashboard manejará la UI de actualización
             }
           });
         });

@@ -277,6 +277,7 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
                                 accept="image/*"
                                 onChange={(e) => handleFileChange(method.id, e)}
                                 className="hidden"
+                                capture="environment"
                                 id={`${method.id}-image`}
                                 disabled={method.uploadingImage}
                               />

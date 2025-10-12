@@ -8,11 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { PWAUpdateDialog } from '@/components/PWAUpdateDialog';
+import { usePWAUpdate } from '@/hooks/usePWAUpdate';
 
 export default function DashboardPage() {
   const { authUser, loading, logout } = useAuth();
   const { getCurrentRole } = useAllowed();
   const router = useRouter();
+  const { showUpdatePrompt, updateServiceWorker, dismissUpdate } = usePWAUpdate();
 
   useEffect(() => {
     if (!loading && !authUser) {
@@ -120,6 +123,13 @@ export default function DashboardPage() {
           </Card>
         </div>
       </main>
+
+      {/* Modal de actualización PWA */}
+      <PWAUpdateDialog
+        open={showUpdatePrompt}
+        onUpdate={updateServiceWorker}
+        onDismiss={dismissUpdate}
+      />
     </div>
   );
 } 

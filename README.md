@@ -11,6 +11,11 @@ Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Fir
 - **Context API** para manejo de estado de autenticación
 - **Componentes reutilizables** y responsive
 - **Axios** para comunicación con la API
+- **PWA (Progressive Web App)** con versionado automático ⭐
+  - Instalable en dispositivos móviles y desktop
+  - Funciona offline con caché inteligente
+  - Modal de actualización automático
+  - Sistema de versionado sincronizado con `package.json`
 
 ## 📋 Prerrequisitos
 
@@ -142,10 +147,25 @@ lib/
 
 ## 🔧 Scripts Disponibles
 
+### Desarrollo
 - `npm run dev` - Servidor de desarrollo
-- `npm run build` - Construir para producción
+- `npm run build` - Construir para producción (incluye actualización automática de versión PWA)
 - `npm start` - Iniciar en producción
 - `npm run lint` - Ejecutar linter
+
+### PWA y Versionado ⭐
+- `npm run pwa:test` - Build y test de PWA en modo producción
+- `npm run pwa:version` - Actualizar versión del Service Worker manualmente
+- `npm run version:patch` - Incrementar versión patch (1.0.0 → 1.0.1)
+- `npm run version:minor` - Incrementar versión minor (1.0.0 → 1.1.0)
+- `npm run version:major` - Incrementar versión major (1.0.0 → 2.0.0)
+
+### Deploy y Release 🚀
+- `npm run release:patch` - Release patch (versión + commit + tag + push)
+- `npm run release:minor` - Release minor (versión + commit + tag + push)
+- `npm run release:major` - Release major (versión + commit + tag + push)
+
+Ver [documentación de versionado](./docs/PWA-VERSIONING.md) y [guía de Vercel](./docs/VERCEL-DEPLOY.md) para más detalles.
 
 ## 🛡️ Seguridad
 
@@ -181,6 +201,100 @@ La aplicación utiliza rutas directas sin prefijos de país para simplicidad:
 ### Middleware
 - Archivo: `middleware.ts`
 - Función: Manejo básico de archivos estáticos y API routes
+
+## 📱 Progressive Web App (PWA)
+
+La aplicación es una PWA completamente funcional con sistema de versionado automático.
+
+### ✨ Características PWA
+- ✅ Instalable en dispositivos móviles y desktop
+- ✅ Funciona offline con estrategias de caché inteligentes
+- ✅ Modal de actualización elegante en el dashboard
+- ✅ Versionado automático sincronizado con `package.json`
+- ✅ Verificación de actualizaciones al entrar al dashboard
+- ✅ Atajos rápidos (Dashboard, Facturas, Inventario)
+
+### 🔄 Sistema de Versionado Automático
+
+El sistema sincroniza automáticamente la versión del Service Worker con el `package.json`:
+
+```bash
+# Incrementar versión y actualizar PWA automáticamente
+npm run version:patch  # 1.0.0 → 1.0.1 (bugs)
+npm run version:minor  # 1.0.0 → 1.1.0 (características)
+npm run version:major  # 1.0.0 → 2.0.0 (cambios importantes)
+
+# Build (actualiza versión automáticamente)
+npm run build
+
+# Los usuarios verán modal de actualización en el dashboard
+```
+
+### 📚 Documentación PWA
+- [Documentación PWA](./docs/PWA.md) - Guía completa de PWA
+- [Sistema de Versionado](./docs/PWA-VERSIONING.md) - Guía de versionado automático
+- [Ejemplos de Workflow](./docs/WORKFLOW-EXAMPLE.md) - Casos de uso reales
+
+### 🎯 Flujo de trabajo típico
+
+```bash
+# 1. Desarrollar nueva característica
+npm run dev
+
+# 2. Incrementar versión
+npm run version:minor
+
+# 3. Build con versión actualizada
+npm run build
+
+# 4. Deploy
+npm start
+
+# ✨ Los usuarios verán el modal de actualización automáticamente
+```
+
+---
+
+## 🚀 Deploy en Vercel
+
+El proyecto está optimizado para deploy en Vercel con versionado automático.
+
+### Comando Rápido
+
+```bash
+# Un solo comando hace todo:
+# - Incrementa versión
+# - Crea commit y tag
+# - Push a remoto
+# - Vercel deploya automáticamente
+
+npm run release:minor  # o release:patch / release:major
+```
+
+### Flujo Manual
+
+```bash
+# 1. Incrementar versión localmente
+npm run version:minor
+
+# 2. Commit y push
+git add .
+git commit -m "feat: nueva característica"
+git push origin main
+
+# 3. Vercel detecta el push y:
+#    - Ejecuta npm run build
+#    - Actualiza versión del Service Worker automáticamente
+#    - Deploya la nueva versión
+
+# ✨ Los usuarios verán el modal de actualización
+```
+
+### Documentación Completa
+
+- **[Guía de Deploy en Vercel](./docs/VERCEL-DEPLOY.md)** - Configuración, troubleshooting, best practices
+
+---
 
 ## 🤝 Contribución
 

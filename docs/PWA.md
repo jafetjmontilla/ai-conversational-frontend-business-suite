@@ -9,6 +9,8 @@ La aplicación ha sido convertida en una Progressive Web App (PWA) completamente
 - ✅ **Instalable**: Los usuarios pueden instalar la app en su dispositivo
 - ✅ **Funciona offline**: Caché inteligente para usar la app sin conexión
 - ✅ **Actualizaciones automáticas**: El service worker se actualiza automáticamente
+- ✅ **Modal de actualización**: Interfaz elegante para notificar nuevas versiones
+- ✅ **Verificación en dashboard**: Comprueba actualizaciones al entrar al dashboard
 - ✅ **Atajos rápidos**: Accesos directos a Dashboard, Facturas e Inventario
 - ✅ **Soporte multiplataforma**: Funciona en iOS, Android y Desktop
 - ✅ **Sin librerías**: Implementación 100% manual
@@ -25,9 +27,15 @@ frontend-facturador/
 │       ├── icon-192x192.png    # Icono 192x192
 │       └── icon-512x512.png    # Icono 512x512
 ├── app/
-│   └── layout.tsx              # Layout con metadatos PWA
-└── components/
-    └── InstallPWA.tsx          # Componente de instalación (opcional)
+│   ├── layout.tsx              # Layout con metadatos PWA
+│   └── (sidebar)/
+│       └── dashboard/
+│           └── page.tsx        # Dashboard con verificación de actualizaciones
+├── components/
+│   ├── InstallPWA.tsx          # Componente de instalación (opcional)
+│   └── PWAUpdateDialog.tsx     # Modal de actualización PWA
+└── hooks/
+    └── usePWAUpdate.ts         # Hook para detectar actualizaciones
 ```
 
 ## 🚀 Cómo funciona
@@ -94,11 +102,39 @@ npm start
 
 La PWA solo funciona en producción (`npm start`), no en desarrollo (`npm run dev`).
 
-### Actualizar caché
+### Sistema de versionado automático ⭐
 
-Cuando hagas cambios importantes, actualiza la versión del caché en `service-worker.js`:
+**¡Nuevo!** Ahora el versionado es completamente automático. Lee la [documentación completa](./PWA-VERSIONING.md).
+
+```bash
+# Incrementar versión patch (bugs, cambios menores)
+npm run version:patch  # 1.0.0 → 1.0.1
+
+# Incrementar versión minor (nuevas características)
+npm run version:minor  # 1.0.0 → 1.1.0
+
+# Incrementar versión major (cambios importantes)
+npm run version:major  # 1.0.0 → 2.0.0
+```
+
+El script actualiza automáticamente:
+- ✅ Versión en `package.json`
+- ✅ Versión del Service Worker
+- ✅ Nombres de los cachés
+- ✅ Comentarios con fecha y versión
+
+**Ventajas:**
+- No necesitas editar manualmente el `service-worker.js`
+- La versión siempre está sincronizada
+- `npm run build` actualiza automáticamente las versiones
+
+### Actualizar caché (forma antigua - ya no necesaria)
+
+~~Cuando hagas cambios importantes, actualiza la versión del caché en `service-worker.js`:~~
 
 ```javascript
+// ❌ Ya no es necesario hacer esto manualmente
+// ✅ Usa: npm run version:patch
 const CACHE_NAME = 'jaihom-erp-v2'; // Incrementa la versión
 ```
 
@@ -122,11 +158,48 @@ Los atajos aparecen cuando mantienes presionado el ícono de la app (Android) o 
 
 ## 🔄 Actualizaciones
 
-El service worker verifica actualizaciones cada hora. Cuando hay una nueva versión:
+El service worker verifica actualizaciones cada hora y automáticamente cuando el usuario entra al dashboard. Cuando hay una nueva versión:
 
-1. Se descarga el nuevo service worker
-2. Se muestra una confirmación al usuario
-3. Al aceptar, se actualiza y recarga la app
+1. Se descarga el nuevo service worker en segundo plano
+2. Se muestra un modal elegante al usuario (solo en el dashboard)
+3. El usuario puede elegir:
+   - **Actualizar ahora**: Aplica la actualización y recarga la app inmediatamente
+   - **Ahora no**: Continúa usando la versión actual, la actualización se aplicará en la próxima recarga
+
+### Modal de actualización
+
+El modal de actualización se muestra automáticamente en el dashboard cuando hay una nueva versión disponible. Este componente está implementado con:
+
+- `usePWAUpdate` hook: Detecta actualizaciones del service worker
+- `PWAUpdateDialog` component: UI elegante usando shadcn/ui Dialog
+- Integración en `/dashboard`: Verificación automática al entrar
+
+## 🧪 Probar actualizaciones
+
+Para probar el modal de actualización en desarrollo:
+
+1. **Construir la aplicación**:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+2. **Hacer cambios y reconstruir**:
+   - Cambia el `CACHE_NAME` en `service-worker.js`:
+     ```javascript
+     const CACHE_NAME = 'jaihom-erp-v2'; // Incrementa el número
+     ```
+   - Reconstruye: `npm run build`
+
+3. **Recargar la página**:
+   - El service worker detectará la nueva versión
+   - Navega al dashboard
+   - Deberías ver el modal de actualización
+
+4. **Desde DevTools**:
+   - Ve a Application → Service Workers
+   - Marca "Update on reload" para forzar actualizaciones
+   - Haz clic en "Update" para simular una nueva versión
 
 ## 🐛 Debugging
 
@@ -148,6 +221,16 @@ El service worker verifica actualizaciones cada hora. Cuando hay una nueva versi
 ```javascript
 navigator.serviceWorker.getRegistrations().then((registrations) => {
   registrations.forEach((registration) => registration.unregister())
+})
+```
+
+### Forzar actualización del service worker
+
+```javascript
+navigator.serviceWorker.getRegistration().then((registration) => {
+  if (registration) {
+    registration.update();
+  }
 })
 ```
 
