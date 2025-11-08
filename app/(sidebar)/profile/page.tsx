@@ -224,7 +224,7 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">Última actualización</p>
+                      <p className="text-sm font-medium">Última actualización del perfil</p>
                       <p className="text-sm text-muted-foreground">
                         {authUser.customClaims?.assignedAt ? new Date(authUser.customClaims.assignedAt).toLocaleDateString('es-ES', {
                           hour12: true,

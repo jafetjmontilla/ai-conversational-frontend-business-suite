@@ -38,6 +38,9 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     { id: 'zelle', name: 'Zelle', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false },
     { id: 'binance', name: 'Binance', amountBs: 0, amountUsd: 0, inputValue: null, changeValue: null, urlSuport: undefined, uploadingImage: false }
   ]);
+  const [uploadDialogMethod, setUploadDialogMethod] = useState<string | null>(null);
+  const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const galleryInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [totalPaidBs, setTotalPaidBs] = useState(0);
   const [totalPaidUsd, setTotalPaidUsd] = useState(0);
@@ -135,6 +138,29 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
     updatePaymentMethod(methodId, 'urlSuport', '');
   };
 
+  const openUploadOptions = (methodId: string) => {
+    const method = paymentMethods.find((item) => item.id === methodId);
+    if (method?.uploadingImage) {
+      return;
+    }
+    setUploadDialogMethod(methodId);
+  };
+
+  const triggerFileSelection = (option: 'camera' | 'gallery') => {
+    if (!uploadDialogMethod) {
+      return;
+    }
+
+    const refs = option === 'camera' ? cameraInputRefs : galleryInputRefs;
+    const inputElement = refs.current[uploadDialogMethod];
+
+    if (inputElement) {
+      inputElement.click();
+    }
+
+    setUploadDialogMethod(null);
+  };
+
   const handleProcessPayment = () => {
     // Filtrar solo los campos que el backend espera
     const cleanPaymentMethods = paymentMethods
@@ -179,183 +205,244 @@ export function PaymentDialog({ isOpen, onClose, invoice, tasaBCV, store = 'jaih
   const canProcessPayment = isPaymentComplete && hasRequiredImages();
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[350px] overflow-y-auto">
-        <DialogHeader className="flex flex-row justify-between space-y-1.5 text-center sm:text-left">
-          <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
-          <DialogDescription className="text-[10px] text-primary mr-10">
-            Tasa: {formatNumber(tasaBCV)}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-1">
-          {/* Total Amount */}
-          <div className="bg-blue-50 dark:bg-gray-300 rounded-md mb-2">
-            <div className="text-center">
-              <div className="flex">
-                <div className="w-1/2 text-xl font-bold text-blue-800">
-                  {formatNumber(invoice.totalBs)} Bs.
-                </div>
-                <div className="w-1/2 text-xl font-bold text-green-600">
-                  $ {formatNumber(invoice.totalUsd)}
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="w-[350px] overflow-y-auto">
+          <DialogHeader className="flex flex-row justify-between space-y-1.5 text-center sm:text-left">
+            <DialogTitle className="text-xl font-bold">Procesar Pago</DialogTitle>
+            <DialogDescription className="text-[10px] text-primary mr-10">
+              Tasa: {formatNumber(tasaBCV)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            {/* Total Amount */}
+            <div className="bg-blue-50 dark:bg-gray-300 rounded-md mb-2">
+              <div className="text-center">
+                <div className="flex">
+                  <div className="w-1/2 text-xl font-bold text-blue-800">
+                    {formatNumber(invoice.totalBs)} Bs.
+                  </div>
+                  <div className="w-1/2 text-xl font-bold text-green-600">
+                    $ {formatNumber(invoice.totalUsd)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Payment Methods */}
-          <div className="space-y-1">
-            {paymentMethods.map((method) => {
-              const requiresImage = ['mobile-transfer', 'zelle', 'binance'].includes(method.id);
+            {/* Payment Methods */}
+            <div className="space-y-1">
+              {paymentMethods.map((method) => {
+                const requiresImage = ['mobile-transfer', 'zelle', 'binance'].includes(method.id);
 
-              return (
-                <div key={method.id} className="text-sm relative">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{method.name}</span>
-                    <div className="text-right absolute right-0 bottom-0">
-                      <div className="text-xs dark:text-gray-300">
-                        {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
-                      </div>
-                      <div className="font-medium">
-                        {method.amountUsd > 0 && `$ ${formatNumber(method.amountUsd)}`}
+                return (
+                  <div key={method.id} className="text-sm relative">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{method.name}</span>
+                      <div className="text-right absolute right-0 bottom-0">
+                        <div className="text-xs dark:text-gray-300">
+                          {method.amountBs > 0 && `${formatNumber(method.amountBs)} Bs.`}
+                        </div>
+                        <div className="font-medium">
+                          {method.amountUsd > 0 && `$ ${formatNumber(method.amountUsd)}`}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-4 items-end ml-4">
-                    <div className="flex flex-col">
-                      <label htmlFor={`${method.id}-input`} className="text-[10px]">
-                        Ingreso:
-                      </label>
-                      <InputContable
-                        id={`${method.id}-input`}
-                        value={method.inputValue}
-                        onChange={(value) => updatePaymentMethod(method.id, 'inputValue', value)}
-                        autoComplete='off'
-                        className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
-                      />
-                    </div>
-                    {(method.id === 'cash-bs' || method.id === 'cash-usd') && (
+                    <div className="flex gap-4 items-end ml-4">
                       <div className="flex flex-col">
-                        <label htmlFor={`${method.id}-change`} className="text-[10px]">
-                          Vuelto:
+                        <label htmlFor={`${method.id}-input`} className="text-[10px]">
+                          Ingreso:
                         </label>
                         <InputContable
-                          id={`${method.id}-change`}
-                          value={method.changeValue}
-                          onChange={(value) => updatePaymentMethod(method.id, 'changeValue', value)}
+                          id={`${method.id}-input`}
+                          value={method.inputValue}
+                          onChange={(value) => updatePaymentMethod(method.id, 'inputValue', value)}
                           autoComplete='off'
                           className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
                         />
                       </div>
-                    )}
-                    {requiresImage && (
-                      <div className="flex flex-col">
-                        <label className="text-[10px]">
-                          Soporte:
-                        </label>
-                        <div className="flex gap-1">
-                          {method.urlSuport ? (
-                            <div className="flex items-center gap-1">
-                              <img
-                                src={method.urlSuport}
-                                alt="Soporte"
-                                className="w-8 h-8 object-cover rounded border"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeImage(method.id)}
-                                className="h-8 px-2 text-xs"
-                              >
-                                <Trash2 className="w-6 h-6 text-gray-400" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleFileChange(method.id, e)}
-                                className="hidden"
-                                capture="environment"
-                                id={`${method.id}-image`}
-                                disabled={method.uploadingImage}
-                              />
-                              <label
-                                htmlFor={`${method.id}-image`}
-                                className={`w-8 h-8 border-[1px] border-gray-400 rounded flex items-center justify-center cursor-pointer text-xs ${method.uploadingImage
-                                  ? 'opacity-50 cursor-not-allowed'
-                                  : 'hover:border-gray-400'
-                                  }`}
-                              >
-                                {method.uploadingImage
-                                  ? <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                                  : <Camera className="w-6 h-6 text-gray-400" />
-                                }
-                              </label>
-                            </div>
-                          )}
+                      {(method.id === 'cash-bs' || method.id === 'cash-usd') && (
+                        <div className="flex flex-col">
+                          <label htmlFor={`${method.id}-change`} className="text-[10px]">
+                            Vuelto:
+                          </label>
+                          <InputContable
+                            id={`${method.id}-change`}
+                            value={method.changeValue}
+                            onChange={(value) => updatePaymentMethod(method.id, 'changeValue', value)}
+                            autoComplete='off'
+                            className="text-sm text-right w-[95px] px-2 py-0.5 rounded-[4px] border-[1px] border-gray-300 dark:border-gray-600"
+                          />
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {requiresImage && (
+                        <div className="flex flex-col">
+                          <label className="text-[10px]">
+                            Soporte:
+                          </label>
+                          <div className="flex gap-1">
+                            {method.urlSuport ? (
+                              <div className="flex items-center gap-1">
+                                <img
+                                  src={method.urlSuport}
+                                  alt="Soporte"
+                                  className="w-8 h-8 object-cover rounded border"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeImage(method.id)}
+                                  className="h-8 px-2 text-xs"
+                                >
+                                  <Trash2 className="w-6 h-6 text-gray-400" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <input
+                                  ref={(el) => {
+                                    if (el) {
+                                      cameraInputRefs.current[method.id] = el;
+                                    } else {
+                                      delete cameraInputRefs.current[method.id];
+                                    }
+                                  }}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(method.id, e)}
+                                  className="hidden"
+                                  capture="environment"
+                                  id={`${method.id}-image-camera`}
+                                  disabled={method.uploadingImage}
+                                />
+                                <input
+                                  ref={(el) => {
+                                    if (el) {
+                                      galleryInputRefs.current[method.id] = el;
+                                    } else {
+                                      delete galleryInputRefs.current[method.id];
+                                    }
+                                  }}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(method.id, e)}
+                                  className="hidden"
+                                  id={`${method.id}-image-gallery`}
+                                  disabled={method.uploadingImage}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => openUploadOptions(method.id)}
+                                  className={`w-8 h-8 border-[1px] border-gray-400 rounded flex items-center justify-center text-xs ${method.uploadingImage
+                                    ? 'opacity-50 cursor-not-allowed'
+                                    : 'hover:border-gray-400 cursor-pointer'
+                                    }`}
+                                  disabled={method.uploadingImage}
+                                >
+                                  {method.uploadingImage
+                                    ? <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                                    : <Camera className="w-6 h-6 text-gray-400" />
+                                  }
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {/* Total Paid */}
+            <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1.5   space-y-1 h-14">
+              <div className="flex justify-between items-center gap-1">
+                <span className="font-semibold text-primary dark:text-primary-foreground text-sm">Total pagado:</span>
+                <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                  {formatNumber(totalPaidBs)} Bs.
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Total Paid */}
-          <div className="bg-green-300 dark:bg-gray-300 rounded-md px-3 py-1.5   space-y-1 h-14">
-            <div className="flex justify-between items-center gap-1">
-              <span className="font-semibold text-primary dark:text-primary-foreground text-sm">Total pagado:</span>
-              <div className={`px-2 flex-1 rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                {formatNumber(totalPaidBs)} Bs.
+                <div className={`px-2 w-[78px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                  $ {formatNumber(totalPaidUsd)}
+                </div>
               </div>
-              <div className={`px-2 w-[78px] rounded-lg font-bold text-sm h-6 flex items-center justify-center ${canProcessPayment
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                $ {formatNumber(totalPaidUsd)}
+
+              <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${canProcessPayment ? 'opacity-0' : 'opacity-100'}`}>
+
+                {!isPaymentComplete
+                  ?
+                  `Faltan ${formatNumber((invoice.totalBs - totalPaidBs))} Bs. o $ ${formatNumber(invoice.totalUsd - totalPaidUsd)} por pagar`
+                  : !hasRequiredImages()
+                    ? 'Requerido subir imágen de soporte de pago'
+                    : ''
+                }
               </div>
             </div>
 
-            <div className={`text-sm text-red-600 font-semibold w-full transition-opacity duration-700 ${canProcessPayment ? 'opacity-0' : 'opacity-100'}`}>
-
-              {!isPaymentComplete
-                ?
-                `Faltan ${formatNumber((invoice.totalBs - totalPaidBs))} Bs. o $ ${formatNumber(invoice.totalUsd - totalPaidUsd)} por pagar`
-                : !hasRequiredImages()
-                  ? 'Requerido subir imágen de soporte de pago'
-                  : ''
-              }
+            {/* Action Buttons */}
+            <div className="flex gap-4 justify-end">
+              <Button
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleProcessPayment}
+                disabled={!canProcessPayment}
+                className={`${canProcessPayment
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+              >
+                Procesar Pago
+              </Button>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4 justify-end">
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(uploadDialogMethod)} onOpenChange={(open) => {
+        if (!open) {
+          setUploadDialogMethod(null);
+        }
+      }}>
+        <DialogContent className="w-[280px]">
+          <DialogHeader>
+            <DialogTitle>Seleccionar opción</DialogTitle>
+            <DialogDescription>Elige cómo cargar el soporte.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
             <Button
+              type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => triggerFileSelection('camera')}
+            >
+              Usar cámara
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => triggerFileSelection('gallery')}
+            >
+              Elegir de la galería
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setUploadDialogMethod(null)}
             >
               Cancelar
             </Button>
-            <Button
-              onClick={handleProcessPayment}
-              disabled={!canProcessPayment}
-              className={`${canProcessPayment
-                ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-gray-400 cursor-not-allowed'
-                }`}
-            >
-              Procesar Pago
-            </Button>
           </div>
-        </div>
-
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

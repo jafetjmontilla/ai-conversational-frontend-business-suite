@@ -13,6 +13,7 @@ import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
 import { useIsMobile } from "@/hooks/use-mobile"
+import packageJson from '../../package.json' assert { type: 'json' };
 
 type NavItem = {
   href: string;
@@ -34,6 +35,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
+  const versionLabel = packageJson.version ? `Erp v${packageJson.version}` : "Erp";
 
   const handleNavigation = async (href: string, label: string) => {
     if (pathname === href) {
@@ -108,7 +110,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
             <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
               <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
                 <Image src={theme === "dark" ? `/images/sistemasJaihomLogoBorderNone.png` : `/images/sistemasJaihomLogoBorderNone.png`} alt="Logo" width={50} height={30} className="rounded-md" />
-                {state == "expanded" && <span className="font-bold text-sm">Erp v1.0</span>}
+                {state == "expanded" && <span className="font-bold text-sm">{versionLabel}</span>}
 
               </div>
             </div>

@@ -126,7 +126,7 @@ export default function InvoicePage() {
     <div className="p-4 md:p-6 lg:p-8 w-full h-full">
       <Card className='flex flex-col w-full h-full overflow-hidden'>
         <CardHeader className='h-[72px]'>
-          <div className="flex flex-col w-1/3">
+          <div className="flex flex-col">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               Facturación
