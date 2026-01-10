@@ -9,7 +9,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'customerServiceG', "customerServiceJ"]
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
     }
   },
   'configuracion:avanzada': {
@@ -62,14 +62,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'customerServiceG', "customerServiceJ"]
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
     }
   },
   'exportar:reportes': {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'customerServiceG', "customerServiceJ"]
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
     }
   },
 
@@ -78,14 +78,14 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'customerServiceG', "customerServiceJ"]
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
     }
   },
   'soporte:gestionar': {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'customerServiceG', "customerServiceJ"]
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
     }
   },
 
@@ -235,7 +235,7 @@ export const useExportPermissions = () => {
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales'])
   };
 };
 
@@ -246,7 +246,7 @@ export const useSupportPermissions = () => {
   return {
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales'])
   };
 };
 
@@ -259,7 +259,7 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'customerServiceG', "customerServiceJ"]),
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']),
     isAdmin: () => hasRole('admin')
   };
 };

@@ -55,8 +55,11 @@ const formFields: FormFieldInput[] = [
 
 const roleLabels: Record<Role, string> = {
   admin: 'Administrador',
-  customerServiceG: 'Att. al Cliente Guardians',
-  customerServiceJ: 'Att. al Cliente Jaihom',
+  accounting: 'Contabilidad',
+  callCenter: 'Call Center',
+  technicalSupport: 'Soporte Técnico',
+  logicalSupport: 'Soporte Lógico',
+  sales: 'Ventas',
   none: 'Sin rol'
 };
 

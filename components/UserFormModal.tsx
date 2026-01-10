@@ -7,7 +7,7 @@ import * as z from "zod";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { FormFieldInput, OptionSelect, Role, User } from "@/lib/interfases";
+import { FormFieldInput, OptionSelect, Role, roles, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { sendWhatsAppMessage, getWhatsAppSessions } from "@/lib/whatsappApi";
 import { toast } from "sonner";
@@ -16,15 +16,36 @@ import { FormFieldInputs } from "./FormFieldInputs";
 
 const roleOptions: OptionSelect[] = [
   {
-    value: 'customerServiceG' as Role,
-    title: 'Att. al Cliente Guardians',
+    value: 'accounting' as Role,
+    title: 'Contabilidad',
     description: '',
     icon: '👤',
     features: []
   },
   {
-    value: 'customerServiceJ' as Role,
-    title: 'Att. al Cliente Jaihom',
+    value: 'callCenter' as Role,
+    title: 'Call Center',
+    description: '',
+    icon: '👤',
+    features: []
+  },
+  {
+    value: 'technicalSupport' as Role,
+    title: 'Soporte Técnico',
+    description: '',
+    icon: '👤',
+    features: []
+  },
+  {
+    value: 'logicalSupport' as Role,
+    title: 'Soporte Lógico',
+    description: '',
+    icon: '👤',
+    features: []
+  },
+  {
+    value: 'sales' as Role,
+    title: 'Ventas',
     description: '',
     icon: '👤',
     features: []
@@ -50,7 +71,7 @@ const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  role: z.enum(["admin", "customerServiceG", "customerServiceJ"], {
+  role: z.enum(roles, {
     message: "El rol es requerido",
   }),
   active: z.boolean(),
@@ -124,7 +145,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "customerServiceG" | "customerServiceJ"),
+      role: (user?.role as "admin" | "accounting" | "callCenter" | "technicalSupport" | "logicalSupport" | "sales"),
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },

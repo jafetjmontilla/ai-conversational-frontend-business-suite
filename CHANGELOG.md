@@ -69,10 +69,6 @@ scripts/
 ├── bump-version.js              # Incrementar versión proyecto
 └── README.md                    # Documentación scripts
 
-app/(sidebar)/
-└── reportInvoices/
-    └── page.tsx                 # Reporte de facturas
-
 docs/
 ├── PWA-VERSIONING.md           # Guía de versionado
 ├── WORKFLOW-EXAMPLE.md         # Ejemplos prácticos

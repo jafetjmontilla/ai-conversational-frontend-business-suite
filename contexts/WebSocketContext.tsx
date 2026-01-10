@@ -3,11 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { useWebSocket } from '@/lib/hooks/useWebSocket';
-import { Invoice } from '@/lib/schemas/invoice';
 import { getIdToken } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
-
-export type SocketEvent = "invoice:created" | "invoice:updated" | "invoice:deleted" | "invoices-list-updated";
 
 // Tipos para notificaciones
 interface NotificationData {
@@ -25,17 +22,10 @@ interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   error: string | null;
-  // Eventos de facturas
-  onInvoiceCreated: (callback: (invoice: Invoice) => void) => void;
-  onInvoiceUpdated: (callback: (invoice: Invoice) => void) => void;
-  onInvoiceDeleted: (callback: (invoiceId: string) => void) => void;
-  onInvoicesListUpdated: (callback: (invoices: Invoice[]) => void) => void;
   // Eventos de notificaciones
   onNotification: (callback: (notification: NotificationData) => void) => void;
   onConnected: (callback: (data: any) => void) => void;
   // Métodos para suscribirse/desuscribirse
-  subscribeToInvoices: () => void;
-  unsubscribeFromInvoices: () => void;
   subscribeToNotifications: () => void;
   unsubscribeFromNotifications: () => void;
 }
@@ -60,17 +50,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
   // Usar refs para evitar re-renders
   const invoiceCallbacksRef = useRef<{
-    onInvoiceCreated: ((invoice: Invoice) => void)[];
-    onInvoiceUpdated: ((invoice: Invoice) => void)[];
-    onInvoiceDeleted: ((invoiceId: string) => void)[];
-    onInvoicesListUpdated: ((invoices: Invoice[]) => void)[];
     onNotification: ((notification: NotificationData) => void)[];
     onConnected: ((data: any) => void)[];
   }>({
-    onInvoiceCreated: [],
-    onInvoiceUpdated: [],
-    onInvoiceDeleted: [],
-    onInvoicesListUpdated: [],
     onNotification: [],
     onConnected: []
   });
@@ -95,24 +77,6 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   );
 
   // Manejadores de eventos WebSocket (sin dependencias que causen re-renders)
-  const handleInvoiceCreated = useCallback((invoice: Invoice) => {
-    invoiceCallbacksRef.current.onInvoiceCreated.forEach(callback => callback(invoice));
-  }, []);
-
-  const handleInvoiceUpdated = useCallback((invoice: Invoice) => {
-    console.log('📡 Factura actualizada via WebSocket:', invoice._id);
-    invoiceCallbacksRef.current.onInvoiceUpdated.forEach(callback => callback(invoice));
-  }, []);
-
-  const handleInvoiceDeleted = useCallback((data: { invoiceId: string }) => {
-    console.log('📡 Factura eliminada via WebSocket:', data.invoiceId);
-    invoiceCallbacksRef.current.onInvoiceDeleted.forEach(callback => callback(data.invoiceId));
-  }, []);
-
-  const handleInvoicesListUpdated = useCallback((invoices: Invoice[]) => {
-    console.log('📡 Lista de facturas actualizada via WebSocket');
-    invoiceCallbacksRef.current.onInvoicesListUpdated.forEach(callback => callback(invoices));
-  }, []);
 
   const handleNotification = useCallback((notification: NotificationData) => {
     console.log('🔔 Nueva notificación recibida:', notification);
@@ -137,11 +101,6 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
 
     console.log('🔌 Configurando eventos WebSocket para socket:', socket);
-    // Suscribirse a eventos de facturas
-    socket.on('invoice:created', handleInvoiceCreated);
-    socket.on('invoice:updated', handleInvoiceUpdated);
-    socket.on('invoice:deleted', handleInvoiceDeleted);
-    socket.on('invoices-list-updated', handleInvoicesListUpdated);
 
     // Suscribirse a eventos de notificaciones
     socket.on('notification', handleNotification);
@@ -149,32 +108,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
     // Cleanup
     return () => {
-      socket.off('invoice:created', handleInvoiceCreated);
-      socket.off('invoice:updated', handleInvoiceUpdated);
-      socket.off('invoice:deleted', handleInvoiceDeleted);
-      socket.off('invoices-list-updated', handleInvoicesListUpdated);
       socket.off('notification', handleNotification);
       socket.off('connected', handleConnected);
     };
-  }, [socket, handleInvoiceCreated, handleInvoiceUpdated, handleInvoiceDeleted, handleInvoicesListUpdated, handleNotification, handleConnected]);
+  }, [socket, handleNotification, handleConnected]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
-  const onInvoiceCreated = useCallback((callback: (invoice: Invoice) => void) => {
-    invoiceCallbacksRef.current.onInvoiceCreated.push(callback);
-  }, []);
-
-  const onInvoiceUpdated = useCallback((callback: (invoice: Invoice) => void) => {
-    invoiceCallbacksRef.current.onInvoiceUpdated.push(callback);
-  }, []);
-
-  const onInvoiceDeleted = useCallback((callback: (invoiceId: string) => void) => {
-    invoiceCallbacksRef.current.onInvoiceDeleted.push(callback);
-  }, []);
-
-  const onInvoicesListUpdated = useCallback((callback: (invoices: Invoice[]) => void) => {
-    invoiceCallbacksRef.current.onInvoicesListUpdated.push(callback);
-  }, []);
-
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
     invoiceCallbacksRef.current.onNotification.push(callback);
   }, []);
@@ -184,17 +123,6 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   }, []);
 
   // Métodos para suscribirse/desuscribirse
-  const subscribeToInvoices = useCallback(() => {
-    if (socket) {
-      socket.emit('join-invoices-room');
-    }
-  }, [socket]);
-
-  const unsubscribeFromInvoices = useCallback(() => {
-    if (socket) {
-      socket.emit('leave-invoices-room');
-    }
-  }, [socket]);
 
   const subscribeToNotifications = useCallback(() => {
     if (socket) {
@@ -212,14 +140,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     socket,
     isConnected,
     error,
-    onInvoiceCreated,
-    onInvoiceUpdated,
-    onInvoiceDeleted,
-    onInvoicesListUpdated,
     onNotification,
     onConnected,
-    subscribeToInvoices,
-    unsubscribeFromInvoices,
     subscribeToNotifications,
     unsubscribeFromNotifications
   };

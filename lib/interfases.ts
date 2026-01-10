@@ -1,6 +1,6 @@
 
 // Define el arreglo de roles
-export const roles = ['admin', 'customerServiceG', "customerServiceJ", 'none'] as const;
+export const roles = ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales', 'none'] as const;
 
 // Crea el tipo a partir del arreglo
 export type Role = typeof roles[number];
@@ -72,25 +72,4 @@ export interface QuantityHistory {
   concept: string;
   updatedAt: string;
   userId: string;
-}
-
-export interface InventoryItem {
-  _id: string;
-  code: string;
-  description: string;
-  type: "mercancia" | "servicio";
-  store: "guardians" | "jaihom";
-  quantity: number;
-  unitCost: number;
-  salesPrice: number;
-  unitCostUsd: number;
-  salesPriceUsd: number;
-  profitPercentage: number;
-  status: boolean;
-  costHistory: PriceHistory[];
-  priceHistory: PriceHistory[];
-  quantityHistory: QuantityHistory[];
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
 }

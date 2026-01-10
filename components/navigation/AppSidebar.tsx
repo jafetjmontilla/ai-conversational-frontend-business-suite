@@ -60,10 +60,6 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/invoice', label: 'Facturación', icon: Receipt, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
-    { href: '/inventory', label: 'Inventario', icon: Package, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
-    { href: '/reportPayments', label: 'Reporte de Pagos', icon: Banknote, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
-    { href: '/reportInvoices', label: 'Reporte de Facturas', icon: FileText, condition: hasAnyRole(["admin", "customerServiceG", "customerServiceJ"]) },
 
   ];
 

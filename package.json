@@ -1,12 +1,12 @@
 {
-  "name": "sistemasJaihom-frontend",
+  "name": "erp-frontend",
   "version": "1.0.0",
   "description": "Aplicación SaaS ERP",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3010",
     "build": "node scripts/update-sw-version.js && next build",
-    "start": "next start -p 3001",
+    "start": "next start -p 3010",
     "lint": "next lint",
     "pwa:test": "npm run build && npm start",
     "pwa:version": "node scripts/update-sw-version.js",
