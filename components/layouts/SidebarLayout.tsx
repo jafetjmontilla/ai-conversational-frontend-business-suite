@@ -30,7 +30,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
         <div className="flex items-center w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
           <div className="flex-1 flex gap-4 items-center" >
             <span className="md:hidden">
-              <Image src={theme === "dark" ? `/images/sistemasJaihomLogoBorderNone.png` : `/images/sistemasJaihomLogoBorderNone.png`} alt="Logo" width={50} height={30} className="rounded-md" />
+              <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Logo" width={50} height={30} className="rounded-md" />
             </span>
             {/* <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span> */}
           </div>

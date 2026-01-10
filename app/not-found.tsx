@@ -61,13 +61,13 @@ export default function NotFound() {
           <div className="pt-4 border-t">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Image
-                src="/images/sistemasJaihomLogo.png"
+                src="/images/4netBlancoGradient.png"
                 alt="Logo"
-                width={20}
-                height={12}
+                width={48}
+                height={28}
                 className="rounded"
               />
-              <span>sistemasJaihom ERP</span>
+              <span>ERP</span>
             </div>
           </div>
         </CardContent>

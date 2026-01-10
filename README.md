@@ -1,4 +1,4 @@
-# sistemasJaihom Frontend
+# 4netERP Frontend
 
 Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
 
@@ -27,7 +27,7 @@ Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Fir
 
 1. **Clonar el repositorio**
 ```bash
-cd frontend-sistemasJaihom
+cd 4net-erp-frontend
 ```
 
 2. **Instalar dependencias**

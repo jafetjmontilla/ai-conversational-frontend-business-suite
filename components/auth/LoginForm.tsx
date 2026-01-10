@@ -116,7 +116,7 @@ export function LoginForm({ onSwitchToRegister, onSuccess }: LoginFormProps) {
             transition={{ duration: 0.15 }}
           >
             <Card className="w-full">
-              <Image src={theme === "dark" ? '/images/sistemasJaihomLogo.png' : '/images/sistemasJaihomLogo.png'} alt="sistemasJaihom" width={200} height={200} className="mt-10 mx-auto" />
+              <Image src={theme === "dark" ? '/images/4netBlancoGradient.png' : '/images/4netBlancoGradient.png'} alt="4netERP" width={200} height={200} className="mt-10 mx-auto" />
               <CardHeader className="text-center space-y-1 py-6">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Iniciar sesión</h2>
                 <p className="text-gray-600 dark:text-gray-300">Accede a tu cuenta</p>

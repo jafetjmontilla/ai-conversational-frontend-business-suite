@@ -1,8 +1,8 @@
-# Sistema de Temas - sistemasJaihom Frontend
+# Sistema de Temas - 4netERP Frontend
 
 ## Descripción
 
-El sistema de temas implementado en sistemasJaihom permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
+El sistema de temas implementado en 4netERP permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
 
 ## Características
 

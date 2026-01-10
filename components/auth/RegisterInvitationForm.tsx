@@ -247,8 +247,8 @@ export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationF
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/sistemasJaihomLogo.png' : '/images/sistemasJaihomLogo.png'}
-        alt="sistemasJaihom"
+        src={theme === "dark" ? '/images/4netBlancoGradient.png' : '/images/4netBlancoGradient.png'}
+        alt="4netERP"
         width={200}
         height={200}
         className="mt-10 mx-auto"
