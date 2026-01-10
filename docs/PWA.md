@@ -1,4 +1,4 @@
-# Progressive Web App (PWA) - sistemasJaihom ERP
+# Progressive Web App (PWA) - 4NET ERP
 
 ## 📱 Descripción
 

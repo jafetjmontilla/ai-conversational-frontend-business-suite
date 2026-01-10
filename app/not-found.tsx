@@ -5,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Home, ArrowLeft, Search } from 'lucide-react';
 import Image from 'next/image';
+import { useThemeContext } from '@/contexts/ThemeContext';
+
 
 export default function NotFound() {
   const router = useRouter();
+  const { theme, isDark } = useThemeContext();
 
   const handleGoBack = () => {
     router.back();
@@ -61,7 +64,7 @@ export default function NotFound() {
           <div className="pt-4 border-t">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Image
-                src="/images/4netBlancoGradient.png"
+                src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
                 alt="Logo"
                 width={48}
                 height={28}

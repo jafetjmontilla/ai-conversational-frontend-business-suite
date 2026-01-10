@@ -1,6 +1,6 @@
 # Scripts del Proyecto 🛠️
 
-Scripts de automatización para el proyecto sistemasJaihom.
+Scripts de automatización para el proyecto 4NET-ERP.
 
 ## 📂 Archivos
 

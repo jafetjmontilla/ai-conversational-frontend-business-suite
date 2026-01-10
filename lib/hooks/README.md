@@ -1,6 +1,6 @@
 # Hook useAllowed - Sistema de Permisos y Autorizaciones
 
-El hook `useAllowed` adminporciona un sistema completo de permisos y autorizaciones para la aplicación sistemasJaihom, basado en el rol del usuario y otros criterios de seguridad.
+El hook `useAllowed` adminporciona un sistema completo de permisos y autorizaciones para la aplicación 4NET-ERP, basado en el rol del usuario y otros criterios de seguridad.
 
 ## 🚀 Características
 

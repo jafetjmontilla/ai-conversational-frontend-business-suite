@@ -58,10 +58,10 @@ try {
 
   // Agregar comentario con la versión y fecha
   const date = new Date().toISOString();
-  const versionComment = `// Service Worker Manual para PWA - sistemasJaihom\n// Versión: ${version} - Generado: ${date}\n`;
+  const versionComment = `// Service Worker Manual para PWA - 4NET-ERP\n// Versión: ${version} - Generado: ${date}\n`;
 
   swContent = swContent.replace(
-    /\/\/ Service Worker Manual para PWA - sistemasJaihom\n/,
+    /\/\/ Service Worker Manual para PWA - 4NET-ERP\n/,
     versionComment
   );
 

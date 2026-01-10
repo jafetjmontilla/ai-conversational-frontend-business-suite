@@ -62,7 +62,7 @@ export function PasswordRecoveryForm({ onBackToLogin }: PasswordRecoveryFormProp
     return (
       <Card className="w-full max-w-md mx-auto">
         <Image
-          src={theme === "dark" ? '/images/4netBlancoGradient.png' : '/images/4netBlancoGradient.png'}
+          src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
           alt="4netERP"
           width={200}
           height={200}
@@ -110,7 +110,7 @@ export function PasswordRecoveryForm({ onBackToLogin }: PasswordRecoveryFormProp
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/4netBlancoGradient.png' : '/images/4netBlancoGradient.png'}
+        src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
         alt="4netERP"
         width={200}
         height={200}

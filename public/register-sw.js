@@ -1,4 +1,4 @@
-// Script de registro del Service Worker - sistemasJaihom
+// Script de registro del Service Worker - 4NET-ERP
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker

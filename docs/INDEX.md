@@ -1,4 +1,4 @@
-# 📚 Índice de Documentación - sistemasJaihom Frontend
+# 📚 Índice de Documentación - 4NET Frontend
 
 Guía completa de toda la documentación del proyecto.
 
