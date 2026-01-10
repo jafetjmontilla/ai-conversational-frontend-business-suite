@@ -7,7 +7,6 @@ import { useAllowed } from "@/lib/hooks/useAllowed";
 import * as Typography from "@/components/Typography";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import WhatsAppConnection from "@/components/settings/WhatsAppConnection";
 
 export default function SettingPage() {
   const { authUser } = useAuth();
@@ -30,11 +29,6 @@ export default function SettingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <WhatsAppConnection
-            cardFocusedId={cardFocusedId}
-            setCardFocusedId={setCardFocusedId}
-          />
-
         </CardContent>
       </Card>
     </div>

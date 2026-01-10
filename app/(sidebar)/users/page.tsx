@@ -102,15 +102,12 @@ export default function UsersPage() {
   // Función para reenviar invitación por WhatsApp
   const handleResendInvitation = async (invitationId: string) => {
     try {
-      // Aquí necesitarías obtener el sessionId del contexto o estado
-      const sessionId = "default-session"; // Esto debería venir del contexto
       const response = await fetchApiV1({
         query: queries.sendUserInvitation,
         type: "json",
         variables: {
           args: {
             invitationId,
-            sessionId
           }
         }
       });

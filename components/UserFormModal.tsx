@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { FormFieldInput, OptionSelect, Role, roles, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import { sendWhatsAppMessage, getWhatsAppSessions } from "@/lib/whatsappApi";
 import { toast } from "sonner";
 import { User as UserIcon, Mail, Phone, Image, Shield } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
@@ -241,14 +240,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
     setIsSendingWhatsApp(true);
     try {
       invitationData.phone = `${invitationData.phone.replace('+', '')}@s.whatsapp.net`;
-      // Obtener sesiones activas de WhatsApp
-      const sessions = await getWhatsAppSessions();
-      const activeSession = sessions.find((session: any) => session.isConnected);
 
-      if (!activeSession) {
-        toast.error("No hay sesiones de WhatsApp activas. Por favor, conecta WhatsApp primero.");
-        return;
-      }
 
       // Generar enlace de registro
       const registrationLink = `${window.location.origin}/register-invitation?token=${invitationData.token}`;
@@ -266,27 +258,7 @@ Este enlace expira en 7 días.
 ¡Bienvenido!`;
 
       // Enviar mensaje por WhatsApp
-      const whatsappResponse = await sendWhatsAppMessage(
-        activeSession.id,
-        invitationData.phone,
-        message
-      );
 
-      if (whatsappResponse.success) {
-        // Actualizar estado de envío en la invitación
-        await fetchApiV1({
-          query: queries.sendUserInvitation,
-          type: "json",
-          variables: {
-            args: {
-              invitationId: invitationData._id,
-              sessionId: activeSession.id,
-            },
-          },
-        });
-      } else {
-        toast.error("Error enviando mensaje por WhatsApp");
-      }
     } catch (error) {
       console.error("Error enviando por WhatsApp:", error);
       toast.error("Error enviando invitación por WhatsApp");
