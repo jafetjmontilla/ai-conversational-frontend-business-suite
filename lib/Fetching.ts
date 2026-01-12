@@ -155,6 +155,7 @@ export const queries = {
       active
       emailVerified
       token
+      code
       used
       expiresAt
       createdBy
@@ -177,6 +178,7 @@ export const queries = {
         phone
         role
         token
+        code
         expiresAt
         used
         createdBy
@@ -196,6 +198,7 @@ export const queries = {
         phone
         role
         token
+        code
         expiresAt
         used
         createdBy
@@ -215,6 +218,7 @@ export const queries = {
         phone
         role
         token
+        code
         expiresAt
         used
         createdBy

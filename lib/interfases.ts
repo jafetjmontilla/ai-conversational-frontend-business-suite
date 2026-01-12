@@ -32,6 +32,7 @@ export interface User {
   createdAt: string;
   // Campos para invitaciones (opcionales)
   token?: string;
+  code?: string;
   used?: boolean;
   expiresAt?: string;
   createdBy?: string;

@@ -60,9 +60,9 @@ export default function UsersPage() {
   };
 
   // Función para copiar el link de invitación
-  const handleCopyInvitationLink = async (token: string) => {
+  const handleCopyInvitationLink = async (codeOrToken: string) => {
     try {
-      const invitationLink = `${window.location.origin}/register-invitation?token=${token}`;
+      const invitationLink = `${window.location.origin}/register-invitation?token=${codeOrToken}`;
       // Verificar si el navegador soporta la API de Clipboard
       if (navigator.clipboard && window.isSecureContext) {
         try {
@@ -267,7 +267,7 @@ export default function UsersPage() {
                           <TableCell className="min-w-[150px]">{u.updatedAt}</TableCell>
                           <TableCell className="min-w-[150px]">{u.createdAt}</TableCell>
                           <TableCell className="min-w-[200px]">
-                            {isInvitation && u.token && (
+                            {isInvitation && (u.code || u.token) && (
                               <div className="flex items-center gap-2">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -276,7 +276,7 @@ export default function UsersPage() {
                                       variant="outline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleCopyInvitationLink(u.token!);
+                                        handleCopyInvitationLink(u.code || u.token!);
                                       }}
                                     >
                                       <Copy className="h-4 w-4" />

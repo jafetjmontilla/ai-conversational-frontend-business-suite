@@ -242,8 +242,8 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       invitationData.phone = `${invitationData.phone.replace('+', '')}@s.whatsapp.net`;
 
 
-      // Generar enlace de registro
-      const registrationLink = `${window.location.origin}/register-invitation?token=${invitationData.token}`;
+      // Generar enlace de registro (usar code si está disponible, sino token como fallback)
+      const registrationLink = `${window.location.origin}/register-invitation?token=${invitationData.code || invitationData.token}`;
 
       // Crear mensaje personalizado
       const message = `¡Hola ${invitationData.name}!

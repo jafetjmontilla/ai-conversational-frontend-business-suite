@@ -30,6 +30,7 @@ interface InvitationData {
   phone: string;
   role: string;
   token: string;
+  code?: string;
   expiresAt: string;
   used: boolean;
   createdBy: string;
