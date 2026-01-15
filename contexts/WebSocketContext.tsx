@@ -73,6 +73,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   // Obtener estado de autenticación
   const { user, loading } = useAuth();
 
+  // Estado para forzar renovación de token y reconexión
+  const [forceTokenRefresh, setForceTokenRefresh] = useState(false);
+  const tokenRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTokenRef = useRef<string | null>(null);
+
   // Usar refs para evitar re-renders
   const invoiceCallbacksRef = useRef<{
     onNotification: ((notification: NotificationData) => void)[];
@@ -91,23 +96,110 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   });
 
   // Obtener token de autenticación de Firebase (mismo que GraphQL)
-  const getAuthToken = useCallback(async () => {
+  // Si forceRefresh es true, fuerza la renovación del token
+  const getAuthToken = useCallback(async (forceRefresh: boolean = false) => {
     try {
-      const token = await getIdToken();
+      if (!user) {
+        return null;
+      }
+
+      // Si se requiere renovación forzada, usar getIdToken(true)
+      const token = forceRefresh
+        ? await user.getIdToken(true) // Forzar renovación
+        : await getIdToken();
+
+      // Verificar si el token cambió
+      if (token && token !== lastTokenRef.current) {
+        const previousToken = lastTokenRef.current;
+        lastTokenRef.current = token;
+
+        // Si había un token anterior y cambió, el token se renovó
+        if (previousToken) {
+          console.log('🔄 Token renovado detectado');
+        }
+      }
+
       return token;
     } catch (error) {
       console.error('Error al obtener token de Firebase:', error);
       return null;
     }
-  }, []);
+  }, [user]);
+
+  // Wrapper para getAuthToken que siempre pasa el forceRefresh del estado
+  const getAuthTokenWrapper = useCallback(async () => {
+    const shouldForceRefresh = forceTokenRefresh;
+    if (shouldForceRefresh) {
+      setForceTokenRefresh(false); // Resetear después de usarlo
+    }
+    return await getAuthToken(shouldForceRefresh);
+  }, [getAuthToken, forceTokenRefresh]);
 
   // Configurar WebSocket solo si el usuario está autenticado
   const shouldConnect = !loading && !!user;
 
-  const { socket, isConnected, error } = useWebSocket(
+  // Callback para cuando se detecta que el token expiró
+  const handleTokenExpired = useCallback(() => {
+    console.log('🔄 Token expirado detectado, forzando renovación...');
+    setForceTokenRefresh(true);
+  }, []);
+
+  const { socket, isConnected, error, reconnect } = useWebSocket(
     shouldConnect ? (process.env.NEXT_PUBLIC_WEBSOCKET_URL || '') : '',
-    shouldConnect ? getAuthToken : async () => null
+    shouldConnect ? getAuthTokenWrapper : async () => null,
+    forceTokenRefresh,
+    { onTokenExpired: shouldConnect ? handleTokenExpired : undefined }
   );
+
+  // Monitorear renovación automática de token de Firebase
+  useEffect(() => {
+    if (!user || !shouldConnect) {
+      // Limpiar intervalo si no hay usuario
+      if (tokenRefreshIntervalRef.current) {
+        clearInterval(tokenRefreshIntervalRef.current);
+        tokenRefreshIntervalRef.current = null;
+      }
+      lastTokenRef.current = null;
+      return;
+    }
+
+    // Verificar periódicamente si el token cambió (Firebase renueva automáticamente)
+    // Firebase renueva tokens aproximadamente cada hora, verificamos cada 5 minutos
+    tokenRefreshIntervalRef.current = setInterval(async () => {
+      try {
+        const currentToken = await getIdToken();
+        if (currentToken && currentToken !== lastTokenRef.current && lastTokenRef.current !== null) {
+          console.log('🔄 Token renovado automáticamente por Firebase, verificando conexión...');
+          lastTokenRef.current = currentToken;
+
+          // Si el socket no está conectado, reconectar
+          // Usar una referencia al socket actual para evitar dependencias
+          if (socket && !socket.connected) {
+            console.log('🔄 Reconectando con nuevo token...');
+            reconnect();
+          }
+        } else if (currentToken) {
+          lastTokenRef.current = currentToken;
+        }
+      } catch (error) {
+        console.error('Error al verificar token:', error);
+      }
+    }, 5 * 60 * 1000); // Cada 5 minutos
+
+    // Inicializar el token actual
+    getIdToken().then(token => {
+      if (token) {
+        lastTokenRef.current = token;
+      }
+    });
+
+    return () => {
+      if (tokenRefreshIntervalRef.current) {
+        clearInterval(tokenRefreshIntervalRef.current);
+        tokenRefreshIntervalRef.current = null;
+      }
+    };
+  }, [user, shouldConnect, socket, reconnect]);
 
   // Manejadores de eventos WebSocket (sin dependencias que causen re-renders)
 
@@ -142,7 +234,19 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   useEffect(() => {
     console.log('🔌 Is Connected:', isConnected);
     console.log('🔌 Error:', error);
-  }, [isConnected]);
+
+    // Si hay un error y el usuario está autenticado, intentar reconectar
+    if (error && shouldConnect && socket && !socket.connected) {
+      console.log('🔄 Error detectado, intentando reconectar...');
+      // El hook useWebSocket ya maneja la reconexión automática,
+      // pero podemos forzar una reconexión manual si es necesario
+      setTimeout(() => {
+        if (socket && !socket.connected && shouldConnect) {
+          reconnect();
+        }
+      }, 2000);
+    }
+  }, [isConnected, error, shouldConnect, socket, reconnect]);
 
   // Configurar eventos WebSocket cuando el socket esté disponible
   useEffect(() => {
