@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Receipt, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Package, Banknote, FileText } from 'lucide-react';
+import { Home, Receipt, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Package, Banknote, FileText, Tv } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -60,6 +60,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/streaming', label: 'Televisión', icon: Tv, badge: 0 },
 
   ];
 

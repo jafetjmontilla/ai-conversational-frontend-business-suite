@@ -23,7 +23,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     if (!loading) {
       if (authUser && isPublicRoute) {
         // Si está logueado y está en una ruta pública, redirigir al dashboard
-        router.push('/invoice');
+        router.push('/dashboard');
       } else if (!authUser && !isPublicRoute) {
         // Si no está logueado y no está en una ruta pública, redirigir al login
         router.push('/login');

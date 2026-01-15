@@ -326,4 +326,158 @@ export const queries = {
       fecha
     }
   }`,
+  // Queries para streaming
+  getChannels: `query getChannels($status: String) {
+    getChannels(status: $status) {
+      _id
+      numberChannel
+      title
+      groupTitle
+      info
+      logo
+      src
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  getChannel: `query getChannel($_id: ID!) {
+    getChannel(_id: $_id) {
+      _id
+      numberChannel
+      title
+      groupTitle
+      info
+      logo
+      src
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  getStreamingChannels: `query getStreamingChannels {
+    getStreamingChannels {
+      _id
+      channelId
+      numberChannel
+      status
+      processId
+      startedAt
+      lastError
+      errorCount
+      channel {
+        _id
+        numberChannel
+        title
+        groupTitle
+        info
+        logo
+        src
+        status
+      }
+      createdAt
+      updatedAt
+    }
+  }`,
+  getStreamingChannel: `query getStreamingChannel($channelId: ID!) {
+    getStreamingChannel(channelId: $channelId) {
+      _id
+      channelId
+      numberChannel
+      status
+      processId
+      startedAt
+      lastError
+      errorCount
+      channel {
+        _id
+        numberChannel
+        title
+        groupTitle
+        info
+        logo
+        src
+        status
+      }
+      createdAt
+      updatedAt
+    }
+  }`,
+  createChannel: `mutation createChannel($args: ChannelInput!) {
+    createChannel(args: $args) {
+      _id
+      numberChannel
+      title
+      groupTitle
+      info
+      logo
+      src
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateChannel: `mutation updateChannel($_id: ID!, $args: ChannelInput!) {
+    updateChannel(_id: $_id, args: $args) {
+      _id
+      numberChannel
+      title
+      groupTitle
+      info
+      logo
+      src
+      status
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteChannel: `mutation deleteChannel($_id: ID!) {
+    deleteChannel(_id: $_id)
+  }`,
+  startStreaming: `mutation startStreaming($channelId: ID!, $ffmpegOptions: FfmpegOptionsInput) {
+    startStreaming(channelId: $channelId, ffmpegOptions: $ffmpegOptions) {
+      _id
+      channelId
+      numberChannel
+      status
+      processId
+      startedAt
+      errorCount
+    }
+  }`,
+  stopStreaming: `mutation stopStreaming($channelId: ID!) {
+    stopStreaming(channelId: $channelId)
+  }`,
+  restartStreaming: `mutation restartStreaming($channelId: ID!) {
+    restartStreaming(channelId: $channelId) {
+      _id
+      channelId
+      numberChannel
+      status
+      processId
+      startedAt
+      errorCount
+    }
+  }`,
+  updateFfmpegOptions: `mutation updateFfmpegOptions($channelId: ID!, $ffmpegOptions: FfmpegOptionsInput!) {
+    updateFfmpegOptions(channelId: $channelId, ffmpegOptions: $ffmpegOptions) {
+      _id
+      channelId
+      numberChannel
+      status
+      ffmpegOptions {
+        hwaccel
+        hwaccelDevice
+        hwaccelOutputFormat
+        videoCodec
+        videoQuality
+        audioCodec
+        audioBitrate
+        resolution
+        aspectRatio
+        hlsTime
+        hlsListSize
+      }
+    }
+  }`,
 }

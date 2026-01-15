@@ -18,6 +18,27 @@ interface NotificationData {
   metadata?: Record<string, any>;
 }
 
+// Tipos para streaming
+interface StreamingUpdate {
+  _id: string;
+  channelId: string;
+  numberChannel: number;
+  status: 'running' | 'stopped' | 'error' | 'restarting';
+  processId?: number;
+  startedAt?: string;
+  lastError?: string;
+  errorCount: number;
+  updatedAt?: string;
+}
+
+interface StreamingError {
+  channelId: string;
+  numberChannel: number;
+  error: string;
+  errorCount: number;
+  timestamp: string;
+}
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -28,6 +49,10 @@ interface WebSocketContextType {
   // Métodos para suscribirse/desuscribirse
   subscribeToNotifications: () => void;
   unsubscribeFromNotifications: () => void;
+  // Nuevos métodos para streaming
+  onStreamingUpdate: (callback: (update: StreamingUpdate) => void) => void;
+  onStreamingError: (callback: (error: StreamingError) => void) => void;
+  subscribeToStreaming: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -55,6 +80,14 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   }>({
     onNotification: [],
     onConnected: []
+  });
+
+  const streamingCallbacksRef = useRef<{
+    onUpdate: ((update: StreamingUpdate) => void)[];
+    onError: ((error: StreamingError) => void)[];
+  }>({
+    onUpdate: [],
+    onError: []
   });
 
   // Obtener token de autenticación de Firebase (mismo que GraphQL)
@@ -88,6 +121,24 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     invoiceCallbacksRef.current.onConnected.forEach(callback => callback(data));
   }, []);
 
+  const handleStreamingUpdate = useCallback((update: StreamingUpdate) => {
+    console.log('📺 Actualización de streaming recibida:', update);
+    streamingCallbacksRef.current.onUpdate.forEach(callback => callback(update));
+  }, []);
+
+  const handleStreamingError = useCallback((error: StreamingError) => {
+    console.error('❌ Error de streaming recibido:', error);
+    streamingCallbacksRef.current.onError.forEach(callback => callback(error));
+  }, []);
+
+  const handleStreamingInitial = useCallback((statuses: StreamingUpdate[]) => {
+    console.log('📺 Estado inicial de streaming recibido:', statuses);
+    // Emitir cada estado como actualización individual
+    statuses.forEach(status => {
+      streamingCallbacksRef.current.onUpdate.forEach(callback => callback(status));
+    });
+  }, []);
+
   useEffect(() => {
     console.log('🔌 Is Connected:', isConnected);
     console.log('🔌 Error:', error);
@@ -106,12 +157,20 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     socket.on('notification', handleNotification);
     socket.on('connected', handleConnected);
 
+    // Suscribirse a eventos de streaming
+    socket.on('streaming:update', handleStreamingUpdate);
+    socket.on('streaming:error', handleStreamingError);
+    socket.on('streaming:initial', handleStreamingInitial);
+
     // Cleanup
     return () => {
       socket.off('notification', handleNotification);
       socket.off('connected', handleConnected);
+      socket.off('streaming:update', handleStreamingUpdate);
+      socket.off('streaming:error', handleStreamingError);
+      socket.off('streaming:initial', handleStreamingInitial);
     };
-  }, [socket, handleNotification, handleConnected]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -136,6 +195,20 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, [socket]);
 
+  const onStreamingUpdate = useCallback((callback: (update: StreamingUpdate) => void) => {
+    streamingCallbacksRef.current.onUpdate.push(callback);
+  }, []);
+
+  const onStreamingError = useCallback((callback: (error: StreamingError) => void) => {
+    streamingCallbacksRef.current.onError.push(callback);
+  }, []);
+
+  const subscribeToStreaming = useCallback(() => {
+    if (socket) {
+      socket.emit('streaming:subscribe');
+    }
+  }, [socket]);
+
   const value: WebSocketContextType = {
     socket,
     isConnected,
@@ -143,7 +216,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onNotification,
     onConnected,
     subscribeToNotifications,
-    unsubscribeFromNotifications
+    unsubscribeFromNotifications,
+    onStreamingUpdate,
+    onStreamingError,
+    subscribeToStreaming
   };
 
   return (
