@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { Play, Square, RotateCw, Settings, Plus } from 'lucide-react';
+import { Play, Square, RotateCw, Settings, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
@@ -48,6 +49,8 @@ export default function StreamingPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null);
 
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
@@ -211,6 +214,32 @@ export default function StreamingPage() {
     }
   };
 
+  const handleDeleteClick = (channel: Channel) => {
+    setChannelToDelete(channel);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!channelToDelete) return;
+
+    try {
+      await fetchApiV1({
+        query: queries.deleteChannel,
+        type: "json",
+        variables: {
+          _id: channelToDelete._id
+        }
+      });
+      toast.success('Canal eliminado', { description: `El canal "${channelToDelete.title}" ha sido eliminado` });
+      fetchChannels();
+      fetchStreamingChannels();
+      setDeleteDialogOpen(false);
+      setChannelToDelete(null);
+    } catch (error: any) {
+      toast.error(`Error al eliminar canal: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
       running: { variant: 'default' as const, label: 'En ejecución' },
@@ -332,6 +361,14 @@ export default function StreamingPage() {
                         >
                           <Settings className="h-4 w-4" />
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteClick(channel)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -351,14 +388,33 @@ export default function StreamingPage() {
           fetchChannels();
         }}
       />
+
+      {/* Dialog para confirmar borrado */}
+      <DeleteChannelDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setChannelToDelete(null);
+          }
+        }}
+        channel={channelToDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
 
 // Componente Dialog para crear/editar canal
-function ChannelDialog({ open, onOpenChange, channel, onSuccess }: any) {
+interface ChannelDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channel: Channel | null;
+  onSuccess: () => void;
+}
+function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialogProps) {
   const [formData, setFormData] = useState({
-    numberChannel: channel?.numberChannel || '',
+    numberChannel: channel?.numberChannel?.toString() || '',
     title: channel?.title || '',
     groupTitle: channel?.groupTitle || '',
     info: channel?.info || '',
@@ -367,35 +423,38 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: any) {
     status: channel?.status || 'test'
   });
 
+  // Resetear el formulario cuando se abre el diálogo o cambia el channel
   useEffect(() => {
-    if (channel) {
-      setFormData({
-        numberChannel: channel.numberChannel || '',
-        title: channel.title || '',
-        groupTitle: channel.groupTitle || '',
-        info: channel.info || '',
-        logo: channel.logo || '',
-        src: channel.src || '',
-        status: channel.status || 'test'
-      });
-    } else {
-      setFormData({
-        numberChannel: '',
-        title: '',
-        groupTitle: '',
-        info: '',
-        logo: '',
-        src: '',
-        status: 'test'
-      });
+    if (open) {
+      if (channel) {
+        setFormData({
+          numberChannel: channel.numberChannel?.toString() || '',
+          title: channel.title || '',
+          groupTitle: channel.groupTitle || '',
+          info: channel.info || '',
+          logo: channel.logo || '',
+          src: channel.src || '',
+          status: channel.status || 'test'
+        });
+      } else {
+        setFormData({
+          numberChannel: '',
+          title: '',
+          groupTitle: '',
+          info: '',
+          logo: '',
+          src: '',
+          status: 'test'
+        });
+      }
     }
-  }, [channel]);
+  }, [open, channel]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const args = {
-        numberChannel: parseInt(String(formData.numberChannel)) || 0,
+        numberChannel: parseInt(formData.numberChannel) || 0,
         title: formData.title,
         groupTitle: formData.groupTitle || undefined,
         info: formData.info || undefined,
@@ -441,10 +500,13 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: any) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Número de Canal</Label>
-              <Input
-                type="number"
+              <InputInteger
                 value={formData.numberChannel}
-                onChange={(e) => setFormData({ ...formData, numberChannel: parseInt(e.target.value) || 0 })}
+                onChange={(value) => {
+                  setFormData({ ...formData, numberChannel: value })
+                }}
+                min={1}
+                max={999}
                 required
               />
             </div>
@@ -511,6 +573,86 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: any) {
             <Button type="submit">Guardar</Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Componente Dialog para confirmar borrado de canal
+interface DeleteChannelDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channel: Channel | null;
+  onConfirm: () => void;
+}
+
+function DeleteChannelDialog({ open, onOpenChange, channel, onConfirm }: DeleteChannelDialogProps) {
+  const [confirmationNumber, setConfirmationNumber] = useState('');
+  const isValid = channel && confirmationNumber === channel.numberChannel.toString();
+
+  // Resetear el campo cuando se abre/cierra el diálogo
+  useEffect(() => {
+    if (open) {
+      setConfirmationNumber('');
+    }
+  }, [open]);
+
+  const handleConfirm = () => {
+    if (isValid) {
+      onConfirm();
+    }
+  };
+
+  if (!channel) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">Eliminar Canal</DialogTitle>
+          <DialogDescription>
+            Esta acción no se puede deshacer. Esto eliminará permanentemente el canal
+            <strong> "{channel.title}"</strong> (Canal {channel.numberChannel}).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor="confirmation-number">
+              Para confirmar, ingresa el número del canal: <strong>{channel.numberChannel}</strong>
+            </Label>
+            <InputInteger
+              id="confirmation-number"
+              value={confirmationNumber}
+              onChange={(value) => setConfirmationNumber(value)}
+              min={1}
+              max={999}
+              className="mt-2"
+              autoFocus
+            />
+            {confirmationNumber && !isValid && (
+              <p className="text-sm text-destructive mt-2">
+                El número ingresado no coincide con el número del canal.
+              </p>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={!isValid}
+          >
+            Eliminar Canal
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
