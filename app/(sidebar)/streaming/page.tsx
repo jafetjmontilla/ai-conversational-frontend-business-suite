@@ -51,6 +51,7 @@ export default function StreamingPage() {
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
@@ -242,12 +243,28 @@ export default function StreamingPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      running: { variant: 'default' as const, label: 'En ejecución' },
-      stopped: { variant: 'secondary' as const, label: 'Detenido' },
+      running: { label: 'En ejecución', className: 'bg-green-500 hover:bg-green-600 text-white' },
+      stopped: { label: 'Detenido', className: 'bg-red-500 hover:bg-red-600 text-white' },
       error: { variant: 'destructive' as const, label: 'Error' },
       restarting: { variant: 'outline' as const, label: 'Reiniciando' }
     };
     const config = variants[status] || variants.stopped;
+    if (config.className) {
+      return <Badge className={config.className}>{config.label}</Badge>;
+    }
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getChannelStatusBadge = (status: string) => {
+    const variants: Record<string, any> = {
+      prod: { label: 'Producción', className: 'bg-green-500 hover:bg-green-600 text-white' },
+      test: { label: 'Prueba', className: 'bg-orange-500 hover:bg-orange-600 text-white' },
+      inactive: { variant: 'secondary' as const, label: 'Inactivo' }
+    };
+    const config = variants[status] || variants.inactive;
+    if (config.className) {
+      return <Badge className={config.className}>{config.label}</Badge>;
+    }
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -288,6 +305,7 @@ export default function StreamingPage() {
                 <TableHead>Canal</TableHead>
                 <TableHead>Título</TableHead>
                 <TableHead>Grupo</TableHead>
+                <TableHead>Status Canal</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Iniciado</TableHead>
                 <TableHead>Errores</TableHead>
@@ -297,8 +315,13 @@ export default function StreamingPage() {
             <TableBody>
               {channels.map((channel) => {
                 const streaming = streamingChannels.get(channel._id);
+                const isSelected = selectedRowId === channel._id;
                 return (
-                  <TableRow key={channel._id}>
+                  <TableRow
+                    key={channel._id}
+                    onClick={() => setSelectedRowId(channel._id)}
+                    className={`cursor-pointer ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-muted/50'}`}
+                  >
                     <TableCell className="font-medium">{channel.numberChannel}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -309,6 +332,9 @@ export default function StreamingPage() {
                       </div>
                     </TableCell>
                     <TableCell>{channel.groupTitle || '-'}</TableCell>
+                    <TableCell>
+                      {getChannelStatusBadge(channel.status)}
+                    </TableCell>
                     <TableCell>
                       {streaming ? getStatusBadge(streaming.status) : <Badge variant="secondary">No configurado</Badge>}
                     </TableCell>
@@ -327,34 +353,48 @@ export default function StreamingPage() {
                     <TableCell>
                       <div className="flex gap-2">
                         {streaming?.status === 'running' ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStop(channel._id)}
-                            >
-                              <Square className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRestart(channel._id)}
-                            >
-                              <RotateCw className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedRowId(channel._id);
+                              handleStop(channel._id);
+                            }}
+                            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                          >
+                            <Square className="h-4 w-4" />
+                          </Button>
                         ) : (
                           <Button
                             size="sm"
-                            onClick={() => handleStart(channel._id)}
+                            onClick={() => {
+                              setSelectedRowId(channel._id);
+                              handleStart(channel._id);
+                            }}
+                            disabled={channel.status !== 'test' && channel.status !== 'prod'}
+                            className={channel.status === 'test' || channel.status === 'prod'
+                              ? 'bg-green-500 hover:bg-green-600 text-white'
+                              : ''}
                           >
                             <Play className="h-4 w-4" />
                           </Button>
                         )}
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedRowId(channel._id);
+                            handleRestart(channel._id);
+                          }}
+                          disabled={streaming?.status !== 'running'}
+                        >
+                          <RotateCw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           onClick={() => {
+                            setSelectedRowId(channel._id);
                             setSelectedChannel(channel);
                             setDialogOpen(true);
                           }}
@@ -364,7 +404,10 @@ export default function StreamingPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDeleteClick(channel)}
+                          onClick={() => {
+                            setSelectedRowId(channel._id);
+                            handleDeleteClick(channel);
+                          }}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
