@@ -49,13 +49,6 @@ export default function StreamingPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
 
-  // Cargar canales iniciales
-  useEffect(() => {
-    if (authUser) {
-      fetchChannels();
-    }
-  }, [authUser]);
-
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
     if (isConnected && socket) {
@@ -112,14 +105,62 @@ export default function StreamingPage() {
     } catch (error) {
       console.error('Error al cargar canales:', error);
       toast.error('Error al cargar canales');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchStreamingChannels = async () => {
+    try {
+      const res: StreamingChannel[] = await fetchApiV1({
+        query: queries.getStreamingChannels,
+        type: "json"
+      });
+
+      // Mapear los streamingChannels a un Map usando el _id del channel como clave
+      const streamingMap = new Map<string, StreamingChannel>();
+      res.forEach((streamingChannel) => {
+        // Obtener el _id del channel (puede venir desde channelId o desde channel._id)
+        let channelId: string | undefined;
+
+        if (typeof streamingChannel.channelId === 'string') {
+          channelId = streamingChannel.channelId;
+        } else if ((streamingChannel.channelId as any)?._id) {
+          channelId = (streamingChannel.channelId as any)._id.toString();
+        } else if (streamingChannel.channel?._id) {
+          channelId = streamingChannel.channel._id;
+        }
+
+        if (channelId) {
+          streamingMap.set(channelId, {
+            ...streamingChannel,
+            channelId: channelId,
+            channel: streamingChannel.channel || undefined
+          });
+        }
+      });
+
+      setStreamingChannels(streamingMap);
+    } catch (error) {
+      console.error('Error al cargar streaming channels:', error);
+      toast.error('Error al cargar streaming channels');
     }
   };
 
   useEffect(() => {
     if (authUser) {
-      fetchChannels();
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          await Promise.all([
+            fetchChannels(),
+            fetchStreamingChannels()
+          ]);
+        } catch (error) {
+          console.error('Error al cargar datos:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadData();
     }
   }, [authUser]);
   const handleStart = async (channelId: string) => {
