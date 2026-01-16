@@ -13,7 +13,7 @@ import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { Play, Square, RotateCw, Settings, Plus, Trash2 } from 'lucide-react';
+import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
@@ -52,6 +52,11 @@ export default function StreamingPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
+  const [playerUrl, setPlayerUrl] = useState<string | null>(null);
+  const [playerTitle, setPlayerTitle] = useState<string>('');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
@@ -169,6 +174,8 @@ export default function StreamingPage() {
   }, [authUser]);
   const handleStart = async (channelId: string) => {
     try {
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
       await fetchApiV1({
         query: queries.startStreaming,
         type: "json",
@@ -176,15 +183,19 @@ export default function StreamingPage() {
           channelId
         }
       });
-      toast.success('Streaming iniciado', { description: 'El canal ha comenzado a transmitir' });
+      toast.success('Streaming iniciado', { description: `El canal ${channelNumber} ha comenzado a transmitir` });
       // No necesitamos actualizar manualmente, el socket lo hará
     } catch (error: any) {
-      toast.error(`Error al iniciar streaming: ${error.message || 'Error desconocido'}`);
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+      toast.error(`Error al iniciar streaming en canal ${channelNumber}: ${error.message || 'Error desconocido'}`);
     }
   };
 
   const handleStop = async (channelId: string) => {
     try {
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
       await fetchApiV1({
         query: queries.stopStreaming,
         type: "json",
@@ -192,15 +203,19 @@ export default function StreamingPage() {
           channelId
         }
       });
-      toast.success('Streaming detenido', { description: 'El canal ha dejado de transmitir' });
+      toast.success('Streaming detenido', { description: `El canal ${channelNumber} ha dejado de transmitir` });
       // No necesitamos actualizar manualmente, el socket lo hará
     } catch (error: any) {
-      toast.error(`Error al detener streaming: ${error.message || 'Error desconocido'}`);
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+      toast.error(`Error al detener streaming en canal ${channelNumber}: ${error.message || 'Error desconocido'}`);
     }
   };
 
   const handleRestart = async (channelId: string) => {
     try {
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
       await fetchApiV1({
         query: queries.restartStreaming,
         type: "json",
@@ -208,10 +223,12 @@ export default function StreamingPage() {
           channelId
         }
       });
-      toast.success('Streaming reiniciado', { description: 'El canal se ha reiniciado' });
+      toast.success('Streaming reiniciado', { description: `El canal ${channelNumber} se ha reiniciado` });
       // No necesitamos actualizar manualmente, el socket lo hará
     } catch (error: any) {
-      toast.error(`Error al reiniciar streaming: ${error.message || 'Error desconocido'}`);
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+      toast.error(`Error al reiniciar streaming en canal ${channelNumber}: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -231,13 +248,13 @@ export default function StreamingPage() {
           _id: channelToDelete._id
         }
       });
-      toast.success('Canal eliminado', { description: `El canal "${channelToDelete.title}" ha sido eliminado` });
+      toast.success('Canal eliminado', { description: `El canal ${channelToDelete.numberChannel} "${channelToDelete.title}" ha sido eliminado` });
       fetchChannels();
       fetchStreamingChannels();
       setDeleteDialogOpen(false);
       setChannelToDelete(null);
     } catch (error: any) {
-      toast.error(`Error al eliminar canal: ${error.message || 'Error desconocido'}`);
+      toast.error(`Error al eliminar canal ${channelToDelete.numberChannel}: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -266,6 +283,72 @@ export default function StreamingPage() {
       return <Badge className={config.className}>{config.label}</Badge>;
     }
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="ml-2 h-4 w-4" />
+      : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
+  const getSortedChannels = () => {
+    if (!sortColumn) return channels;
+
+    return [...channels].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      const streamingA = streamingChannels.get(a._id);
+      const streamingB = streamingChannels.get(b._id);
+
+      switch (sortColumn) {
+        case 'numberChannel':
+          aValue = a.numberChannel;
+          bValue = b.numberChannel;
+          break;
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'groupTitle':
+          aValue = (a.groupTitle || '').toLowerCase();
+          bValue = (b.groupTitle || '').toLowerCase();
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'streamingStatus':
+          aValue = streamingA?.status || '';
+          bValue = streamingB?.status || '';
+          break;
+        case 'startedAt':
+          aValue = streamingA?.startedAt ? new Date(streamingA.startedAt).getTime() : 0;
+          bValue = streamingB?.startedAt ? new Date(streamingB.startedAt).getTime() : 0;
+          break;
+        case 'errorCount':
+          aValue = streamingA?.errorCount || 0;
+          bValue = streamingB?.errorCount || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
   };
 
   if (loading) {
@@ -302,18 +385,74 @@ export default function StreamingPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Canal</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Grupo</TableHead>
-                <TableHead>Status Canal</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Iniciado</TableHead>
-                <TableHead>Errores</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('numberChannel')}
+                >
+                  <div className="flex items-center">
+                    Canal
+                    {getSortIcon('numberChannel')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('title')}
+                >
+                  <div className="flex items-center">
+                    Título
+                    {getSortIcon('title')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('groupTitle')}
+                >
+                  <div className="flex items-center">
+                    Grupo
+                    {getSortIcon('groupTitle')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center">
+                    Status Canal
+                    {getSortIcon('status')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('streamingStatus')}
+                >
+                  <div className="flex items-center">
+                    Estado
+                    {getSortIcon('streamingStatus')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('startedAt')}
+                >
+                  <div className="flex items-center">
+                    Iniciado
+                    {getSortIcon('startedAt')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleSort('errorCount')}
+                >
+                  <div className="flex items-center">
+                    Errores
+                    {getSortIcon('errorCount')}
+                  </div>
+                </TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {channels.map((channel) => {
+              {getSortedChannels().map((channel) => {
                 const streaming = streamingChannels.get(channel._id);
                 const isSelected = selectedRowId === channel._id;
                 return (
@@ -352,7 +491,7 @@ export default function StreamingPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {streaming?.status === 'running' ? (
+                        {streaming?.status === 'running' || streaming?.status === 'error' ? (
                           <Button
                             size="sm"
                             variant="outline"
@@ -386,9 +525,35 @@ export default function StreamingPage() {
                             setSelectedRowId(channel._id);
                             handleRestart(channel._id);
                           }}
-                          disabled={streaming?.status !== 'running'}
+                          disabled={streaming?.status !== 'running' && streaming?.status !== 'error' && streaming?.status !== 'stopped'}
                         >
                           <RotateCw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRowId(channel._id);
+                            setPlayerUrl(channel.src);
+                            setPlayerTitle(`${channel.title} - Origen`);
+                            setPlayerDialogOpen(true);
+                          }}
+                          title="Reproducir URL de origen"
+                        >
+                          <Video className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRowId(channel._id);
+                            setPlayerUrl(`https://stream.4net.plus/hls/${channel.numberChannel}.m3u8`);
+                            setPlayerTitle(`${channel.title} - HLS`);
+                            setPlayerDialogOpen(true);
+                          }}
+                          title="Reproducir HLS"
+                        >
+                          <Monitor className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
@@ -443,6 +608,20 @@ export default function StreamingPage() {
         }}
         channel={channelToDelete}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Dialog para reproducir video */}
+      <VideoPlayerDialog
+        open={playerDialogOpen}
+        onOpenChange={(open) => {
+          setPlayerDialogOpen(open);
+          if (!open) {
+            setPlayerUrl(null);
+            setPlayerTitle('');
+          }
+        }}
+        url={playerUrl}
+        title={playerTitle}
       />
     </div>
   );
@@ -525,11 +704,13 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
         });
       }
 
-      toast.success(`Canal ${channel ? 'actualizado' : 'creado'} correctamente`);
+      const channelNumber = channel?.numberChannel || formData.numberChannel || 'N/A';
+      toast.success(`Canal ${channelNumber} ${channel ? 'actualizado' : 'creado'} correctamente`);
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
-      toast.error(`Error al ${channel ? 'actualizar' : 'crear'} canal: ${error.message || 'Error desconocido'}`);
+      const channelNumber = channel?.numberChannel || formData.numberChannel || 'N/A';
+      toast.error(`Error al ${channel ? 'actualizar' : 'crear'} canal ${channelNumber}: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -694,6 +875,76 @@ function DeleteChannelDialog({ open, onOpenChange, channel, onConfirm }: DeleteC
             disabled={!isValid}
           >
             Eliminar Canal
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Componente Dialog para reproducir video
+interface VideoPlayerDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  url: string | null;
+  title: string;
+}
+
+function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialogProps) {
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  // Efecto para configurar el video cuando esté montado
+  React.useEffect(() => {
+    if (!open || !url) return;
+
+    // Usar setTimeout para asegurar que el DOM esté listo
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.src = url;
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (videoRef.current) {
+        const video = videoRef.current;
+        video.pause();
+        video.src = '';
+      }
+    };
+  }, [open, url]);
+
+  if (!url) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl w-full">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
+          <video
+            ref={videoRef}
+            controls
+            autoPlay
+            className="w-full h-full"
+            playsInline
+          >
+            Tu navegador no soporta la reproducción de video.
+          </video>
+        </div>
+        <div className="mt-4 p-3 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground mb-1">URL:</p>
+          <p className="text-sm font-mono break-all">{url}</p>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cerrar
           </Button>
         </DialogFooter>
       </DialogContent>
