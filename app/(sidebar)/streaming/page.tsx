@@ -17,6 +17,7 @@ import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUp
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+const channelsFF = [153, 170, 185, 186, 187, 188, 189, 190, 191, 198, 207, 229, 231, 232, 233, 243, 263, 269, 271, 274, 278, 279, 281, 283]
 
 interface Channel {
   _id: string;
@@ -455,11 +456,17 @@ export default function StreamingPage() {
               {getSortedChannels().map((channel) => {
                 const streaming = streamingChannels.get(channel._id);
                 const isSelected = selectedRowId === channel._id;
+                const isInChannelsFF = channelsFF.includes(channel.numberChannel);
                 return (
                   <TableRow
                     key={channel._id}
                     onClick={() => setSelectedRowId(channel._id)}
-                    className={`cursor-pointer ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-muted/50'}`}
+                    className={`cursor-pointer ${isSelected
+                      ? 'bg-blue-100 dark:bg-blue-900/30'
+                      : isInChannelsFF
+                        ? 'bg-yellow-200 dark:bg-yellow-900 hover:bg-yellow-500 dark:hover:bg-yellow-900/50'
+                        : 'hover:bg-muted/50'
+                      }`}
                   >
                     <TableCell className="font-medium">{channel.numberChannel}</TableCell>
                     <TableCell>
