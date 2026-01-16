@@ -525,7 +525,7 @@ export default function StreamingPage() {
                             setSelectedRowId(channel._id);
                             handleRestart(channel._id);
                           }}
-                          disabled={streaming?.status !== 'running' && streaming?.status !== 'error' && streaming?.status !== 'stopped'}
+                          disabled={streaming?.status !== 'running' && streaming?.status !== 'error'}
                         >
                           <RotateCw className="h-4 w-4" />
                         </Button>
