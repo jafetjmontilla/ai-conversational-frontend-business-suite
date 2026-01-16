@@ -892,28 +892,351 @@ interface VideoPlayerDialogProps {
 
 function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialogProps) {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const hlsRef = React.useRef<any>(null);
+  const mpegtsRef = React.useRef<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [streamType, setStreamType] = React.useState<string>('');
+
+  // Detectar tipo de stream
+  const detectStreamType = React.useCallback((streamUrl: string): 'hls' | 'mpegts' | 'direct' => {
+    const lowerUrl = streamUrl.toLowerCase();
+
+    // Detectar HLS
+    if (lowerUrl.includes('.m3u8') || lowerUrl.includes('application/vnd.apple.mpegurl')) {
+      return 'hls';
+    }
+
+    // Detectar MPEG-TS por extensión
+    if (lowerUrl.includes('.ts') ||
+      lowerUrl.includes('.m2ts') ||
+      lowerUrl.includes('mpegts') ||
+      lowerUrl.includes('transport') ||
+      lowerUrl.includes('mpeg-ts') ||
+      lowerUrl.match(/\.ts(\?|$)/i)) {
+      return 'mpegts';
+    }
+
+    // Detectar URLs HTTP/HTTPS sin extensión conocida como posibles MPEG-TS (IPTV)
+    // Estas URLs suelen ser streams MPEG-TS
+    if ((streamUrl.startsWith('http://') || streamUrl.startsWith('https://')) &&
+      !lowerUrl.match(/\.(mp4|webm|ogg|avi|mov|mkv|flv|m3u8|ts|m2ts)(\?|$)/i) &&
+      !lowerUrl.includes('.m3u8')) {
+      return 'mpegts'; // Intentar primero como MPEG-TS
+    }
+
+    // Stream directo (HTTP/HTTPS, MP4, WebM, etc.)
+    return 'direct';
+  }, []);
 
   // Efecto para configurar el video cuando esté montado
   React.useEffect(() => {
-    if (!open || !url) return;
+    if (!open || !url) {
+      setError(null);
+      setIsLoading(false);
+      setStreamType('');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    const detectedType = detectStreamType(url);
+    setStreamType(detectedType);
+
+    const loadVideo = async () => {
+      if (!videoRef.current) return;
+
+      const video = videoRef.current;
+
+      // Limpiar instancias anteriores
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (mpegtsRef.current) {
+        mpegtsRef.current.destroy();
+        mpegtsRef.current = null;
+      }
+
+      try {
+        if (detectedType === 'hls') {
+          // Usar HLS.js para streams HLS
+          // @ts-ignore - hls.js puede no tener tipos en algunos entornos
+          const HlsModule = await import('hls.js');
+          const Hls = HlsModule.default;
+
+          if (Hls.isSupported()) {
+            const hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: false,
+              backBufferLength: 90,
+              maxBufferLength: 30,
+              maxMaxBufferLength: 60,
+              startLevel: -1,
+              debug: false,
+            });
+
+            hls.loadSource(url);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              setIsLoading(false);
+              video.play().catch((err) => {
+                console.error('Error al reproducir:', err);
+                setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+              });
+            });
+
+            hls.on(Hls.Events.ERROR, (_event: string, data: any) => {
+              if (data.fatal) {
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    setError('Error de red. Verifica la conexión o que el stream esté disponible.');
+                    hls.startLoad();
+                    break;
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    setError('Error de codec de video. El formato puede no ser compatible con el navegador.');
+                    hls.recoverMediaError();
+                    break;
+                  default:
+                    setError('Error al cargar el stream. El formato puede no ser compatible.');
+                    hls.destroy();
+                    break;
+                }
+              }
+            });
+
+            hlsRef.current = hls;
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Soporte nativo de HLS (Safari)
+            video.src = url;
+            video.addEventListener('loadedmetadata', () => {
+              setIsLoading(false);
+            });
+            video.play().catch((err) => {
+              console.error('Error al reproducir:', err);
+              setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+            });
+          } else {
+            setError('Tu navegador no soporta reproducción HLS. Prueba con Chrome, Firefox o Safari.');
+            setIsLoading(false);
+          }
+        } else if (detectedType === 'mpegts') {
+          // Usar mpegts.js para streams MPEG-TS
+          // @ts-ignore - mpegts.js puede no tener tipos en algunos entornos
+          const mpegtsModule = await import('mpegts.js');
+          const mpegts = mpegtsModule.default;
+
+          // Verificar si la URL no tiene extensión (para fallback)
+          const isUrlWithoutExtension = !url.match(/\.(ts|m2ts)(\?|$)/i);
+
+          if (mpegts.isSupported()) {
+            const player = mpegts.createPlayer({
+              type: 'mse', // Media Source Extensions
+              url: url,
+              isLive: true,
+              // @ts-ignore - opciones adicionales de configuración
+              liveBufferLatencyChasing: true,
+              liveBufferLatencyMaxLatency: 1.5,
+              liveBufferLatencyMinRemain: 0.3,
+              autoCleanupSourceBuffer: true,
+              autoCleanupMaxBackwardDuration: 3,
+              autoCleanupMinBackwardDuration: 2,
+            });
+
+            player.attachMediaElement(video);
+            player.load();
+
+            let hasError = false;
+
+            player.on(mpegts.Events.ERROR, (errorType: string, errorDetail: string, errorInfo: any) => {
+              console.error('Error MPEG-TS:', errorType, errorDetail, errorInfo);
+
+              // Si es un error fatal y la URL no tiene extensión, intentar como stream directo
+              if (!hasError && isUrlWithoutExtension && (errorType === 'MediaError' || errorType === 'NetworkError')) {
+                hasError = true;
+                console.log('MPEG-TS falló, intentando como stream directo...');
+
+                // Limpiar player MPEG-TS
+                try {
+                  player.destroy();
+                } catch (e) {
+                  console.error('Error al destruir player MPEG-TS:', e);
+                }
+                mpegtsRef.current = null;
+
+                // Intentar como stream directo
+                video.src = url;
+                video.addEventListener('loadedmetadata', () => {
+                  setIsLoading(false);
+                });
+                video.addEventListener('error', (e) => {
+                  setIsLoading(false);
+                  const videoError = video.error;
+                  if (videoError) {
+                    let errorMessage = 'Error al cargar el video. ';
+                    switch (videoError.code) {
+                      case videoError.MEDIA_ERR_ABORTED:
+                        errorMessage += 'La carga fue abortada.';
+                        break;
+                      case videoError.MEDIA_ERR_NETWORK:
+                        errorMessage += 'Error de red. Verifica la conexión o que el stream esté disponible.';
+                        break;
+                      case videoError.MEDIA_ERR_DECODE:
+                        errorMessage += 'Error de codec. El formato puede no ser compatible con el navegador.';
+                        break;
+                      case videoError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                        errorMessage += 'El formato de video no es compatible con el navegador.';
+                        break;
+                      default:
+                        errorMessage += 'Formato no compatible.';
+                    }
+                    setError(errorMessage);
+                  }
+                });
+                video.addEventListener('canplay', () => {
+                  setIsLoading(false);
+                });
+                video.play().catch((err) => {
+                  console.error('Error al reproducir:', err);
+                  setIsLoading(false);
+                  setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+                });
+                return;
+              }
+
+              setIsLoading(false);
+              if (errorType === 'NetworkError') {
+                setError('Error de red al cargar el stream MPEG-TS. Verifica la conexión o que el stream esté disponible.');
+              } else if (errorType === 'MediaError') {
+                setError('Error de codec en el stream MPEG-TS. El formato puede requerir transcodificación.');
+              } else {
+                setError(`Error al reproducir stream MPEG-TS: ${errorDetail || errorType}`);
+              }
+            });
+
+            player.on(mpegts.Events.LOADING_COMPLETE, () => {
+              setIsLoading(false);
+              video.play().catch((err) => {
+                console.error('Error al reproducir:', err);
+                setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+              });
+            });
+
+            player.on(mpegts.Events.RECOVERED_EARLY_EOF, () => {
+              console.log('Stream MPEG-TS recuperado después de EOF temprano');
+            });
+
+            player.on(mpegts.Events.MEDIA_INFO, (mediaInfo: any) => {
+              console.log('Información del stream MPEG-TS:', mediaInfo);
+              setIsLoading(false);
+            });
+
+            mpegtsRef.current = player;
+          } else {
+            // Si mpegts.js no está soportado, intentar como stream directo para URLs sin extensión
+            if (isUrlWithoutExtension && (url.startsWith('http://') || url.startsWith('https://'))) {
+              console.log('mpegts.js no soportado, intentando como stream directo...');
+              video.src = url;
+              video.addEventListener('loadedmetadata', () => {
+                setIsLoading(false);
+              });
+              video.addEventListener('error', (e) => {
+                setIsLoading(false);
+                const videoError = video.error;
+                if (videoError) {
+                  setError('El formato de video no es compatible con el navegador. Prueba con VLC/PotPlayer.');
+                }
+              });
+              video.addEventListener('canplay', () => {
+                setIsLoading(false);
+              });
+              video.play().catch((err) => {
+                console.error('Error al reproducir:', err);
+                setIsLoading(false);
+                setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+              });
+            } else {
+              setError('Tu navegador no soporta reproducción MPEG-TS. Prueba con Chrome o Firefox.');
+              setIsLoading(false);
+            }
+          }
+        } else {
+          // Stream directo (HTTP/HTTPS, MP4, WebM, etc.)
+          video.src = url;
+
+          video.addEventListener('loadedmetadata', () => {
+            setIsLoading(false);
+          });
+
+          video.addEventListener('error', (e) => {
+            setIsLoading(false);
+            const videoError = video.error;
+            if (videoError) {
+              let errorMessage = 'Error al cargar el video. ';
+              switch (videoError.code) {
+                case videoError.MEDIA_ERR_ABORTED:
+                  errorMessage += 'La carga fue abortada.';
+                  break;
+                case videoError.MEDIA_ERR_NETWORK:
+                  errorMessage += 'Error de red. Verifica la conexión o que el stream esté disponible.';
+                  break;
+                case videoError.MEDIA_ERR_DECODE:
+                  errorMessage += 'Error de codec. El formato de video puede no ser compatible con el navegador. PotPlayer/VLC pueden reproducirlo porque tienen codecs adicionales.';
+                  break;
+                case videoError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                  errorMessage += 'El formato de video no es compatible con el navegador. Prueba abriendo la URL en VLC/PotPlayer o usa el stream HLS si está disponible.';
+                  break;
+                default:
+                  errorMessage += 'Formato no compatible. Algunos formatos solo funcionan en VLC.';
+              }
+              setError(errorMessage);
+            }
+          });
+
+          video.addEventListener('canplay', () => {
+            setIsLoading(false);
+          });
+
+          video.play().catch((err) => {
+            console.error('Error al reproducir:', err);
+            setIsLoading(false);
+            setError('No se pudo iniciar la reproducción automática. Intenta hacer clic en play.');
+          });
+        }
+      } catch (err: any) {
+        console.error('Error al configurar el video:', err);
+        setError(`Error al cargar el video: ${err.message || 'Error desconocido'}`);
+        setIsLoading(false);
+      }
+    };
 
     // Usar setTimeout para asegurar que el DOM esté listo
-    const timer = setTimeout(() => {
-      if (videoRef.current) {
-        const video = videoRef.current;
-        video.src = url;
-      }
-    }, 100);
+    const timer = setTimeout(loadVideo, 100);
 
     return () => {
       clearTimeout(timer);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (mpegtsRef.current) {
+        mpegtsRef.current.destroy();
+        mpegtsRef.current = null;
+      }
       if (videoRef.current) {
         const video = videoRef.current;
         video.pause();
         video.src = '';
+        video.removeEventListener('error', () => { });
+        video.removeEventListener('loadedmetadata', () => { });
+        video.removeEventListener('canplay', () => { });
       }
+      setError(null);
+      setIsLoading(false);
+      setStreamType('');
     };
-  }, [open, url]);
+  }, [open, url, detectStreamType]);
 
   if (!url) return null;
 
@@ -923,13 +1246,33 @@ function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialog
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
+        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+              <div className="text-white text-center">
+                <RotateCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                <p className="text-sm">Cargando video...</p>
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10 p-4">
+              <div className="text-white text-center max-w-md">
+                <p className="text-sm font-semibold mb-2 text-red-400">⚠️ Error de reproducción</p>
+                <p className="text-xs mb-4">{error}</p>
+                <p className="text-xs text-muted-foreground">
+                  Nota: Algunos formatos de video (como RTSP o ciertos codecs) solo funcionan en VLC/PotPlayer u otros reproductores especializados.
+                </p>
+              </div>
+            </div>
+          )}
           <video
             ref={videoRef}
             controls
             autoPlay
             className="w-full h-full"
             playsInline
+            muted={false}
           >
             Tu navegador no soporta la reproducción de video.
           </video>
@@ -937,6 +1280,13 @@ function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialog
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground mb-1">URL:</p>
           <p className="text-sm font-mono break-all">{url}</p>
+          {streamType && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Tipo: {streamType === 'hls' ? 'Stream HLS (usando HLS.js)' :
+                streamType === 'mpegts' ? 'Stream MPEG-TS (usando mpegts.js)' :
+                  'Stream directo (HTTP/HTTPS)'}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button
