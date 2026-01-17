@@ -13,7 +13,7 @@ import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
@@ -55,12 +55,14 @@ export default function StreamingPage() {
   const [playerDialogOpen, setPlayerDialogOpen] = useState(false);
   const [playerUrl, setPlayerUrl] = useState<string | null>(null);
   const [playerTitle, setPlayerTitle] = useState<string>('');
+  const [playerChannel, setPlayerChannel] = useState<Channel | null>(null);
+  const [playerType, setPlayerType] = useState<'origin' | 'hls'>('hls');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   useEffect(() => {
+    console.log(100010, streamingChannels)
+  }, [streamingChannels])
 
-    console.log(100010, window.location.origin.split('://')[0])
-  }, [])
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
     if (isConnected && socket) {
@@ -542,6 +544,8 @@ export default function StreamingPage() {
                             setSelectedRowId(channel._id);
                             setPlayerUrl(channel.src);
                             setPlayerTitle(`${channel.title} - Origen`);
+                            setPlayerChannel(channel);
+                            setPlayerType('origin');
                             setPlayerDialogOpen(true);
                           }}
                           title="Reproducir URL de origen"
@@ -555,6 +559,8 @@ export default function StreamingPage() {
                             setSelectedRowId(channel._id);
                             setPlayerUrl(`https://stream.4net.plus/hls/${channel.numberChannel}.m3u8`);
                             setPlayerTitle(`${channel.title} - HLS`);
+                            setPlayerChannel(channel);
+                            setPlayerType('hls');
                             setPlayerDialogOpen(true);
                           }}
                           title="Reproducir HLS"
@@ -624,10 +630,24 @@ export default function StreamingPage() {
           if (!open) {
             setPlayerUrl(null);
             setPlayerTitle('');
+            setPlayerChannel(null);
           }
         }}
         url={playerUrl}
         title={playerTitle}
+        channel={playerChannel}
+        playerType={playerType}
+        channels={channels.filter(c => c.status === 'prod')}
+        onChannelChange={(newChannel) => {
+          setPlayerChannel(newChannel);
+          if (playerType === 'hls') {
+            setPlayerUrl(`https://stream.4net.plus/hls/${newChannel.numberChannel}.m3u8`);
+            setPlayerTitle(`${newChannel.title} - HLS`);
+          } else {
+            setPlayerUrl(newChannel.src);
+            setPlayerTitle(`${newChannel.title} - Origen`);
+          }
+        }}
       />
     </div>
   );
@@ -894,15 +914,85 @@ interface VideoPlayerDialogProps {
   onOpenChange: (open: boolean) => void;
   url: string | null;
   title: string;
+  channel: Channel | null;
+  playerType: 'origin' | 'hls';
+  channels: Channel[];
+  onChannelChange: (channel: Channel) => void;
 }
 
-function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialogProps) {
+function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType, channels, onChannelChange }: VideoPlayerDialogProps) {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const hlsRef = React.useRef<any>(null);
   const mpegtsRef = React.useRef<any>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [streamType, setStreamType] = React.useState<string>('');
+
+  // Obtener la lista de canales ordenados por número de canal
+  const sortedChannels = React.useMemo(() => {
+    return [...channels].sort((a, b) => a.numberChannel - b.numberChannel);
+  }, [channels]);
+
+  // Encontrar el índice del canal actual
+  const currentChannelIndex = React.useMemo(() => {
+    if (!channel) return -1;
+    return sortedChannels.findIndex(c => c._id === channel._id);
+  }, [channel, sortedChannels]);
+
+  // Función para navegar al canal anterior
+  const handlePreviousChannel = () => {
+    if (currentChannelIndex > 0 && sortedChannels.length > 0) {
+      const previousChannel = sortedChannels[currentChannelIndex - 1];
+      onChannelChange(previousChannel);
+    }
+  };
+
+  // Función para navegar al canal siguiente
+  const handleNextChannel = () => {
+    if (currentChannelIndex < sortedChannels.length - 1 && sortedChannels.length > 0) {
+      const nextChannel = sortedChannels[currentChannelIndex + 1];
+      onChannelChange(nextChannel);
+    }
+  };
+
+  const canGoPrevious = currentChannelIndex > 0;
+  const canGoNext = currentChannelIndex >= 0 && currentChannelIndex < sortedChannels.length - 1;
+
+  // Función para copiar el origen al portapapeles
+  const handleCopyOrigin = async () => {
+    if (!channel?.src) return;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(channel.src);
+        toast.success("URL de origen copiada al portapapeles");
+      } else {
+        // Fallback para contextos no seguros
+        const textArea = document.createElement('textarea');
+        textArea.value = channel.src;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          if (successful) {
+            toast.success("URL de origen copiada al portapapeles");
+          } else {
+            throw new Error('Fallback copy failed');
+          }
+        } catch (fallbackError) {
+          document.body.removeChild(textArea);
+          toast.error("Error al copiar. Por favor, cópialo manualmente.");
+        }
+      }
+    } catch (error) {
+      toast.error("Error al copiar la URL");
+    }
+  };
 
   // Detectar tipo de stream
   const detectStreamType = React.useCallback((streamUrl: string): 'hls' | 'mpegts' | 'direct' => {
@@ -1250,7 +1340,10 @@ function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-full">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{channel?.numberChannel} - {channel?.title}</DialogTitle>
+          <DialogDescription>
+            Reproductor de video en streaming Canal {channel?.numberChannel} - {channel?.title}
+          </DialogDescription>
         </DialogHeader>
         <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative">
           {isLoading && (
@@ -1279,22 +1372,76 @@ function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialog
             className="w-full h-full"
             playsInline
             muted={false}
+            onError={(e) => { console.log(545409, "error", e) }}
+            onCanPlay={(e) => { console.log(545410, "canplay", e) }}
+            onLoadStart={(e) => { console.log(545411, "loadstart", e) }}
+            onLoad={(e) => { console.log(545412, "load", e) }}
+            onLoadedMetadata={(e) => { console.log(545413, "loadedmetadata", e) }}
+            onPlay={(e) => { console.log(545414, "play", e) }}
+            onPause={(e) => { console.log(545415, "pause", e) }}
+            onEnded={(e) => { console.log(545416, "ended", e) }}
+          // onTimeUpdate={(e) => { console.log(545417, "timeupdate", e) }}
           >
             Tu navegador no soporta la reproducción de video.
           </video>
         </div>
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground mb-1">URL:</p>
-          <p className="text-sm font-mono break-all">{url}</p>
+        <div className="p-3 bg-muted rounded-lg">
           {streamType && (
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground my-2">
               Tipo: {streamType === 'hls' ? 'Stream HLS (usando HLS.js)' :
                 streamType === 'mpegts' ? 'Stream MPEG-TS (usando mpegts.js)' :
                   'Stream directo (HTTP/HTTPS)'}
             </p>
           )}
+          <div className="flex gap-2">
+            <p className="text-sm text-muted-foreground mb-1">URL:</p>
+            <p className="text-sm font-mono break-all">{url}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground mb-1">Origen:</p>
+            <p className="text-sm font-mono break-all">{channel?.src}</p>
+            {channel?.src && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyOrigin}
+                className="h-8 w-8 p-0"
+                title="Copiar URL de origen"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <DialogFooter>
+          <div className='flex justify-center gap-2 w-20'>
+
+          </div>
+          <div className='flex flex-1 justify-center gap-2'>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handlePreviousChannel}
+              disabled={!canGoPrevious}
+              className="h-8 w-8 p-0"
+              title="Canal anterior"
+            >
+              <ChevronLeft className="h-10 w-10" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleNextChannel}
+              disabled={!canGoNext}
+              className="h-8 w-8 p-0"
+              title="Canal siguiente"
+            >
+              <ChevronRight className="h-10 w-10" />
+            </Button>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -1302,6 +1449,7 @@ function VideoPlayerDialog({ open, onOpenChange, url, title }: VideoPlayerDialog
           >
             Cerrar
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
