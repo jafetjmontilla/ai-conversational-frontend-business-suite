@@ -25,9 +25,9 @@ npm run pwa:version
 ```javascript
 // Versión en package.json: 1.2.3
 // Resultado en service-worker.js:
-const CACHE_NAME = 'jaihom-erp-v1-2-3';
-const RUNTIME_CACHE = 'jaihom-runtime-v1-2-3';
-const IMAGE_CACHE = 'jaihom-images-v1-2-3';
+const CACHE_NAME = '4net-erp-erp-v1-2-3';
+const RUNTIME_CACHE = '4net-erp-runtime-v1-2-3';
+const IMAGE_CACHE = '4net-erp-images-v1-2-3';
 ```
 
 ### `bump-version.js`

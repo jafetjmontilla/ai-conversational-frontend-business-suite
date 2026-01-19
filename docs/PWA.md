@@ -135,7 +135,7 @@ El script actualiza automáticamente:
 ```javascript
 // ❌ Ya no es necesario hacer esto manualmente
 // ✅ Usa: npm run version:patch
-const CACHE_NAME = 'jaihom-erp-v2'; // Incrementa la versión
+const CACHE_NAME = '4net-erp-erp-v2'; // Incrementa la versión
 ```
 
 ### Limpiar caché manualmente
@@ -187,7 +187,7 @@ Para probar el modal de actualización en desarrollo:
 2. **Hacer cambios y reconstruir**:
    - Cambia el `CACHE_NAME` en `service-worker.js`:
      ```javascript
-     const CACHE_NAME = 'jaihom-erp-v2'; // Incrementa el número
+     const CACHE_NAME = '4net-erp-erp-v2'; // Incrementa el número
      ```
    - Reconstruye: `npm run build`
 

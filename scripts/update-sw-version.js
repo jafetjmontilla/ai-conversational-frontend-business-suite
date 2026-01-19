@@ -42,18 +42,18 @@ try {
   const versionSuffix = `v${version.replace(/\./g, '-')}`;
 
   swContent = swContent.replace(
-    /const CACHE_NAME = ['"]jaihom-erp-v[^'"]+['"]/,
-    `const CACHE_NAME = 'jaihom-erp-${versionSuffix}'`
+    /const CACHE_NAME = ['"]4net-erp-erp-v[^'"]+['"]/,
+    `const CACHE_NAME = '4net-erp-erp-${versionSuffix}'`
   );
 
   swContent = swContent.replace(
-    /const RUNTIME_CACHE = ['"]jaihom-runtime-v[^'"]+['"]/,
-    `const RUNTIME_CACHE = 'jaihom-runtime-${versionSuffix}'`
+    /const RUNTIME_CACHE = ['"]4net-erp-runtime-v[^'"]+['"]/,
+    `const RUNTIME_CACHE = '4net-erp-runtime-${versionSuffix}'`
   );
 
   swContent = swContent.replace(
-    /const IMAGE_CACHE = ['"]jaihom-images-v[^'"]+['"]/,
-    `const IMAGE_CACHE = 'jaihom-images-${versionSuffix}'`
+    /const IMAGE_CACHE = ['"]4net-erp-images-v[^'"]+['"]/,
+    `const IMAGE_CACHE = '4net-erp-images-${versionSuffix}'`
   );
 
   // Agregar comentario con la versión y fecha
@@ -69,9 +69,9 @@ try {
   fs.writeFileSync(swPath, swContent, 'utf8');
 
   log(`✅ Service Worker actualizado a versión ${version}`, 'green');
-  log(`   - CACHE_NAME: jaihom-erp-${versionSuffix}`, 'reset');
-  log(`   - RUNTIME_CACHE: jaihom-runtime-${versionSuffix}`, 'reset');
-  log(`   - IMAGE_CACHE: jaihom-images-${versionSuffix}`, 'reset');
+  log(`   - CACHE_NAME: 4net-erp-erp-${versionSuffix}`, 'reset');
+  log(`   - RUNTIME_CACHE: 4net-erp-runtime-${versionSuffix}`, 'reset');
+  log(`   - IMAGE_CACHE: 4net-erp-images-${versionSuffix}`, 'reset');
   log('\n✨ Listo! Ahora ejecuta "npm run build" para aplicar los cambios.\n', 'green');
 
 } catch (error) {

@@ -1,13 +1,10 @@
 // Service Worker Manual para PWA - sistemasJaihom
 // Versión: 1.0.0 - Generado: 2025-10-12T01:48:15.887Z
-const CACHE_NAME = 'jaihom-erp-v1-0-0';
-const RUNTIME_CACHE = 'jaihom-runtime-v1-0-0';
-const IMAGE_CACHE = 'jaihom-images-v1-0-0';
+const CACHE_NAME = '4net-erp-erp-v1-0-0';
+const IMAGE_CACHE = '4net-erp-images-v1-0-0';
 
-// Archivos estáticos para cachear en la instalación
+// Archivos estáticos para cachear en la instalación (solo assets básicos)
 const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
   '/manifest.json',
   '/images/icon-192x192.png',
   '/images/icon-512x512.png'
@@ -35,8 +32,8 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
+              // Eliminar RUNTIME_CACHE si existe y otros cachés antiguos
               return cacheName !== CACHE_NAME &&
-                cacheName !== RUNTIME_CACHE &&
                 cacheName !== IMAGE_CACHE;
             })
             .map((cacheName) => {
@@ -49,7 +46,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Estrategia de caché: Network First con fallback a Cache
+// Estrategia de caché: Solo para imágenes y assets estáticos
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -59,12 +56,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // No cachear peticiones a APIs externas o autenticación
+  // No cachear peticiones a APIs, autenticación, webpack o hot-updates
   if (url.pathname.includes('/api/') ||
     url.pathname.includes('/_next/webpack') ||
     url.pathname.includes('hot-update')) {
     return;
   }
+
+  // NO cachear páginas ni recursos dinámicos - Network Only
+  // Solo permitir caché para imágenes y assets estáticos de Next.js
 
   // Estrategia para imágenes: Cache First
   if (request.destination === 'image') {
@@ -78,8 +78,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Estrategia para páginas: Network First con fallback a Cache
-  event.respondWith(networkFirstStrategy(request));
+  // Para todo lo demás (páginas, fetchings, recursos dinámicos): Network Only (sin caché)
+  event.respondWith(fetch(request));
 });
 
 // Estrategia Cache First: Busca en caché primero, luego en red
@@ -111,47 +111,6 @@ async function cacheFirstStrategy(request, cacheName) {
   }
 }
 
-// Estrategia Network First: Intenta red primero, luego caché
-async function networkFirstStrategy(request) {
-  try {
-    const cache = await caches.open(RUNTIME_CACHE);
-
-    try {
-      console.log('[SW] Fetching from network:', request.url);
-      const networkResponse = await fetch(request);
-
-      if (networkResponse && networkResponse.status === 200) {
-        cache.put(request, networkResponse.clone());
-      }
-
-      return networkResponse;
-    } catch (networkError) {
-      console.log('[SW] Network failed, trying cache:', request.url);
-      const cachedResponse = await cache.match(request);
-
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      // Si no hay caché, intentar servir la página principal para navegación
-      if (request.mode === 'navigate') {
-        const fallbackResponse = await cache.match('/');
-        if (fallbackResponse) {
-          return fallbackResponse;
-        }
-      }
-
-      throw networkError;
-    }
-  } catch (error) {
-    console.error('[SW] Error in networkFirstStrategy:', error);
-    return new Response('Sin conexión y sin caché disponible', {
-      status: 503,
-      statusText: 'Service Unavailable',
-      headers: { 'Content-Type': 'text/plain' }
-    });
-  }
-}
 
 // Escuchar mensajes del cliente
 self.addEventListener('message', (event) => {

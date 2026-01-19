@@ -31,7 +31,7 @@ npm start
 
 **Resultado:**
 - ✅ Versión incrementada: `1.0.0` → `1.0.1`
-- ✅ Service Worker actualizado: `jaihom-erp-v1-0-1`
+- ✅ Service Worker actualizado: `4net-erp-erp-v1-0-1`
 - ✅ Modal de actualización se muestra a usuarios
 - ✅ Bug corregido disponible inmediatamente
 
@@ -203,7 +203,7 @@ npm run build
 
 # 6. Verificar en DevTools
 # F12 → Application → Service Workers
-# Verás: jaihom-erp-v1-0-1
+# Verás: 4net-erp-erp-v1-0-1
 ```
 
 ---
