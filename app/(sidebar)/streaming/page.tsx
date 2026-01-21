@@ -1044,6 +1044,9 @@ function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType
 
       const video = videoRef.current;
 
+      // Establecer volumen inicial al 20%
+      video.volume = 0.2;
+
       // Limpiar instancias anteriores
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -1332,6 +1335,7 @@ function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType
       setIsLoading(false);
       setStreamType('');
     };
+
   }, [open, url, detectStreamType]);
 
   if (!url) return null;
