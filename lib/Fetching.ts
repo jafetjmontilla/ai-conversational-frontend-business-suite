@@ -365,6 +365,9 @@ export const queries = {
       startedAt
       lastError
       errorCount
+      ffmpegOptions {
+        useGpuTranscoding
+      }
       channel {
         _id
         numberChannel
@@ -389,6 +392,20 @@ export const queries = {
       startedAt
       lastError
       errorCount
+      ffmpegOptions {
+        hwaccel
+        hwaccelDevice
+        hwaccelOutputFormat
+        videoCodec
+        videoQuality
+        audioCodec
+        audioBitrate
+        resolution
+        aspectRatio
+        hlsTime
+        hlsListSize
+        useGpuTranscoding
+      }
       channel {
         _id
         numberChannel
@@ -477,6 +494,7 @@ export const queries = {
         aspectRatio
         hlsTime
         hlsListSize
+        useGpuTranscoding
       }
     }
   }`,

@@ -38,6 +38,9 @@ interface StreamingChannel {
   startedAt?: string;
   lastError?: string;
   errorCount: number;
+  ffmpegOptions?: {
+    useGpuTranscoding?: boolean;
+  };
   channel?: Channel;
 }
 
@@ -260,6 +263,77 @@ export default function StreamingPage() {
       setChannelToDelete(null);
     } catch (error: any) {
       toast.error(`Error al eliminar canal ${channelToDelete.numberChannel}: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleGpuTranscodingChange = async (channelId: string, checked: boolean) => {
+    try {
+      // Obtener todas las opciones actuales del streaming channel desde el backend
+      const streamingChannelData = await fetchApiV1({
+        query: queries.getStreamingChannel,
+        type: "json",
+        variables: {
+          channelId
+        }
+      });
+
+      // Obtener opciones actuales o usar valores por defecto
+      const currentOptions = streamingChannelData?.ffmpegOptions || {
+        hwaccel: 'vaapi',
+        hwaccelDevice: '/dev/dri/renderD128',
+        hwaccelOutputFormat: 'vaapi',
+        videoCodec: 'h264_vaapi',
+        videoQuality: 25,
+        audioCodec: 'aac',
+        audioBitrate: '128k',
+        resolution: '1280:720',
+        aspectRatio: '16:9',
+        hlsTime: 4,
+        hlsListSize: 5,
+        useGpuTranscoding: false
+      };
+
+      // Actualizar solo el campo useGpuTranscoding
+      const updatedOptions = {
+        ...currentOptions,
+        useGpuTranscoding: checked
+      };
+
+      await fetchApiV1({
+        query: queries.updateFfmpegOptions,
+        type: "json",
+        variables: {
+          channelId,
+          ffmpegOptions: updatedOptions
+        }
+      });
+
+      // Actualizar el estado local
+      setStreamingChannels(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(channelId);
+        if (existing) {
+          newMap.set(channelId, {
+            ...existing,
+            ffmpegOptions: {
+              ...existing.ffmpegOptions,
+              useGpuTranscoding: checked
+            }
+          });
+        }
+        return newMap;
+      });
+
+      // Recargar los streaming channels para asegurar sincronización
+      await fetchStreamingChannels();
+
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+      toast.success(`Transcodificación GPU ${checked ? 'habilitada' : 'deshabilitada'}`, {
+        description: `Canal ${channelNumber}: ${checked ? 'Usará transcodificación GPU' : 'Usará -c copy'}`
+      });
+    } catch (error: any) {
+      toast.error(`Error al actualizar opción: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -498,7 +572,22 @@ export default function StreamingPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
+                        {/* Checkbox para transcodificación GPU - primero en las acciones */}
+                        <label
+                          className="flex items-center gap-1 cursor-pointer"
+                          title="Transcodificación GPU para HLS/IPTV"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={streaming?.ffmpegOptions?.useGpuTranscoding || false}
+                            onChange={(e) => handleGpuTranscodingChange(channel._id, e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-xs text-muted-foreground">GPU</span>
+                        </label>
                         {streaming?.status === 'running' || streaming?.status === 'error' ? (
                           <Button
                             size="sm"
