@@ -66,9 +66,28 @@ export default function StreamingPage() {
   const [selectedChannelForErrors, setSelectedChannelForErrors] = useState<string | null>(null);
   const [errorsList, setErrorsList] = useState<any[]>([]);
   const [loadingErrors, setLoadingErrors] = useState(false);
+  const rowRefs = React.useRef<Map<string, HTMLTableRowElement>>(new Map());
+
   useEffect(() => {
     console.log(100010, streamingChannels)
   }, [streamingChannels])
+
+  // Efecto para hacer scroll automático a la fila seleccionada
+  useEffect(() => {
+    if (selectedRowId) {
+      const rowElement = rowRefs.current.get(selectedRowId);
+      if (rowElement) {
+        // Usar setTimeout para asegurar que el DOM esté actualizado
+        setTimeout(() => {
+          rowElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+        }, 100);
+      }
+    }
+  }, [selectedRowId]);
 
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
@@ -596,6 +615,13 @@ export default function StreamingPage() {
                 return (
                   <TableRow
                     key={channel._id}
+                    ref={(el) => {
+                      if (el) {
+                        rowRefs.current.set(channel._id, el);
+                      } else {
+                        rowRefs.current.delete(channel._id);
+                      }
+                    }}
                     onClick={() => setSelectedRowId(channel._id)}
                     className={`cursor-pointer ${isSelected
                       ? 'bg-blue-100 dark:bg-blue-900/30'
