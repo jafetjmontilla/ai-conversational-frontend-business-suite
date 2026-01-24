@@ -498,4 +498,16 @@ export const queries = {
       }
     }
   }`,
+  getStreamingErrors: `query getStreamingErrors($channelId: ID!) {
+    getStreamingErrors(channelId: $channelId) {
+      channelId
+      numberChannel
+      error
+      errorCount
+      timestamp
+    }
+  }`,
+  clearStreamingErrors: `mutation clearStreamingErrors($channelId: ID!) {
+    clearStreamingErrors(channelId: $channelId)
+  }`,
 }

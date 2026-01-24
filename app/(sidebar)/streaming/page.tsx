@@ -13,7 +13,7 @@ import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from "sonner";
-import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown, Copy, ChevronLeft, ChevronRight, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
@@ -62,6 +62,10 @@ export default function StreamingPage() {
   const [playerType, setPlayerType] = useState<'origin' | 'hls'>('hls');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [errorsDialogOpen, setErrorsDialogOpen] = useState(false);
+  const [selectedChannelForErrors, setSelectedChannelForErrors] = useState<string | null>(null);
+  const [errorsList, setErrorsList] = useState<any[]>([]);
+  const [loadingErrors, setLoadingErrors] = useState(false);
   useEffect(() => {
     console.log(100010, streamingChannels)
   }, [streamingChannels])
@@ -263,6 +267,61 @@ export default function StreamingPage() {
       setChannelToDelete(null);
     } catch (error: any) {
       toast.error(`Error al eliminar canal ${channelToDelete.numberChannel}: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleClearErrors = async (channelId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    try {
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+
+      await fetchApiV1({
+        query: queries.clearStreamingErrors,
+        type: "json",
+        variables: {
+          channelId
+        }
+      });
+      toast.success(`Errores limpiados correctamente`, { description: `Canal ${channelNumber}` });
+
+      // Si el modal está abierto, cerrarlo y limpiar la lista
+      if (selectedChannelForErrors === channelId) {
+        setErrorsDialogOpen(false);
+        setSelectedChannelForErrors(null);
+        setErrorsList([]);
+      }
+
+      // Recargar los streaming channels para actualizar el estado
+      await fetchStreamingChannels();
+    } catch (error: any) {
+      const channel = channels.find(c => c._id === channelId);
+      const channelNumber = channel?.numberChannel || 'N/A';
+      toast.error(`Error al limpiar errores del canal ${channelNumber}: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleViewErrors = async (channelId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedChannelForErrors(channelId);
+    setErrorsDialogOpen(true);
+    setLoadingErrors(true);
+    try {
+      const errors = await fetchApiV1({
+        query: queries.getStreamingErrors,
+        type: "json",
+        variables: {
+          channelId
+        }
+      });
+      setErrorsList(errors || []);
+    } catch (error: any) {
+      toast.error(`Error al cargar errores: ${error.message || 'Error desconocido'}`);
+      setErrorsList([]);
+    } finally {
+      setLoadingErrors(false);
     }
   };
 
@@ -566,7 +625,27 @@ export default function StreamingPage() {
                     </TableCell>
                     <TableCell>
                       {streaming?.errorCount ? (
-                        <Badge variant="destructive">{streaming.errorCount}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive">{streaming.errorCount}</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => handleClearErrors(channel._id, e)}
+                            title="Limpiar errores"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={(e) => handleViewErrors(channel._id, e)}
+                            title="Ver errores"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ) : (
                         '-'
                       )}
@@ -711,6 +790,77 @@ export default function StreamingPage() {
         onConfirm={handleConfirmDelete}
       />
 
+      {/* Dialog para mostrar errores */}
+      <ErrorsDialog
+        open={errorsDialogOpen}
+        onOpenChange={(open) => {
+          setErrorsDialogOpen(open);
+          if (!open) {
+            setSelectedChannelForErrors(null);
+            setErrorsList([]);
+          }
+        }}
+        channelId={selectedChannelForErrors}
+        errors={errorsList}
+        loading={loadingErrors}
+        channelNumber={channels.find(c => c._id === selectedChannelForErrors)?.numberChannel}
+        channelTitle={channels.find(c => c._id === selectedChannelForErrors)?.title}
+        onClearErrors={handleClearErrors}
+        onErrorsCleared={() => {
+          setErrorsList([]);
+          fetchStreamingChannels();
+        }}
+        channelsWithErrors={Array.from(streamingChannels.values())
+          .filter(sc => sc.status === 'error' && sc.errorCount > 0)
+          .map(sc => {
+            const channel = channels.find(c => c._id === sc.channelId);
+            return channel ? { ...channel, errorCount: sc.errorCount } : null;
+          })
+          .filter((c): c is Channel & { errorCount: number } => c !== null)
+          .sort((a, b) => a.numberChannel - b.numberChannel)}
+        onChannelChange={async (newChannelId: string) => {
+          setSelectedChannelForErrors(newChannelId);
+          setSelectedRowId(newChannelId);
+          setLoadingErrors(true);
+          try {
+            const errors = await fetchApiV1({
+              query: queries.getStreamingErrors,
+              type: "json",
+              variables: {
+                channelId: newChannelId
+              }
+            });
+            setErrorsList(errors || []);
+          } catch (error: any) {
+            toast.error(`Error al cargar errores: ${error.message || 'Error desconocido'}`);
+            setErrorsList([]);
+          } finally {
+            setLoadingErrors(false);
+          }
+        }}
+        onOpenPlayer={(channelId: string, playerType: 'origin' | 'hls') => {
+          const channel = channels.find(c => c._id === channelId);
+          if (channel) {
+            // Cerrar el modal de errores
+            setErrorsDialogOpen(false);
+            setSelectedChannelForErrors(null);
+            setErrorsList([]);
+
+            setSelectedRowId(channelId);
+            if (playerType === 'hls') {
+              setPlayerUrl(`https://stream.4net.plus/hls/${channel.numberChannel}.m3u8`);
+              setPlayerTitle(`${channel.title} - HLS`);
+            } else {
+              setPlayerUrl(channel.src);
+              setPlayerTitle(`${channel.title} - Origen`);
+            }
+            setPlayerChannel(channel);
+            setPlayerType(playerType);
+            setPlayerDialogOpen(true);
+          }
+        }}
+      />
+
       {/* Dialog para reproducir video */}
       <VideoPlayerDialog
         open={playerDialogOpen}
@@ -729,6 +879,7 @@ export default function StreamingPage() {
         channels={channels.filter(c => c.status === 'prod')}
         onChannelChange={(newChannel) => {
           setPlayerChannel(newChannel);
+          setSelectedRowId(newChannel._id);
           if (playerType === 'hls') {
             setPlayerUrl(`https://stream.4net.plus/hls/${newChannel.numberChannel}.m3u8`);
             setPlayerTitle(`${newChannel.title} - HLS`);
@@ -737,8 +888,206 @@ export default function StreamingPage() {
             setPlayerTitle(`${newChannel.title} - Origen`);
           }
         }}
+        streamingChannel={playerChannel ? streamingChannels.get(playerChannel._id) : undefined}
+        onClearErrors={handleClearErrors}
+        onViewErrors={async (channelId: string) => {
+          setSelectedChannelForErrors(channelId);
+          setErrorsDialogOpen(true);
+          setLoadingErrors(true);
+          try {
+            const errors = await fetchApiV1({
+              query: queries.getStreamingErrors,
+              type: "json",
+              variables: {
+                channelId
+              }
+            });
+            setErrorsList(errors || []);
+          } catch (error: any) {
+            toast.error(`Error al cargar errores: ${error.message || 'Error desconocido'}`);
+            setErrorsList([]);
+          } finally {
+            setLoadingErrors(false);
+          }
+        }}
       />
     </div>
+  );
+}
+
+// Componente Dialog para mostrar errores
+interface ErrorsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  channelId: string | null;
+  errors: any[];
+  loading: boolean;
+  channelNumber?: number;
+  channelTitle?: string;
+  onClearErrors: (channelId: string) => Promise<void>;
+  onErrorsCleared: () => void;
+  channelsWithErrors: (Channel & { errorCount: number })[];
+  onChannelChange: (channelId: string) => Promise<void>;
+  onOpenPlayer: (channelId: string, playerType: 'origin' | 'hls') => void;
+}
+
+function ErrorsDialog({ open, onOpenChange, channelId, errors, loading, channelNumber, channelTitle, onClearErrors, onErrorsCleared, channelsWithErrors, onChannelChange, onOpenPlayer }: ErrorsDialogProps) {
+  const [clearing, setClearing] = React.useState(false);
+
+  // Encontrar el índice del canal actual
+  const currentChannelIndex = React.useMemo(() => {
+    if (!channelId) return -1;
+    return channelsWithErrors.findIndex(c => c._id === channelId);
+  }, [channelId, channelsWithErrors]);
+
+  // Función para navegar al canal anterior
+  const handlePreviousChannel = async () => {
+    if (currentChannelIndex > 0 && channelsWithErrors.length > 0) {
+      const previousChannel = channelsWithErrors[currentChannelIndex - 1];
+      await onChannelChange(previousChannel._id);
+    }
+  };
+
+  // Función para navegar al canal siguiente
+  const handleNextChannel = async () => {
+    if (currentChannelIndex < channelsWithErrors.length - 1 && channelsWithErrors.length > 0) {
+      const nextChannel = channelsWithErrors[currentChannelIndex + 1];
+      await onChannelChange(nextChannel._id);
+    }
+  };
+
+  const canGoPrevious = currentChannelIndex > 0;
+  const canGoNext = currentChannelIndex >= 0 && currentChannelIndex < channelsWithErrors.length - 1;
+
+  const handleClear = async () => {
+    if (!channelId) return;
+
+    setClearing(true);
+    try {
+      await onClearErrors(channelId);
+      onErrorsCleared();
+    } catch (error) {
+      // El error ya se maneja en handleClearErrors
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl h-[600px] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            Errores del Canal {channelNumber} {channelTitle ? `- ${channelTitle}` : ''}
+          </DialogTitle>
+          <DialogDescription>
+            Lista de errores registrados para este canal
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <RotateCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Cargando errores...</span>
+            </div>
+          ) : errors.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No hay errores registrados para este canal
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {errors.map((error, index) => (
+                <Card key={index} className="border-destructive/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="text-xs">
+                            Error #{error.errorCount}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {error.timestamp ? format(new Date(error.timestamp), 'PPp', { locale: es }) : 'Sin fecha'}
+                          </span>
+                        </div>
+                        <p className="text-sm font-mono bg-muted p-2 rounded break-words">
+                          {error.error}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter className="flex-shrink-0">
+          <div className="flex justify-center gap-2 w-60">
+            {channelId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (channelId) {
+                    onOpenPlayer(channelId, 'hls');
+                  }
+                }}
+                className="h-8 w-8 p-0"
+                title="Reproducir HLS"
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-1 justify-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handlePreviousChannel}
+              disabled={!canGoPrevious}
+              className="h-8 w-8 p-0"
+              title="Canal anterior con errores"
+            >
+              <ChevronLeft className="h-10 w-10" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleNextChannel}
+              disabled={!canGoNext}
+              className="h-8 w-8 p-0"
+              title="Canal siguiente con errores"
+            >
+              <ChevronRight className="h-10 w-10" />
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              onClick={handleClear}
+              disabled={clearing || !channelId || errors.length === 0}
+            >
+              {clearing ? (
+                <>
+                  <RotateCw className="mr-2 h-4 w-4 animate-spin" />
+                  Limpiando...
+                </>
+              ) : (
+                <>
+                  <X className="mr-2 h-4 w-4" />
+                  Limpiar Errores
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1007,9 +1356,12 @@ interface VideoPlayerDialogProps {
   playerType: 'origin' | 'hls';
   channels: Channel[];
   onChannelChange: (channel: Channel) => void;
+  streamingChannel?: StreamingChannel;
+  onClearErrors: (channelId: string) => Promise<void>;
+  onViewErrors: (channelId: string) => Promise<void>;
 }
 
-function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType, channels, onChannelChange }: VideoPlayerDialogProps) {
+function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType, channels, onChannelChange, streamingChannel, onClearErrors, onViewErrors }: VideoPlayerDialogProps) {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const hlsRef = React.useRef<any>(null);
   const mpegtsRef = React.useRef<any>(null);
@@ -1509,7 +1861,29 @@ function VideoPlayerDialog({ open, onOpenChange, url, title, channel, playerType
         </div>
         <DialogFooter>
           <div className='flex justify-center gap-2 w-20'>
-
+            {streamingChannel?.errorCount && streamingChannel.errorCount > 0 ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="destructive">{streamingChannel.errorCount}</Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => channel && onClearErrors(channel._id)}
+                  title="Limpiar errores"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => channel && onViewErrors(channel._id)}
+                  title="Ver errores"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : null}
           </div>
           <div className='flex flex-1 justify-center gap-2'>
             <Button
