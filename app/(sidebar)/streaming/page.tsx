@@ -26,6 +26,7 @@ interface Channel {
   info?: string;
   logo?: string;
   src: string;
+  srcOrigins?: string[];
   status: string;
 }
 
@@ -960,6 +961,15 @@ interface ErrorsDialogProps {
 function ErrorsDialog({ open, onOpenChange, channelId, errors, loading, channelNumber, channelTitle, onClearErrors, onErrorsCleared, channelsWithErrors, onChannelChange, onOpenPlayer }: ErrorsDialogProps) {
   const [clearing, setClearing] = React.useState(false);
 
+  // Ordenar errores por timestamp descendente (más reciente primero)
+  const sortedErrors = React.useMemo(() => {
+    return [...errors].sort((a, b) => {
+      const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timestampB - timestampA; // Descendente: más reciente primero
+    });
+  }, [errors]);
+
   // Encontrar el índice del canal actual
   const currentChannelIndex = React.useMemo(() => {
     if (!channelId) return -1;
@@ -1016,13 +1026,13 @@ function ErrorsDialog({ open, onOpenChange, channelId, errors, loading, channelN
               <RotateCw className="h-6 w-6 animate-spin text-muted-foreground" />
               <span className="ml-2 text-muted-foreground">Cargando errores...</span>
             </div>
-          ) : errors.length === 0 ? (
+          ) : sortedErrors.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No hay errores registrados para este canal
             </div>
           ) : (
             <div className="space-y-3">
-              {errors.map((error, index) => (
+              {sortedErrors.map((error, index) => (
                 <Card key={index} className="border-destructive/20">
                   <CardContent className="pt-4">
                     <div className="flex items-start justify-between gap-4">
@@ -1134,11 +1144,24 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
     src: channel?.src || '',
     status: channel?.status || 'test'
   });
+  const [srcOrigins, setSrcOrigins] = useState<string[]>(['', '', '', '']);
+  const [selectedSrcIndex, setSelectedSrcIndex] = useState<number>(0);
 
   // Resetear el formulario cuando se abre el diálogo o cambia el channel
   useEffect(() => {
     if (open) {
       if (channel) {
+        // Inicializar srcOrigins: si existe, usarlo; si no, crear array con src actual en primera posición
+        const initialSrcOrigins = channel.srcOrigins && channel.srcOrigins.length > 0
+          ? [...channel.srcOrigins, ...Array(4 - channel.srcOrigins.length).fill('')].slice(0, 4)
+          : [channel.src || '', '', '', ''];
+
+        // Encontrar el índice del src actual en srcOrigins
+        const currentSrcIndex = initialSrcOrigins.findIndex(s => s === channel.src);
+        const indexToSelect = currentSrcIndex >= 0 ? currentSrcIndex : 0;
+
+        setSrcOrigins(initialSrcOrigins);
+        setSelectedSrcIndex(indexToSelect);
         setFormData({
           numberChannel: channel.numberChannel?.toString() || '',
           title: channel.title || '',
@@ -1149,6 +1172,8 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
           status: channel.status || 'test'
         });
       } else {
+        setSrcOrigins(['', '', '', '']);
+        setSelectedSrcIndex(0);
         setFormData({
           numberChannel: '',
           title: '',
@@ -1162,9 +1187,19 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
     }
   }, [open, channel]);
 
+  // Actualizar src cuando se selecciona un radio diferente
+  useEffect(() => {
+    if (srcOrigins[selectedSrcIndex] && srcOrigins[selectedSrcIndex].trim() !== '') {
+      setFormData(prev => ({ ...prev, src: srcOrigins[selectedSrcIndex] }));
+    }
+  }, [selectedSrcIndex]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Filtrar srcOrigins para eliminar valores vacíos
+      const filteredSrcOrigins = srcOrigins.filter(src => src.trim() !== '');
+
       const args = {
         numberChannel: parseInt(formData.numberChannel) || 0,
         title: formData.title,
@@ -1172,6 +1207,7 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
         info: formData.info || undefined,
         logo: formData.logo || undefined,
         src: formData.src,
+        srcOrigins: filteredSrcOrigins.length > 0 ? filteredSrcOrigins : undefined,
         status: formData.status
       };
 
@@ -1250,12 +1286,48 @@ function ChannelDialog({ open, onOpenChange, channel, onSuccess }: ChannelDialog
             />
           </div>
           <div>
-            <Label>URL de Origen (src)</Label>
-            <Input
-              value={formData.src}
-              onChange={(e) => setFormData({ ...formData, src: e.target.value })}
-              required
-            />
+            <Label>Fuentes de Origen (srcOrigins)</Label>
+            <div className="space-y-3 mt-2">
+              {[0, 1, 2, 3].map((index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    name="srcOrigin"
+                    checked={selectedSrcIndex === index}
+                    onChange={() => {
+                      setSelectedSrcIndex(index);
+                      if (srcOrigins[index]) {
+                        setFormData(prev => ({ ...prev, src: srcOrigins[index] }));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <Input
+                    value={srcOrigins[index]}
+                    onChange={(e) => {
+                      const newSrcOrigins = [...srcOrigins];
+                      newSrcOrigins[index] = e.target.value;
+                      setSrcOrigins(newSrcOrigins);
+                      // Si este es el src seleccionado, actualizar también el campo src
+                      if (selectedSrcIndex === index) {
+                        setFormData(prev => ({ ...prev, src: e.target.value }));
+                      }
+                    }}
+                    placeholder={`Fuente de origen ${index + 1}`}
+                    className="flex-1"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2">
+              <Label className="text-sm text-muted-foreground">URL de Origen Activa (src):</Label>
+              <Input
+                value={formData.src}
+                onChange={(e) => setFormData({ ...formData, src: e.target.value })}
+                required
+                className="mt-1"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

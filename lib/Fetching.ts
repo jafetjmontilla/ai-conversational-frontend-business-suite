@@ -336,6 +336,7 @@ export const queries = {
       info
       logo
       src
+      srcOrigins
       status
       createdAt
       updatedAt
@@ -350,6 +351,7 @@ export const queries = {
       info
       logo
       src
+      srcOrigins
       status
       createdAt
       updatedAt
@@ -376,6 +378,7 @@ export const queries = {
         info
         logo
         src
+        srcOrigins
         status
       }
       createdAt
@@ -414,6 +417,7 @@ export const queries = {
         info
         logo
         src
+        srcOrigins
         status
       }
       createdAt
@@ -429,6 +433,7 @@ export const queries = {
       info
       logo
       src
+      srcOrigins
       status
       createdAt
       updatedAt
@@ -443,6 +448,7 @@ export const queries = {
       info
       logo
       src
+      srcOrigins
       status
       createdAt
       updatedAt
