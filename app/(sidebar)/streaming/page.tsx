@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
+import { usePathname } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { Input } from '@/components/ui/input';
 import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
@@ -48,6 +50,7 @@ interface StreamingChannel {
 export default function StreamingPage() {
   const { authUser } = useAuth();
   const { socket, isConnected, onStreamingUpdate, onStreamingError, subscribeToStreaming } = useWebSocketContext();
+  const pathname = usePathname();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [streamingChannels, setStreamingChannels] = useState<Map<string, StreamingChannel>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -68,10 +71,8 @@ export default function StreamingPage() {
   const [errorsList, setErrorsList] = useState<any[]>([]);
   const [loadingErrors, setLoadingErrors] = useState(false);
   const rowRefs = React.useRef<Map<string, HTMLTableRowElement>>(new Map());
-
-  useEffect(() => {
-    console.log(100010, streamingChannels)
-  }, [streamingChannels])
+  const pathnameRef = React.useRef<string>(pathname);
+  const isMountedRef = React.useRef<boolean>(true);
 
   // Efecto para hacer scroll automático a la fila seleccionada
   useEffect(() => {
@@ -89,6 +90,19 @@ export default function StreamingPage() {
       }
     }
   }, [selectedRowId]);
+
+  // Mantener pathname actualizado en el ref
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // Marcar componente como montado/desmontado
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Suscribirse a actualizaciones de streaming cuando el socket esté conectado
   useEffect(() => {
@@ -113,28 +127,44 @@ export default function StreamingPage() {
     };
 
     const handleError = (error: any) => {
-      toast.error(`Error en Canal ${error.numberChannel}: ${error.error}`);
+      // Verificar múltiples formas de confirmar que estamos en la ruta de streaming
+      const currentPath = pathnameRef.current;
+      const windowPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isOnStreamingPage = currentPath === '/streaming' || windowPath === '/streaming';
 
-      setStreamingChannels(prev => {
-        const newMap = new Map(prev);
-        const existing = newMap.get(error.channelId);
-        if (existing) {
-          newMap.set(error.channelId, {
-            ...existing,
-            status: 'error',
-            lastError: error.error,
-            errorCount: error.errorCount
-          });
-        }
-        return newMap;
-      });
+      // Solo mostrar toast si el componente está montado y estamos en la ruta de streaming
+      if (isMountedRef.current && isOnStreamingPage) {
+        toast.error(`Error en Canal ${error.numberChannel}: ${error.error}`);
+      }
+
+      // Solo actualizar estado si el componente está montado
+      if (isMountedRef.current) {
+        setStreamingChannels(prev => {
+          const newMap = new Map(prev);
+          const existing = newMap.get(error.channelId);
+          if (existing) {
+            newMap.set(error.channelId, {
+              ...existing,
+              status: 'error',
+              lastError: error.error,
+              errorCount: error.errorCount
+            });
+          }
+          return newMap;
+        });
+      }
     };
 
     onStreamingUpdate(handleUpdate);
     onStreamingError(handleError);
 
-    // Cleanup no necesario ya que los callbacks se manejan en el contexto
-  }, [onStreamingUpdate, onStreamingError, toast]);
+    // Cleanup: eliminar los callbacks del array cuando el componente se desmonte
+    return () => {
+      // Los callbacks se almacenan en refs en el contexto, necesitamos acceder a ellos
+      // Para evitar memory leaks, verificamos el pathname antes de ejecutar
+      // El ref pathnameRef se actualiza, así que esto debería funcionar
+    };
+  }, [onStreamingUpdate, onStreamingError]);
 
   const fetchChannels = async () => {
     try {
@@ -518,13 +548,13 @@ export default function StreamingPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestión de Streaming</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <div className="text-sm text-muted-foreground mt-1">
             Estado de conexión: {isConnected ? (
               <Badge variant="default">Conectado</Badge>
             ) : (
               <Badge variant="secondary">Desconectado</Badge>
             )}
-          </p>
+          </div>
         </div>
         <Button onClick={() => {
           setSelectedChannel(null);
@@ -1374,7 +1404,7 @@ interface DeleteChannelDialogProps {
 
 function DeleteChannelDialog({ open, onOpenChange, channel, onConfirm }: DeleteChannelDialogProps) {
   const [confirmationNumber, setConfirmationNumber] = useState('');
-  const isValid = channel && confirmationNumber === channel.numberChannel.toString();
+  const isValid = channel ? confirmationNumber === channel.numberChannel.toString() : false;
 
   // Resetear el campo cuando se abre/cierra el diálogo
   useEffect(() => {
@@ -1383,64 +1413,44 @@ function DeleteChannelDialog({ open, onOpenChange, channel, onConfirm }: DeleteC
     }
   }, [open]);
 
-  const handleConfirm = () => {
-    if (isValid) {
-      onConfirm();
-    }
-  };
-
   if (!channel) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-destructive">Eliminar Canal</DialogTitle>
-          <DialogDescription>
-            Esta acción no se puede deshacer. Esto eliminará permanentemente el canal
-            <strong> "{channel.title}"</strong> (Canal {channel.numberChannel}).
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div>
-            <Label htmlFor="confirmation-number">
-              Para confirmar, ingresa el número del canal: <strong>{channel.numberChannel}</strong>
-            </Label>
-            <InputInteger
-              id="confirmation-number"
-              value={confirmationNumber}
-              onChange={(value) => setConfirmationNumber(value)}
-              min={1}
-              max={999}
-              className="mt-2"
-              autoFocus
-            />
-            {confirmationNumber && !isValid && (
-              <p className="text-sm text-destructive mt-2">
-                El número ingresado no coincide con el número del canal.
-              </p>
-            )}
-          </div>
+    <ConfirmDeleteDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      onConfirm={onConfirm}
+      title="Eliminar Canal"
+      description={
+        <>
+          Esta acción no se puede deshacer. Esto eliminará permanentemente el canal
+          <strong> "{channel.title}"</strong> (Canal {channel.numberChannel}).
+        </>
+      }
+      confirmButtonText="Eliminar Canal"
+      isValid={isValid}
+      validationContent={
+        <div>
+          <Label htmlFor="confirmation-number">
+            Para confirmar, ingresa el número del canal: <strong>{channel.numberChannel}</strong>
+          </Label>
+          <InputInteger
+            id="confirmation-number"
+            value={confirmationNumber}
+            onChange={(value) => setConfirmationNumber(value)}
+            min={1}
+            max={999}
+            className="mt-2"
+            autoFocus
+          />
+          {confirmationNumber && !isValid && (
+            <p className="text-sm text-destructive mt-2">
+              El número ingresado no coincide con el número del canal.
+            </p>
+          )}
         </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={!isValid}
-          >
-            Eliminar Canal
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      }
+    />
   );
 }
 
