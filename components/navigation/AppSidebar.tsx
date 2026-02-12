@@ -1,6 +1,6 @@
 "use client"
 
-import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
+import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge, SidebarGroupLabel } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
 import React, { Dispatch, FC, useEffect, useState } from 'react';
@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Receipt, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Package, Banknote, FileText, Tv } from 'lucide-react';
+import { Home, Receipt, Users, Bell, Settings, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Package, Banknote, FileText, Tv, Ticket, BarChart, ChevronDown } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -35,6 +35,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
+  const [isSupportExpanded, setIsSupportExpanded] = useState(true);
   const versionLabel = packageJson.version ? `Erp v${packageJson.version}` : "Erp";
 
   const handleNavigation = async (href: string, label: string) => {
@@ -64,6 +65,12 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
 
   ];
 
+  const buildSupportItems = (): NavItem[] => [
+    { href: '/support/tickets', label: 'Tickets', icon: Ticket },
+    { href: '/support/statistics', label: 'Estadísticas', icon: BarChart },
+    { href: '/support/settings', label: 'Ajustes', icon: Settings },
+  ];
+
   const buildAccountItems = (): NavItem[] => [
     { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 0 },
     { href: '/users', label: 'Usuarios', icon: Users, condition: hasRole("admin") },
@@ -74,12 +81,14 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   useEffect(() => {
     setSlugs([
       ...buildPersonalItems().map((item) => ({ name: item.label, href: item.href })),
+      ...buildSupportItems().map((item) => ({ name: item.label, href: item.href })),
       ...buildAccountItems().map((item) => ({ name: item.label, href: item.href })
       )]
     )
   }, [])
 
   const personalItems = buildPersonalItems()
+  const supportItems = buildSupportItems()
   const accountItems = buildAccountItems()
 
   return (
@@ -136,6 +145,42 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel
+              className="uppercase cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors flex items-center justify-between px-2"
+              onClick={() => setIsSupportExpanded(!isSupportExpanded)}
+            >
+              <span>Soporte técnico</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'} ${state === "collapsed" ? "hidden" : ""}`}
+              />
+            </SidebarGroupLabel>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${isSupportExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+            >
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {supportItems.map((item) => {
+                    const isActive = currentPath === item.href;
+                    return (item?.condition === undefined || item?.condition === true) &&
+                      <SidebarMenuItem key={item.label}>
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          asChild
+                          onClick={() => !loading && handleNavigation(item.href, item.label)}
+                          className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+                        >
+                          <div>
+                            <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                            <span>{item.label}</span>
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </div>
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>

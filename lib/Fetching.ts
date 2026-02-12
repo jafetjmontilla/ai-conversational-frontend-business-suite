@@ -29,53 +29,64 @@ const conector: CallableFunction = async ({ api, query = ``, variables = {}, typ
     } else if (type === "formData") {
       const formData = new FormData();
       const values = Object?.entries(variables);
-      // Generar el map del Form Data para las imagenes
-      const map = values?.reduce((acc: any, item: any) => {
-        if (item[1] instanceof File) {
-          acc[item[0]] = [`variables.${item[0]}`];
-        }
-        if (item[1] instanceof Object) {
-          Object.entries(item[1]).forEach((el) => {
-            if (el[1] instanceof File) {
-              acc[el[0]] = [`variables.${item[0]}.${el[0]}`];
-            }
-            if (el[1] instanceof Object) {
-              Object.entries(el[1]).forEach((elemento) => {
-                if (elemento[1] instanceof File) {
-                  acc[elemento[0]] = [
-                    `variables.${item[0]}.${el[0]}.${elemento[0]}`,
-                  ];
-                }
-              });
+
+      // Crear una copia de variables con los archivos como null para el JSON
+      const variablesForJson: any = {};
+      const files: File[] = [];
+      const map: Record<string, string[]> = {};
+      let fileIndex = 0;
+
+      // Procesar variables y extraer archivos
+      values?.forEach(([key, value]) => {
+        if (value instanceof File) {
+          // Agregar archivo a la lista
+          files.push(value);
+          // Agregar al map con clave numérica
+          map[fileIndex.toString()] = [`variables.${key}`];
+          // Establecer como null en variables para JSON
+          variablesForJson[key] = null;
+          fileIndex++;
+        } else if (value instanceof Object && value !== null && !Array.isArray(value)) {
+          // Procesar objetos anidados
+          const nestedObj: any = {};
+          let hasFiles = false;
+
+          Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+            if (nestedValue instanceof File) {
+              files.push(nestedValue);
+              map[fileIndex.toString()] = [`variables.${key}.${nestedKey}`];
+              nestedObj[nestedKey] = null;
+              fileIndex++;
+              hasFiles = true;
+            } else {
+              nestedObj[nestedKey] = nestedValue;
             }
           });
-        }
-        return acc;
-      }, {});
 
-      // Agregar filas al FORM DATA
-
-      formData.append("operations", JSON.stringify({ query, variables }));
-      formData.append("map", JSON.stringify(map));
-      values.forEach((item) => {
-        if (item[1] instanceof File) {
-          formData.append(item[0], item[1]);
-        }
-        if (item[1] instanceof Object) {
-          Object.entries(item[1]).forEach((el) => {
-            if (el[1] instanceof File) {
-              formData.append(el[0], el[1]);
-            }
-            if (el[1] instanceof Object) {
-              Object.entries(el[1]).forEach((elemento) => {
-                if (elemento[1] instanceof File) {
-                  formData.append(elemento[0], elemento[1]);
-                }
-              });
-            }
-          });
+          variablesForJson[key] = hasFiles ? nestedObj : value;
+        } else {
+          // Mantener el valor original para valores no-File
+          variablesForJson[key] = value;
         }
       });
+
+      // Agregar operations y map al FormData
+      formData.append("operations", JSON.stringify({ query, variables: variablesForJson }));
+      formData.append("map", JSON.stringify(map));
+
+      // Agregar archivos con claves numéricas
+      files.forEach((file, index) => {
+        formData.append(index.toString(), file);
+      });
+
+      // NO leer el FormData aquí porque lo consume y queda vacío
+      // Solo loggear información que no requiere leer el FormData
+      console.log('=== FormData Debug ===');
+      console.log('Map object:', map);
+      console.log('Variables:', variables);
+      console.log('FormData type:', formData instanceof FormData ? 'FormData' : typeof formData);
+      console.log('======================');
+
       const { data } = await api.graphql(formData);
       if (data.errors) {
         throw new Error(JSON.stringify(data.errors));
@@ -515,5 +526,371 @@ export const queries = {
   }`,
   clearStreamingErrors: `mutation clearStreamingErrors($channelId: ID!) {
     clearStreamingErrors(channelId: $channelId)
+  }`,
+  getTicketSettings: `query getTicketSettings {
+    getTicketSettings {
+      _id
+      issues
+      failures
+      createdAt
+      updatedAt
+    }
+  }`,
+  createTicketSetting: `mutation createTicketSetting($args: TicketSettingInput!) {
+    createTicketSetting(args: $args) {
+      _id
+      issues
+      failures
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateTicketSetting: `mutation updateTicketSetting($id: ID!, $args: TicketSettingInput!) {
+    updateTicketSetting(id: $id, args: $args) {
+      _id
+      issues
+      failures
+      createdAt
+      updatedAt
+    }
+  }`,
+  getTicket: `query getTicket($_id: ID!) {
+    getTicket(_id: $_id) {
+      _id
+      number
+      subject
+      failureReason
+      startDate
+      endDate
+      createdAt
+      createdBy_id
+      createdBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      finishedBy_id
+      finishedBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      status
+      priority
+      technician_id
+      technician {
+        _id
+        name
+        email
+        photoURL
+      }
+      department
+      reportOrigin
+      description
+      ticketFileAttachment
+      service {
+        serviceId
+        ip
+        comments
+        installationDate
+        internetPlan {
+          id
+          name
+        }
+        zone {
+          id
+          name
+        }
+        router {
+          id
+          name
+        }
+        sectorial {
+          id
+          name
+        }
+      }
+      zoneId
+      responses {
+        response
+        createdAt
+        author {
+          id
+          name
+        }
+        files
+      }
+      updatedAt
+    }
+  }`,
+  getWisphubClientes: `query getWisphubClientes($searchText: String, $searchParam: String) {
+    getWisphubClientes(searchText: $searchText, searchParam: $searchParam)
+  }`,
+  getTickets: `query getTickets($sort: sortCriteriaTickets, $skip: Int, $limit: Int) {
+    getTickets(sort: $sort, skip: $skip, limit: $limit) {
+      total
+      results {
+        _id
+        number
+        subject
+        failureReason
+        startDate
+        endDate
+        createdAt
+        createdBy_id
+        createdBy {
+          _id
+          name
+          email
+          photoURL
+          phone
+        }
+        finishedBy_id
+        finishedBy {
+          _id
+          name
+          email
+          photoURL
+          phone
+        }
+        status
+        priority
+        technician_id
+        technician {
+          _id
+          name
+          email
+          photoURL
+          phone
+        }
+        department
+        reportOrigin
+        description
+        ticketFileAttachment
+        service {
+          serviceId
+          ip
+          comments
+          installationDate
+          internetPlan {
+            id
+            name
+          }
+          zone {
+            id
+            name
+          }
+          router {
+            id
+            name
+          }
+          sectorial {
+            id
+            name
+          }
+        }
+        zoneId
+        responses {
+          response
+          createdAt
+          author {
+            id
+            name
+          }
+          files
+        }
+        updatedAt
+        cliente {
+          cliente
+          usuario
+          ip
+          id_servicio
+          zona {
+            id
+            nombre
+          }
+        }
+      }
+    }
+  }`,
+  createTicket: `mutation createTicket($args: TicketInput!) {
+    createTicket(args: $args) {
+      _id
+      number
+      subject
+      failureReason
+      startDate
+      endDate
+      createdAt
+      createdBy_id
+      createdBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      finishedBy_id
+      finishedBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      status
+      priority
+      technician_id
+      technician {
+        _id
+        name
+        email
+        photoURL
+      }
+      department
+      reportOrigin
+      description
+      ticketFileAttachment
+      zoneId
+      updatedAt
+    }
+  }`,
+  updateTicket: `mutation updateTicket($id: ID!, $args: TicketInput!) {
+    updateTicket(id: $id, args: $args) {
+      _id
+      number
+      subject
+      failureReason
+      startDate
+      endDate
+      createdAt
+      createdBy_id
+      createdBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      finishedBy_id
+      finishedBy {
+        _id
+        name
+        email
+        photoURL
+      }
+      status
+      priority
+      technician_id
+      technician {
+        _id
+        name
+        email
+        photoURL
+      }
+      department
+      reportOrigin
+      description
+      ticketFileAttachment
+      zoneId
+      updatedAt
+    }
+  }`,
+  deleteTicket: `mutation deleteTicket($id: ID!) {
+    deleteTicket(id: $id)
+  }`,
+  // Queries de Storage (api-jaihom)
+  fileUploadApiJaihom: `mutation($file:Upload!, $args:String) {
+    fileUpload(file:$file, args:$args){
+      _id
+      lote
+      path
+      createdAt
+    }
+  }`,
+  getUploadFilesApiJaihom: `query($skip: Int, $limit: Int) {
+    getUploadFiles(skip:$skip, limit:$limit){
+      total
+      results{
+        _id
+        lote
+        path
+        createdAt
+      }
+    }
+  }`,
+  // Queries de Storage (4net-erp-backend)
+  uploadFile: `mutation($file: Upload!, $args: StorageInput) {
+    uploadFile(file: $file, args: $args) {
+      _id
+      filename
+      originalName
+      mimeType
+      size
+      path
+      url
+      uploadedBy
+      category
+      description
+      tags
+      createdAt
+      updatedAt
+    }
+  }`,
+  getStorage: `query($_id: ID!) {
+    getStorage(_id: $_id) {
+      _id
+      filename
+      originalName
+      mimeType
+      size
+      path
+      url
+      uploadedBy
+      category
+      description
+      tags
+      createdAt
+      updatedAt
+    }
+  }`,
+  getStorages: `query($skip: Int, $limit: Int, $sort: sortCriteriaStorage, $filter: filterCriteriaStorage) {
+    getStorages(skip: $skip, limit: $limit, sort: $sort, filter: $filter) {
+      total
+      results {
+        _id
+        filename
+        originalName
+        mimeType
+        size
+        path
+        url
+        uploadedBy
+        category
+        description
+        tags
+        createdAt
+        updatedAt
+      }
+    }
+  }`,
+  updateStorage: `mutation($_id: ID!, $args: StorageUpdateInput!) {
+    updateStorage(_id: $_id, args: $args) {
+      _id
+      filename
+      originalName
+      mimeType
+      size
+      path
+      url
+      uploadedBy
+      category
+      description
+      tags
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteStorage: `mutation($_id: ID!) {
+    deleteStorage(_id: $_id)
   }`,
 }

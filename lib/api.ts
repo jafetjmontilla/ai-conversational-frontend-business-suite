@@ -3,8 +3,14 @@ import { getIdToken } from './firebase';
 
 const instanceApiV1 = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000',
+  headers: {},
+});
+
+const instanceApiV1FormData = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000',
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'multipart/form-data',
+    'apollo-require-preflight': 'true',
   },
 });
 
@@ -24,24 +30,46 @@ const instanceApiImgbbV1 = axios.create({
 instanceApiV1.interceptors.request.use(async (config) => {
   try {
     const token = await getIdToken();
-    if (token) {
-      // Preservar el Content-Type existente si es FormData
-      if (config.data instanceof FormData) {
-        config.headers = {
-          ...(config.headers || {}),
-          Authorization: `Bearer ${token}`,
-        } as any;
-        // No establecer Content-Type para FormData, axios lo maneja automáticamente
-        delete config.headers['Content-Type'];
-      } else {
-        config.headers = {
-          ...(config.headers || {}),
-          Authorization: `Bearer ${token}`,
-        } as any;
+
+    // Manejar FormData de manera especial
+    if (config.data instanceof FormData) {
+      // NO leer el FormData aquí porque lo consume y queda vacío
+      // Solo configurar los headers necesarios
+      if (!config.headers) {
+        config.headers = {} as any;
       }
+
+      // Agregar headers necesarios
+      config.headers['apollo-require-preflight'] = 'true';
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Asegurar que no haya Content-Type establecido (axios lo establecerá automáticamente)
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+
+      return config;
     }
-  } catch {
-    // sin token
+
+    // Para requests JSON normales
+    if (token) {
+      config.headers = {
+        ...(config.headers || {}),
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      } as any;
+    }
+  } catch (error) {
+    console.error('Error en interceptor:', error);
+    // Si hay error obteniendo token pero es FormData, agregar header CSRF
+    if (config.data instanceof FormData) {
+      config.headers = {
+        'apollo-require-preflight': 'true',
+      } as any;
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
   }
   return config;
 });
@@ -86,9 +114,86 @@ export const checkApiHealth = async (): Promise<boolean> => {
   }
 };
 
+// Función específica para enviar FormData usando fetch nativo
+// fetch maneja FormData de manera más directa que axios en el navegador
+const sendFormDataGraphQL = async (formData: FormData): Promise<AxiosResponse> => {
+  try {
+    const token = await getIdToken();
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+    const url = `${baseURL}/graphql`;
+
+    // Crear headers manualmente
+    const headers: HeadersInit = {
+      'apollo-require-preflight': 'true',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Usar fetch nativo que maneja FormData mejor que axios
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData, // fetch maneja FormData automáticamente - NO establecer Content-Type
+    });
+
+    // Verificar que la respuesta sea exitosa
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    // Convertir la respuesta de fetch a formato compatible con axios
+    const data = await response.json();
+
+    // Crear un objeto compatible con AxiosResponse
+    return {
+      data,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers as any,
+      config: {} as any,
+    } as AxiosResponse;
+  } catch (error: any) {
+    // Si falla obtener token, intentar sin token pero con CSRF header
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+    const url = `${baseURL}/graphql`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apollo-require-preflight': 'true',
+      },
+      body: formData,
+    });
+
+    // Verificar que la respuesta sea exitosa
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      data,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers as any,
+      config: {} as any,
+    } as AxiosResponse;
+  }
+};
+
 export const apiV1: Fetching = {
   graphql: async (data: object): Promise<AxiosResponse> => {
-    return await instanceApiV1.post("/graphql", data, {})
+    // Si es FormData, usar función específica sin interceptors
+    if (data instanceof FormData) {
+      return await sendFormDataGraphQL(data);
+    }
+    // Para JSON normal, usar la instancia con interceptor
+    return await instanceApiV1.post("/graphql", data, {});
   },
 }
 
@@ -241,3 +346,138 @@ export const apiImgbbV1 = {
     }
   }
 }
+
+// Función de prueba básica con fetch sin autenticación
+export const testFileUpload = async (file: File, category?: string, description?: string, tags?: string[]) => {
+  try {
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+    const url = `${baseURL}/graphql`;
+
+    // Crear FormData
+    const formData = new FormData();
+
+    // Construir las operaciones GraphQL
+    const operations = {
+      query: `mutation uploadFile($file: Upload!, $args: StorageInput) {
+        uploadFile(file: $file, args: $args) {
+          _id
+          filename
+          originalName
+          mimeType
+          size
+          path
+          url
+          uploadedBy
+          category
+          description
+          tags
+          createdAt
+          updatedAt
+        }
+      }`,
+      variables: {
+        file: null, // Se reemplazará en el map
+        args: {
+          category: category || undefined,
+          description: description || undefined,
+          tags: tags || undefined,
+        }
+      }
+    };
+
+    // Crear el map para el archivo
+    const map = {
+      "0": ["variables.file"]
+    };
+
+    // Agregar al FormData
+    formData.append("operations", JSON.stringify(operations));
+    formData.append("map", JSON.stringify(map));
+    formData.append("0", file);
+
+    console.log('=== Test Upload Debug ===');
+    console.log('URL:', url);
+    console.log('Base URL:', baseURL);
+    console.log('File name:', file.name);
+    console.log('File size:', file.size);
+    console.log('File type:', file.type);
+    console.log('Operations:', JSON.stringify(operations, null, 2));
+    console.log('Map:', JSON.stringify(map, null, 2));
+
+    // NO leer FormData aquí porque lo consume y queda vacío
+    // Solo loggear información que no requiere leer el FormData
+    console.log('FormData creado correctamente');
+    console.log('FormData tiene file:', file ? 'Sí' : 'No');
+    console.log('========================');
+
+    // Hacer el fetch sin autenticación
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apollo-require-preflight': 'true',
+          // NO incluir Authorization header
+          // NO establecer Content-Type - fetch lo hará automáticamente con boundary
+        },
+        body: formData,
+      });
+    } catch (fetchError: any) {
+      console.error('Error en fetch:', fetchError);
+      console.error('Error name:', fetchError?.name);
+      console.error('Error message:', fetchError?.message);
+      console.error('Error stack:', fetchError?.stack);
+
+      // Proporcionar más información sobre el error
+      const errorMessage = fetchError?.message || 'Error desconocido';
+      const isNetworkError = errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('Network request failed');
+
+      if (isNetworkError) {
+        throw new Error(
+          `Error de red al conectar con ${url}. ` +
+          `Posibles causas: CORS bloqueado, servidor no disponible, o URL incorrecta. ` +
+          `Verifica que el servidor esté corriendo y que CORS esté configurado correctamente. ` +
+          `Error original: ${errorMessage}`
+        );
+      }
+
+      throw new Error(`Error al hacer fetch: ${errorMessage}`);
+    }
+
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = `No se pudo leer el cuerpo de la respuesta. Status: ${response.status}`;
+      }
+      console.error('Error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    let data;
+    try {
+      data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
+    } catch (jsonError: any) {
+      const text = await response.text();
+      console.error('Error al parsear JSON:', jsonError);
+      console.error('Response text:', text);
+      throw new Error(`Error al parsear respuesta JSON: ${jsonError.message}. Respuesta: ${text.substring(0, 200)}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Error completo en testFileUpload:', error);
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    throw error;
+  }
+};
