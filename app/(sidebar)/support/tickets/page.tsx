@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ComponentType } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AutocompleteInput } from '@/components/AutocompleteInput';
-import { Textarea } from '@/components/ui/textarea';
+import { QuillEditor, PastedAndDropFile } from '@/components/QuillEditor';
 import { FileUpload, UploadedFile, FileUploadRef } from '@/components/FileUpload';
+import { Interweave } from 'interweave';
+import { HashtagMatcher, UrlMatcher, UrlProps } from 'interweave-autolink';
+import Link from 'next/link';
 import { User } from '@/lib/interfases';
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
@@ -941,10 +944,12 @@ export default function TicketsPage() {
             </div>
             <div>
               <Label>Descripción</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
+              <QuillEditor
+                value={formData.description || '<p><br></p>'}
+                setValue={(value) => setFormData({ ...formData, description: value })}
+                setPastedAndDropFiles={() => { }}
+                pastedAndDropFiles={[]}
+                disableEmojis={true}
               />
             </div>
             <div>
@@ -996,7 +1001,21 @@ export default function TicketsPage() {
               {selectedTicket.description && (
                 <div>
                   <Label className="font-semibold">Descripción</Label>
-                  <p className="whitespace-pre-wrap">{selectedTicket.description}</p>
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap border-[1px] border-gray-200 p-4 rounded-2xl">
+                    {/* <div className="overflow-hidden text-ellipsis whitespace-nowrap"> */}
+                    <Interweave
+                      className="transition-all"
+                      content={selectedTicket.description}
+                      matchers={[
+                        new UrlMatcher('url', {}, (props: UrlProps) => (
+                          <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
+                            {props?.children}
+                          </Link>
+                        )),
+                        new HashtagMatcher('hashtag')
+                      ]}
+                    />
+                  </div>
                 </div>
               )}
               {selectedTicket.failureReason && (
