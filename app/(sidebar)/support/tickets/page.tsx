@@ -25,6 +25,9 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import { useSupportPermissions } from '@/lib/hooks/useAllowed';
+import { useRouter } from 'next/navigation';
+import { InputComments } from '@/components/InputComments';
 
 interface TicketUser {
   _id: string;
@@ -96,6 +99,8 @@ interface TicketsResponse {
 
 export default function TicketsPage() {
   const { authUser } = useAuth();
+  const router = useRouter();
+  const { canViewSupport, canCreateEditTickets, canDeleteTickets } = useSupportPermissions();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -121,6 +126,8 @@ export default function TicketsPage() {
   const [isClienteDropdownOpen, setIsClienteDropdownOpen] = useState(false);
   const [zonaNombre, setZonaNombre] = useState<string>('');
   const clienteDropdownRef = useRef<HTMLDivElement>(null);
+  const [viewDialogStatus, setViewDialogStatus] = useState<string>('');
+  const [viewDialogFailureReason, setViewDialogFailureReason] = useState<string>('');
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -235,8 +242,15 @@ export default function TicketsPage() {
   }, [dialogOpen]);
 
   useEffect(() => {
+    if (!canViewSupport()) {
+      toast.error('No tienes permiso para acceder a esta página');
+      router.push('/dashboard');
+      return;
+    }
     if (authUser) {
       fetchTickets();
+      loadTicketSettings();
+      loadUsers();
     }
   }, [authUser, currentPage, sortColumn, sortDirection, statusFilter, priorityFilter]);
 
@@ -264,6 +278,7 @@ export default function TicketsPage() {
     const roleToDepartment: { [key: string]: string } = {
       'technicalSupport': 'soporte_tecnico',
       'logicalSupport': 'soporte_tecnico',
+      'technicalSupportSupervisor': 'soporte_tecnico',
       'accounting': 'finanzas',
       'sales': 'ventas',
       'callCenter': 'quejas_sugerencias',
@@ -346,7 +361,149 @@ export default function TicketsPage() {
 
   const handleViewClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
+    setViewDialogStatus(ticket.status || '');
+    setViewDialogFailureReason(ticket.failureReason || '');
     setViewDialogOpen(true);
+  };
+
+  const handleSaveViewDialogChanges = async (newStatus?: string, newFailureReason?: string) => {
+    if (!selectedTicket) return;
+
+    try {
+      const statusToSave = newStatus !== undefined ? newStatus : viewDialogStatus;
+      const failureReasonToSave = newFailureReason !== undefined ? newFailureReason : viewDialogFailureReason;
+
+      const args: any = {
+        status: statusToSave || undefined,
+        failureReason: failureReasonToSave || undefined,
+      };
+
+      await fetchApiV1({
+        query: queries.updateTicket,
+        type: 'json',
+        variables: {
+          id: selectedTicket._id,
+          args,
+        },
+      });
+      toast.success('Cambios guardados correctamente');
+      fetchTickets();
+      // Actualizar el ticket seleccionado con los nuevos valores
+      setSelectedTicket({
+        ...selectedTicket,
+        status: statusToSave,
+        failureReason: failureReasonToSave,
+      });
+      if (newStatus !== undefined) {
+        setViewDialogStatus(newStatus);
+      }
+      if (newFailureReason !== undefined) {
+        setViewDialogFailureReason(newFailureReason);
+      }
+    } catch (error: any) {
+      toast.error(`Error al guardar cambios: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleCommentAdded = async (comment: any) => {
+    if (!selectedTicket) return;
+
+    try {
+      // Obtener las respuestas actuales del ticket
+      const currentResponses = selectedTicket.responses || [];
+
+      // Agregar la nueva respuesta
+      const newResponse = {
+        response: comment.comment,
+        createdAt: new Date().toISOString(),
+        author: {
+          id: authUser?.customClaims?._id || 0,
+          name: authUser?.displayName || authUser?.email || 'Usuario',
+        },
+        files: comment.attachments?.map((att: any) => att.name) || [],
+      };
+
+      const args: any = {
+        responses: [...currentResponses, newResponse],
+      };
+
+      await fetchApiV1({
+        query: queries.updateTicket,
+        type: 'json',
+        variables: {
+          id: selectedTicket._id,
+          args,
+        },
+      });
+
+      // Actualizar el ticket seleccionado
+      setSelectedTicket({
+        ...selectedTicket,
+        responses: [...currentResponses, newResponse],
+      });
+
+      fetchTickets();
+    } catch (error: any) {
+      toast.error(`Error al agregar comentario: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleCloseTicket = async () => {
+    if (!selectedTicket) return;
+
+    try {
+      const args: any = {
+        status: 'closed',
+      };
+
+      await fetchApiV1({
+        query: queries.updateTicket,
+        type: 'json',
+        variables: {
+          id: selectedTicket._id,
+          args,
+        },
+      });
+
+      toast.success('Ticket cerrado correctamente');
+      setViewDialogStatus('closed');
+      setSelectedTicket({
+        ...selectedTicket,
+        status: 'closed',
+      });
+      fetchTickets();
+    } catch (error: any) {
+      toast.error(`Error al cerrar ticket: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleCancelTicket = async () => {
+    if (!selectedTicket) return;
+
+    try {
+      const args: any = {
+        status: 'cancelled',
+      };
+
+      await fetchApiV1({
+        query: queries.updateTicket,
+        type: 'json',
+        variables: {
+          id: selectedTicket._id,
+          args,
+        },
+      });
+
+      toast.success('Ticket cancelado correctamente');
+      setViewDialogStatus('cancelled');
+      setSelectedTicket({
+        ...selectedTicket,
+        status: 'cancelled',
+      });
+      fetchTickets();
+    } catch (error: any) {
+      toast.error(`Error al cancelar ticket: ${error.message || 'Error desconocido'}`);
+    }
   };
 
   const handleDeleteClick = (ticket: Ticket) => {
@@ -491,6 +648,18 @@ export default function TicketsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
+  if (!canViewSupport()) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">No tienes permiso para acceder a esta página.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading && tickets.length === 0) {
     return <div className="p-8">Cargando...</div>;
   }
@@ -504,10 +673,12 @@ export default function TicketsPage() {
             Total de tickets: {total}
           </p>
         </div>
-        <Button onClick={handleNewClick}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Ticket
-        </Button>
+        {canCreateEditTickets() && (
+          <Button onClick={handleNewClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Ticket
+          </Button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -597,6 +768,7 @@ export default function TicketsPage() {
                   </div>
                 </TableHead>
                 <TableHead>Técnico</TableHead>
+                <TableHead>Zona</TableHead>
                 <TableHead
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => handleSort('createdAt')}
@@ -612,7 +784,7 @@ export default function TicketsPage() {
             <TableBody>
               {tickets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     No hay tickets disponibles
                   </TableCell>
                 </TableRow>
@@ -625,6 +797,9 @@ export default function TicketsPage() {
                     <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                     <TableCell>
                       {ticket.technician?.name || ticket.technician?.email || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {ticket.cliente?.zona?.nombre || '-'}
                     </TableCell>
                     <TableCell>
                       {ticket.createdAt
@@ -640,20 +815,24 @@ export default function TicketsPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditClick(ticket)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteClick(ticket)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {canCreateEditTickets() && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditClick(ticket)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDeleteTickets() && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(ticket)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -707,82 +886,86 @@ export default function TicketsPage() {
             <DialogTitle>{selectedTicket ? 'Editar Ticket' : 'Nuevo Ticket'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <AutocompleteInput
-              value={formData.subject}
-              onChange={(value) => setFormData({ ...formData, subject: value })}
-              options={issues}
-              label="Asunto"
-              placeholder="Buscar o escribir asunto"
-              required
-            />
-            <div>
-              <Label>Cliente</Label>
-              <div className="relative" ref={clienteDropdownRef}>
-                <Input
-                  value={clienteSearchText}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setClienteSearchText(value);
-                    if (value.length >= 2) {
-                      searchClientes(value);
-                      setIsClienteDropdownOpen(true);
-                    } else {
-                      setClienteOptions([]);
-                      setIsClienteDropdownOpen(false);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (clienteOptions.length > 0) {
-                      setIsClienteDropdownOpen(true);
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Delay para permitir el click en las opciones
-                    setTimeout(() => {
-                      if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(document.activeElement)) {
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente</Label>
+                <div className="relative" ref={clienteDropdownRef}>
+                  <Input
+                    value={clienteSearchText}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setClienteSearchText(value);
+                      if (value.length >= 2) {
+                        searchClientes(value);
+                        setIsClienteDropdownOpen(true);
+                      } else {
+                        setClienteOptions([]);
                         setIsClienteDropdownOpen(false);
                       }
-                    }, 200);
-                  }}
-                  placeholder="Buscar cliente por nombre, apellido o usuario"
-                  className="w-full"
-                />
-                {isClienteDropdownOpen && clienteOptions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md text-sm max-h-60 overflow-y-auto">
-                    {clienteOptions.map((cliente) => (
-                      <div
-                        key={cliente.id_servicio}
-                        className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          const nombreCompleto = `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || '';
-                          const zonaId = cliente.zona?.id || 0;
-                          const zonaNombre = cliente.zona?.nombre || '';
-                          setSelectedCliente({
-                            cliente: nombreCompleto,
-                            usuario: cliente.usuario,
-                            ip: cliente.ip,
-                            id_servicio: cliente.id_servicio,
-                            zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined
-                          });
-                          setClienteSearchText(nombreCompleto);
-                          setFormData({ ...formData, zoneId: zonaId });
-                          setZonaNombre(zonaNombre);
+                    }}
+                    onFocus={() => {
+                      if (clienteOptions.length > 0) {
+                        setIsClienteDropdownOpen(true);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Delay para permitir el click en las opciones
+                      setTimeout(() => {
+                        if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(document.activeElement)) {
                           setIsClienteDropdownOpen(false);
-                        }}
-                      >
-                        <div className="font-medium">
-                          {`${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || 'Sin nombre'}
+                        }
+                      }, 200);
+                    }}
+                    placeholder="Buscar cliente por nombre, apellido o usuario"
+                    className="w-full"
+                  />
+                  {isClienteDropdownOpen && clienteOptions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md text-sm max-h-60 overflow-y-auto">
+                      {clienteOptions.map((cliente) => (
+                        <div
+                          key={cliente.id_servicio}
+                          className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const nombreCompleto = `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || '';
+                            const zonaId = cliente.zona?.id || 0;
+                            const zonaNombre = cliente.zona?.nombre || '';
+                            setSelectedCliente({
+                              cliente: nombreCompleto,
+                              usuario: cliente.usuario,
+                              ip: cliente.ip,
+                              id_servicio: cliente.id_servicio,
+                              zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined
+                            });
+                            setClienteSearchText(nombreCompleto);
+                            setFormData({ ...formData, zoneId: zonaId });
+                            setZonaNombre(zonaNombre);
+                            setIsClienteDropdownOpen(false);
+                          }}
+                        >
+                          <div className="font-medium">
+                            {`${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || 'Sin nombre'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            ID Servicio: {cliente.id_servicio}
+                            {cliente.usuario && ` • Usuario: ${cliente.usuario}`}
+                            {cliente.ip && ` • IP: ${cliente.ip}`}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          ID Servicio: {cliente.id_servicio}
-                          {cliente.usuario && ` • Usuario: ${cliente.usuario}`}
-                          {cliente.ip && ` • IP: ${cliente.ip}`}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <AutocompleteInput
+                  value={formData.subject}
+                  onChange={(value) => setFormData({ ...formData, subject: value })}
+                  options={issues}
+                  label="Asunto"
+                  placeholder="Buscar o escribir asunto"
+                  required
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -822,79 +1005,81 @@ export default function TicketsPage() {
                 </Select>
               </div>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Técnico</Label>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="filter-technical-support" className="text-sm font-normal cursor-pointer">
-                    Solo Soporte Técnico
-                  </Label>
-                  <Switch
-                    id="filter-technical-support"
-                    checked={filterByTechnicalSupport}
-                    onCheckedChange={setFilterByTechnicalSupport}
-                  />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Técnico</Label>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="filter-technical-support" className="text-sm font-normal cursor-pointer">
+                      Solo Soporte Técnico
+                    </Label>
+                    <Switch
+                      id="filter-technical-support"
+                      checked={filterByTechnicalSupport}
+                      onCheckedChange={setFilterByTechnicalSupport}
+                    />
+                  </div>
                 </div>
-              </div>
-              <Select
-                value={formData.technician_id || 'none'}
-                onValueChange={(value) => setFormData({ ...formData, technician_id: value === 'none' ? '' : value })}
-              >
-                <SelectTrigger>
-                  <div className="flex items-center gap-2 flex-1">
-                    {formData.technician_id && formData.technician_id !== 'none' ? (() => {
-                      const selectedUser = users.find(u => u._id === formData.technician_id);
-                      if (selectedUser) {
-                        return (
-                          <>
+                <Select
+                  value={formData.technician_id || 'none'}
+                  onValueChange={(value) => setFormData({ ...formData, technician_id: value === 'none' ? '' : value })}
+                >
+                  <SelectTrigger>
+                    <div className="flex items-center gap-2 flex-1">
+                      {formData.technician_id && formData.technician_id !== 'none' ? (() => {
+                        const selectedUser = users.find(u => u._id === formData.technician_id);
+                        if (selectedUser) {
+                          return (
+                            <>
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={selectedUser.photoURL || ''} />
+                                <AvatarFallback className="text-xs">
+                                  {selectedUser.name?.charAt(0)?.toUpperCase() || selectedUser.email?.charAt(0)?.toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <SelectValue>{selectedUser.name || selectedUser.email}</SelectValue>
+                            </>
+                          );
+                        }
+                        return <SelectValue placeholder="Seleccionar técnico" />;
+                      })() : <SelectValue placeholder="Seleccionar técnico" />}
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {users
+                      .filter((user) => !filterByTechnicalSupport || user.role === 'technicalSupport' || user.role === 'technicalSupportSupervisor')
+                      .map((user) => (
+                        <SelectItem key={user._id} value={user._id}>
+                          <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarImage src={selectedUser.photoURL || ''} />
+                              <AvatarImage src={user.photoURL || ''} />
                               <AvatarFallback className="text-xs">
-                                {selectedUser.name?.charAt(0)?.toUpperCase() || selectedUser.email?.charAt(0)?.toUpperCase() || 'U'}
+                                {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
-                            <SelectValue>{selectedUser.name || selectedUser.email}</SelectValue>
-                          </>
-                        );
-                      }
-                      return <SelectValue placeholder="Seleccionar técnico" />;
-                    })() : <SelectValue placeholder="Seleccionar técnico" />}
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin asignar</SelectItem>
-                  {users
-                    .filter((user) => !filterByTechnicalSupport || user.role === 'technicalSupport')
-                    .map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={user.photoURL || ''} />
-                            <AvatarFallback className="text-xs">
-                              {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{user.name || user.email}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Zona ID</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={formData.zoneId}
-                  disabled
-                  className="flex-1"
-                />
-                {zonaNombre && (
-                  <Label className="text-sm text-muted-foreground font-normal">
-                    {zonaNombre}
-                  </Label>
-                )}
+                            <span>{user.name || user.email}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Zona ID</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={formData.zoneId}
+                    disabled
+                    className="flex-1"
+                  />
+                  {zonaNombre && (
+                    <Label className="text-sm text-muted-foreground font-normal">
+                      {zonaNombre}
+                    </Label>
+                  )}
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -936,13 +1121,6 @@ export default function TicketsPage() {
               </div>
             </div>
             <div>
-              <Label>Razón de Falla</Label>
-              <Input
-                value={formData.failureReason}
-                onChange={(e) => setFormData({ ...formData, failureReason: e.target.value })}
-              />
-            </div>
-            <div>
               <Label>Descripción</Label>
               <QuillEditor
                 value={formData.description || '<p><br></p>'}
@@ -976,10 +1154,15 @@ export default function TicketsPage() {
 
       {/* Diálogo de visualización */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Detalles del Ticket {selectedTicket?.number ? `#${formatTicketNumber(selectedTicket.number)}` : ''}
+              <div className="flex items-center gap-2">
+                Detalles del Ticket {selectedTicket?.number ? `#${formatTicketNumber(selectedTicket.number)}` : ''}
+                {getStatusBadge(selectedTicket?.status || '')}
+                <Label className="font-semibold ml-6">Prioridad</Label>
+                {getPriorityBadge(selectedTicket?.priority)}
+              </div>
             </DialogTitle>
           </DialogHeader>
           {selectedTicket && (
@@ -988,21 +1171,19 @@ export default function TicketsPage() {
                 <Label className="font-semibold">Asunto</Label>
                 <p>{selectedTicket.subject}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Estado</Label>
-                  <div>{getStatusBadge(selectedTicket.status)}</div>
-                </div>
-                <div>
-                  <Label className="font-semibold">Prioridad</Label>
-                  <div>{getPriorityBadge(selectedTicket.priority)}</div>
-                </div>
+              <div>
+                <Label className="font-semibold">Razón de Falla</Label>
+                <Input
+                  value={viewDialogFailureReason}
+                  onChange={(e) => setViewDialogFailureReason(e.target.value)}
+                  onBlur={(e) => handleSaveViewDialogChanges(undefined, e.target.value)}
+                  placeholder="Ingrese la razón de falla"
+                />
               </div>
               {selectedTicket.description && (
                 <div>
                   <Label className="font-semibold">Descripción</Label>
                   <div className="overflow-hidden text-ellipsis whitespace-nowrap border-[1px] border-gray-200 p-4 rounded-2xl">
-                    {/* <div className="overflow-hidden text-ellipsis whitespace-nowrap"> */}
                     <Interweave
                       className="transition-all"
                       content={selectedTicket.description}
@@ -1016,12 +1197,6 @@ export default function TicketsPage() {
                       ]}
                     />
                   </div>
-                </div>
-              )}
-              {selectedTicket.failureReason && (
-                <div>
-                  <Label className="font-semibold">Razón de Falla</Label>
-                  <p>{selectedTicket.failureReason}</p>
                 </div>
               )}
               {selectedTicket.cliente && (
@@ -1092,6 +1267,57 @@ export default function TicketsPage() {
                   </p>
                 </div>
               </div>
+              <div>
+                <Label className="font-semibold">Comentarios</Label>
+                <div className="border-[1px] border-gray-200 rounded-lg">
+                  {selectedTicket.responses && selectedTicket.responses.length > 0 && (
+                    <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+                      {selectedTicket.responses.map((response: any, index: number) => (
+                        <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">
+                                {response.author?.name?.charAt(0)?.toUpperCase() || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">{response.author?.name || 'Usuario'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {response.createdAt ? format(new Date(response.createdAt), 'PPp', { locale: es }) : ''}
+                            </span>
+                          </div>
+                          <div className="ml-8">
+                            <Interweave
+                              content={response.response}
+                              matchers={[
+                                new UrlMatcher('url', {}, (props: UrlProps) => (
+                                  <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
+                                    {props?.children}
+                                  </Link>
+                                )),
+                                new HashtagMatcher('hashtag')
+                              ]}
+                            />
+                            {response.files && response.files.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {response.files.map((file: string, fileIndex: number) => (
+                                  <div key={fileIndex} className="text-sm text-muted-foreground">
+                                    📎 {file}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <InputComments
+                    disabled={!canCreateEditTickets()}
+                    onCommentAdded={handleCommentAdded}
+                    placeholder="Escribe un comentario..."
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Creado por</Label>
@@ -1134,6 +1360,26 @@ export default function TicketsPage() {
                       {selectedTicket.finishedBy.name || selectedTicket.finishedBy.email || '-'}
                     </p>
                   </div>
+                </div>
+              )}
+              {selectedTicket.status && selectedTicket.status !== 'closed' && selectedTicket.status !== 'cancelled' && (
+                <div className="flex justify-between gap-2 pt-4 border-t">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleCancelTicket}
+                  >
+                    Cancelar Ticket
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="w-1/3"
+                    onClick={handleCloseTicket}
+                  >
+                    Cerrar Ticket
+                  </Button>
                 </div>
               )}
             </div>

@@ -9,7 +9,7 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
   'configuracion:avanzada': {
@@ -62,30 +62,65 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
     action: 'datos',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
   'exportar:reportes': {
     action: 'reportes',
     resource: 'exportar',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
 
   // Soporte
+  'soporte:ver': {
+    action: 'ver',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin', 'logicalSupport', 'technicalSupport', 'technicalSupportSupervisor']
+    }
+  },
+  'soporte:crear_editar': {
+    action: 'crear_editar',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin', 'logicalSupport']
+    }
+  },
+  'soporte:eliminar': {
+    action: 'eliminar',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin']
+    }
+  },
+  'soporte:estadisticas': {
+    action: 'estadisticas',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin', 'logicalSupport']
+    }
+  },
+  'soporte:ajustes': {
+    action: 'ajustes',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin']
+    }
+  },
   'soporte:prioritario': {
     action: 'prioritario',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
   'soporte:gestionar': {
     action: 'gestionar',
     resource: 'soporte',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']
+      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
 
@@ -235,7 +270,7 @@ export const useExportPermissions = () => {
   return {
     canExportData: () => can('exportar:datos'),
     canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales'])
   };
 };
 
@@ -244,9 +279,14 @@ export const useSupportPermissions = () => {
   const { can, hasAnyRole } = useAllowed();
 
   return {
+    canViewSupport: () => can('soporte:ver'),
+    canCreateEditTickets: () => can('soporte:crear_editar'),
+    canDeleteTickets: () => can('soporte:eliminar'),
+    canViewStatistics: () => can('soporte:estadisticas'),
+    canViewSettings: () => can('soporte:ajustes'),
     hasPrioritySupport: () => can('soporte:prioritario'),
     canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales'])
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales'])
   };
 };
 
@@ -259,7 +299,7 @@ export const useUserPermissions = () => {
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales']),
+    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']),
     isAdmin: () => hasRole('admin')
   };
 };

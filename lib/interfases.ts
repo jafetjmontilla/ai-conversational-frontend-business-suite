@@ -1,6 +1,6 @@
 
 // Define el arreglo de roles
-export const roles = ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'sales', 'none'] as const;
+export const roles = ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales', 'none'] as const;
 
 // Crea el tipo a partir del arreglo
 export type Role = typeof roles[number];

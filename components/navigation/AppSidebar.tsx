@@ -30,13 +30,18 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const pathname = usePathname()
   const { state, toggleSidebar } = useSidebar()
   const { theme } = useThemeContext();
-  const { hasRole, hasAnyRole } = useAllowed();
+  const { hasRole, hasAnyRole, can } = useAllowed();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
   const [isSupportExpanded, setIsSupportExpanded] = useState(true);
   const versionLabel = packageJson.version ? `Erp v${packageJson.version}` : "Erp";
+
+  // Verificar si el usuario puede ver el menú de soporte
+  const canViewSupport = can('soporte:ver');
+  const canViewStatistics = can('soporte:estadisticas');
+  const canViewSettings = can('soporte:ajustes');
 
   const handleNavigation = async (href: string, label: string) => {
     if (pathname === href) {
@@ -66,9 +71,9 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   ];
 
   const buildSupportItems = (): NavItem[] => [
-    { href: '/support/tickets', label: 'Tickets', icon: Ticket },
-    { href: '/support/statistics', label: 'Estadísticas', icon: BarChart },
-    { href: '/support/settings', label: 'Ajustes', icon: Settings },
+    { href: '/support/tickets', label: 'Tickets', icon: Ticket, condition: canViewSupport },
+    { href: '/support/statistics', label: 'Estadísticas', icon: BarChart, condition: canViewStatistics },
+    { href: '/support/settings', label: 'Ajustes', icon: Settings, condition: canViewSettings },
   ];
 
   const buildAccountItems = (): NavItem[] => [
@@ -146,42 +151,44 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel
-              className="uppercase cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors flex items-center justify-between px-2"
-              onClick={() => setIsSupportExpanded(!isSupportExpanded)}
-            >
-              <span>Soporte técnico</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'} ${state === "collapsed" ? "hidden" : ""}`}
-              />
-            </SidebarGroupLabel>
-            <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out ${isSupportExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-            >
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {supportItems.map((item) => {
-                    const isActive = currentPath === item.href;
-                    return (item?.condition === undefined || item?.condition === true) &&
-                      <SidebarMenuItem key={item.label}>
-                        <SidebarMenuButton
-                          tooltip={item.label}
-                          asChild
-                          onClick={() => !loading && handleNavigation(item.href, item.label)}
-                          className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
-                        >
-                          <div>
-                            <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
-                            <span>{item.label}</span>
-                          </div>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </div>
-          </SidebarGroup>
+          {canViewSupport && (
+            <SidebarGroup>
+              <SidebarGroupLabel
+                className="uppercase cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors flex items-center justify-between px-2"
+                onClick={() => setIsSupportExpanded(!isSupportExpanded)}
+              >
+                <span>Soporte técnico</span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'} ${state === "collapsed" ? "hidden" : ""}`}
+                />
+              </SidebarGroupLabel>
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${isSupportExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+              >
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {supportItems.map((item) => {
+                      const isActive = currentPath === item.href;
+                      return (item?.condition === undefined || item?.condition === true) &&
+                        <SidebarMenuItem key={item.label}>
+                          <SidebarMenuButton
+                            tooltip={item.label}
+                            asChild
+                            onClick={() => !loading && handleNavigation(item.href, item.label)}
+                            className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+                          >
+                            <div>
+                              <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                              <span>{item.label}</span>
+                            </div>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </div>
+            </SidebarGroup>
+          )}
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>

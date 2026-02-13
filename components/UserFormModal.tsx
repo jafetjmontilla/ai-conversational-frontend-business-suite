@@ -43,6 +43,13 @@ const roleOptions: OptionSelect[] = [
     features: []
   },
   {
+    value: 'technicalSupportSupervisor' as Role,
+    title: 'Supervisor Soporte Técnico',
+    description: '',
+    icon: '👤',
+    features: []
+  },
+  {
     value: 'sales' as Role,
     title: 'Ventas',
     description: '',
@@ -144,7 +151,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "accounting" | "callCenter" | "technicalSupport" | "logicalSupport" | "sales"),
+      role: (user?.role as "admin" | "accounting" | "callCenter" | "technicalSupport" | "logicalSupport" | "technicalSupportSupervisor" | "sales"),
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },

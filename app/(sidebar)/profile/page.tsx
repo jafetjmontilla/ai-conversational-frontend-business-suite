@@ -59,6 +59,7 @@ const roleLabels: Record<Role, string> = {
   callCenter: 'Call Center',
   technicalSupport: 'Soporte Técnico',
   logicalSupport: 'Soporte Lógico',
+  technicalSupportSupervisor: 'Supervisor Soporte Técnico',
   sales: 'Ventas',
   none: 'Sin rol'
 };

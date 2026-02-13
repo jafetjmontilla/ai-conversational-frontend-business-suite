@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { X, Plus } from 'lucide-react';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { useSupportPermissions } from '@/lib/hooks/useAllowed';
+import { useRouter } from 'next/navigation';
 
 interface TicketSetting {
   _id: string;
@@ -19,6 +21,8 @@ interface TicketSetting {
 }
 
 export default function SupportSettingsPage() {
+  const { canViewSettings } = useSupportPermissions();
+  const router = useRouter();
   const [ticketSetting, setTicketSetting] = useState<TicketSetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [newIssue, setNewIssue] = useState('');
@@ -26,6 +30,25 @@ export default function SupportSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'issue' | 'failure'; index: number; value: string } | null>(null);
+
+  useEffect(() => {
+    if (!canViewSettings()) {
+      toast.error('No tienes permiso para acceder a esta página');
+      router.push('/support/tickets');
+    }
+  }, [canViewSettings, router]);
+
+  if (!canViewSettings()) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">No tienes permiso para acceder a esta página.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Cargar configuración de tickets
   const loadTicketSettings = async () => {
