@@ -910,52 +910,52 @@ export default function TicketsPage() {
                 filteredTickets.map((ticket) => {
                   const t = ticket as Ticket;
                   return (
-                  <TableRow key={t._id}>
-                    <TableCell className="font-medium">{t.number || '-'}</TableCell>
-                    <TableCell className="font-medium">{t.subject}</TableCell>
-                    <TableCell>{getStatusBadge(t.status)}</TableCell>
-                    <TableCell>{getPriorityBadge(t.priority)}</TableCell>
-                    <TableCell>
-                      {t.technician?.name || t.technician?.email || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {t.cliente?.zona?.nombre || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {t.createdAt
-                        ? format(new Date(t.createdAt), 'PPp', { locale: es })
-                        : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewClick(t)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {canCreateEditTickets() && (
+                    <TableRow key={t._id}>
+                      <TableCell className="font-medium">{t.number || '-'}</TableCell>
+                      <TableCell className="font-medium">{t.subject}</TableCell>
+                      <TableCell>{getStatusBadge(t.status)}</TableCell>
+                      <TableCell>{getPriorityBadge(t.priority)}</TableCell>
+                      <TableCell>
+                        {t.technician?.name || t.technician?.email || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {t.cliente?.zona?.nombre || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {t.createdAt
+                          ? format(new Date(t.createdAt), 'PPp', { locale: es })
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleEditClick(t)}
+                            onClick={() => handleViewClick(t)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                        {canDeleteTickets() && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteClick(t)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          {canCreateEditTickets() && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditClick(t)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDeleteTickets() && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteClick(t)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               )}
@@ -1012,7 +1012,7 @@ export default function TicketsPage() {
           <DialogHeader>
             <DialogTitle>{selectedTicket ? 'Editar Ticket' : 'Nuevo Ticket'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto px-0.5">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cliente</Label>
@@ -1375,7 +1375,7 @@ export default function TicketsPage() {
               )}
             </div>
           )}
-          <div className='flex-1 overflow-y-auto'>
+          <div className='flex-1 overflow-y-auto px-0.5'>
             {selectedTicket && (
               <div className="space-y-4 text-sm">
                 <div>
