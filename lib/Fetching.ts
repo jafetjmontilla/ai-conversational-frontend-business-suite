@@ -749,6 +749,9 @@ export const queries = {
             newValue
           }
         }
+        usedSupplies {
+          _id
+        }
       }
     }
   }`,
@@ -830,6 +833,14 @@ export const queries = {
       ticketFileAttachment
       zoneId
       updatedAt
+      usedSupplies {
+        _id
+      }
+    }
+  }`,
+  createUsedSupply: `mutation createUsedSupply($args: UsedSupplyInput!) {
+    createUsedSupply(args: $args) {
+      _id
     }
   }`,
   deleteTicket: `mutation deleteTicket($id: ID!) {

@@ -29,6 +29,7 @@ import { fetchApiV1, queries } from '@/lib/Fetching';
 import { useAllowed, useSupportPermissions } from '@/lib/hooks/useAllowed';
 import { useRouter } from 'next/navigation';
 import { InputComments } from '@/components/InputComments';
+import { InputInteger } from '@/components/InputInteger';
 import { useTicketsContext } from '@/contexts/TicketsContext';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
@@ -107,6 +108,7 @@ interface Ticket {
   updatedAt?: string;
   cliente?: TicketCliente;
   changes?: TicketChange[];
+  usedSupplies?: { _id: string }[];
 }
 
 interface TicketsResponse {
@@ -205,6 +207,11 @@ export default function TicketsPage() {
   const clienteDropdownRef = useRef<HTMLDivElement>(null);
   const [viewDialogStatus, setViewDialogStatus] = useState<string>('');
   const [viewDialogFailureReason, setViewDialogFailureReason] = useState<string>('');
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolveQuantityOnu, setResolveQuantityOnu] = useState(false);
+  const [resolveQuantityConnector, setResolveQuantityConnector] = useState('');
+  const [resolveMetersDrop, setResolveMetersDrop] = useState('');
+  const [resolveConfirmChecked, setResolveConfirmChecked] = useState(false);
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -529,16 +536,65 @@ export default function TicketsPage() {
     }
   };
 
+  const openResolveDialog = () => {
+    setResolveQuantityOnu(false);
+    setResolveQuantityConnector('');
+    setResolveMetersDrop('');
+    setResolveConfirmChecked(false);
+    setResolveDialogOpen(true);
+  };
+
   const handleResolveTicket = async () => {
     if (!selectedTicket) return;
     if (!canCloseTicket()) {
       toast.error('No tienes permiso para marcar la resolución del ticket');
       return;
     }
+    if (!resolveConfirmChecked) {
+      toast.error('Debes confirmar que completaste las tareas y notificaste el uso de materiales');
+      return;
+    }
 
     try {
+      const existingUsedSupplyIds = (selectedTicket.usedSupplies || []).map((u: { _id: string }) => u._id);
+      let usedSupplyIds = existingUsedSupplyIds;
+
+      const hasMaterialUsage =
+        resolveQuantityOnu ||
+        (resolveQuantityConnector !== '' && parseInt(resolveQuantityConnector, 10) > 0) ||
+        (resolveMetersDrop !== '' && parseInt(resolveMetersDrop, 10) > 0);
+
+      if (hasMaterialUsage) {
+        const zoneId = selectedTicket.zoneId ?? 0;
+        const technician_id = selectedTicket.technician_id || authUser?.customClaims?._id || null;
+        const id_servicio = selectedTicket.cliente?.id_servicio ?? 0;
+        const ticketNumber = selectedTicket.number ?? 0;
+
+        const supplyArgs = {
+          zoneId,
+          technician_id: technician_id || undefined,
+          id_servicio,
+          ticketNumber,
+          quantityOnu: resolveQuantityOnu ? 1 : undefined,
+          quantityConnector:
+            resolveQuantityConnector !== '' ? parseInt(resolveQuantityConnector, 10) : undefined,
+          metersDrop: resolveMetersDrop !== '' ? parseInt(resolveMetersDrop, 10) : undefined,
+        };
+
+        const created = await fetchApiV1({
+          query: queries.createUsedSupply,
+          type: 'json',
+          variables: { args: supplyArgs },
+        });
+        const newId = created?._id;
+        if (newId) {
+          usedSupplyIds = [...existingUsedSupplyIds, newId];
+        }
+      }
+
       const args: any = {
         status: 'resolved',
+        usedSupplies: usedSupplyIds,
       };
 
       await fetchApiV1({
@@ -551,10 +607,12 @@ export default function TicketsPage() {
       });
 
       toast.success('Ticket marcado como resuelto correctamente');
+      setResolveDialogOpen(false);
       setViewDialogStatus('resolved');
       setSelectedTicket({
         ...selectedTicket,
         status: 'resolved',
+        usedSupplies: usedSupplyIds.map((id: string) => ({ _id: id })),
       });
       loadTickets();
     } catch (error: any) {
@@ -1359,7 +1417,7 @@ export default function TicketsPage() {
                 size="sm"
                 variant="default"
                 className="w-1/3 bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleResolveTicket}
+                onClick={openResolveDialog}
               >
                 Marcar resolución del ticket
               </Button>
@@ -1573,6 +1631,83 @@ export default function TicketsPage() {
                 )}
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo Marcar resolución del ticket */}
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Marcar resolución del ticket</DialogTitle>
+            <DialogDescription>
+              Indica los materiales utilizados en la resolución (opcional). Luego confirma abajo en el formulario para habilitar guardar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="resolve-quantity-onu"
+                checked={resolveQuantityOnu}
+                onChange={(e) => setResolveQuantityOnu(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <Label htmlFor="resolve-quantity-onu" className="cursor-pointer">
+                ONU utilizada (cantidad 1)
+              </Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="resolve-quantity-connector">Conectores</Label>
+              <InputInteger
+                id="resolve-quantity-connector"
+                value={resolveQuantityConnector}
+                onChange={setResolveQuantityConnector}
+                placeholder="0"
+                min={0}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="resolve-meters-drop">Metros de drop</Label>
+              <InputInteger
+                id="resolve-meters-drop"
+                value={resolveMetersDrop}
+                onChange={setResolveMetersDrop}
+                placeholder="0"
+                min={0}
+              />
+            </div>
+          </div>
+          <div className="border-t pt-4 flex flex-col gap-4">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={resolveConfirmChecked}
+                onChange={(e) => setResolveConfirmChecked(e.target.checked)}
+                className="h-4 w-4 mt-0.5 rounded border-input"
+              />
+              <span className="text-sm">
+                He completado las tareas para la resolución del ticket y notificado el{' '}
+                {resolveQuantityOnu ||
+                  (resolveQuantityConnector !== '' && parseInt(resolveQuantityConnector, 10) > 0) ||
+                  (resolveMetersDrop !== '' && parseInt(resolveMetersDrop, 10) > 0)
+                  ? 'uso de materiales'
+                  : 'no uso de materiales'}
+                .
+              </span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setResolveDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                disabled={!resolveConfirmChecked}
+                onClick={handleResolveTicket}
+              >
+                Guardar resolución
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
