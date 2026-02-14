@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { X, Plus } from 'lucide-react';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
-import { useSupportPermissions } from '@/lib/hooks/useAllowed';
+import { useAllowed } from '@/lib/hooks/useAllowed';
 import { useRouter } from 'next/navigation';
 
 interface TicketSetting {
@@ -21,7 +21,8 @@ interface TicketSetting {
 }
 
 export default function SupportSettingsPage() {
-  const { canViewSettings } = useSupportPermissions();
+  const { can, loading: permissionsLoading } = useAllowed();
+  const canViewSettings = () => can('soporte:ajustes');
   const router = useRouter();
   const [ticketSetting, setTicketSetting] = useState<TicketSetting | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,22 +33,23 @@ export default function SupportSettingsPage() {
   const [itemToDelete, setItemToDelete] = useState<{ type: 'issue' | 'failure'; index: number; value: string } | null>(null);
 
   useEffect(() => {
-    if (!canViewSettings()) {
+    if (permissionsLoading) return;
+    if (!can('soporte:ajustes')) {
       toast.error('No tienes permiso para acceder a esta página');
-      router.push('/support/tickets');
+      router.replace('/support/tickets');
     }
-  }, [canViewSettings, router]);
+  }, [permissionsLoading, can, router]);
 
-  if (!canViewSettings()) {
+  if (permissionsLoading) {
     return (
-      <div className="p-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">No tienes permiso para acceder a esta página.</p>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[50vh] items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!canViewSettings()) {
+    return null;
   }
 
   // Cargar configuración de tickets

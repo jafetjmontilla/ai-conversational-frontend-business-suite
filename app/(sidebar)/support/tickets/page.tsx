@@ -26,7 +26,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { fetchApiV1, queries } from '@/lib/Fetching';
-import { useSupportPermissions } from '@/lib/hooks/useAllowed';
+import { useAllowed, useSupportPermissions } from '@/lib/hooks/useAllowed';
 import { useRouter } from 'next/navigation';
 import { InputComments } from '@/components/InputComments';
 
@@ -171,6 +171,7 @@ function formatChangeValue(field: string, value: string): string {
 export default function TicketsPage() {
   const { authUser } = useAuth();
   const router = useRouter();
+  const { can, loading: permissionsLoading } = useAllowed();
   const { canViewSupport, canCreateEditTickets, canDeleteTickets, canCloseTicket } = useSupportPermissions();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [total, setTotal] = useState(0);
@@ -313,9 +314,10 @@ export default function TicketsPage() {
   }, [dialogOpen]);
 
   useEffect(() => {
-    if (!canViewSupport()) {
+    if (permissionsLoading) return;
+    if (!can('soporte:ver')) {
       toast.error('No tienes permiso para acceder a esta página');
-      router.push('/dashboard');
+      router.replace('/dashboard');
       return;
     }
     if (authUser) {
@@ -323,7 +325,7 @@ export default function TicketsPage() {
       loadTicketSettings();
       loadUsers();
     }
-  }, [authUser, currentPage, sortColumn, sortDirection, statusFilter, priorityFilter]);
+  }, [permissionsLoading, can, authUser, currentPage, sortColumn, sortDirection, statusFilter, priorityFilter, router]);
 
 
   const handleSort = (column: string) => {
@@ -760,16 +762,16 @@ export default function TicketsPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
-  if (!canViewSupport()) {
+  if (permissionsLoading) {
     return (
-      <div className="p-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">No tienes permiso para acceder a esta página.</p>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[50vh] items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!can('soporte:ver')) {
+    return null;
   }
 
   if (loading && tickets.length === 0) {
@@ -990,11 +992,11 @@ export default function TicketsPage() {
           setZonaNombre('');
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedTicket ? 'Editar Ticket' : 'Nuevo Ticket'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 flex-1 overflow-y-auto">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cliente</Label>
@@ -1324,7 +1326,7 @@ export default function TicketsPage() {
 
       {/* Diálogo de visualización */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               <div className="flex items-center gap-2">
@@ -1357,203 +1359,205 @@ export default function TicketsPage() {
               )}
             </div>
           )}
-          {selectedTicket && (
-            <div className="space-y-4 text-sm">
-              <div>
-                <Label className="font-semibold">Asunto</Label>
-                <p>{selectedTicket.subject}</p>
-              </div>
-              <div>
-                <Label className="font-semibold">Razón de Falla</Label>
-                <Input
-                  value={viewDialogFailureReason}
-                  onChange={(e) => setViewDialogFailureReason(e.target.value)}
-                  onBlur={(e) => handleSaveViewDialogChanges(undefined, e.target.value)}
-                  placeholder="Ingrese la razón de falla"
-                />
-              </div>
-              {selectedTicket.description && (
+          <div className='flex-1 overflow-y-auto'>
+            {selectedTicket && (
+              <div className="space-y-4 text-sm">
                 <div>
-                  <Label className="font-semibold">Descripción</Label>
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap border border-border p-4 rounded-2xl">
-                    <Interweave
-                      className="transition-all"
-                      content={selectedTicket.description}
-                      matchers={[
-                        new UrlMatcher('url', {}, (props: UrlProps) => (
-                          <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
-                            {props?.children}
-                          </Link>
-                        )),
-                        new HashtagMatcher('hashtag')
-                      ]}
+                  <Label className="font-semibold">Asunto</Label>
+                  <p>{selectedTicket.subject}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Razón de Falla</Label>
+                  <Input
+                    value={viewDialogFailureReason}
+                    onChange={(e) => setViewDialogFailureReason(e.target.value)}
+                    onBlur={(e) => handleSaveViewDialogChanges(undefined, e.target.value)}
+                    placeholder="Ingrese la razón de falla"
+                  />
+                </div>
+                {selectedTicket.description && (
+                  <div>
+                    <Label className="font-semibold">Descripción</Label>
+                    <div className="overflow-hidden text-ellipsis whitespace-nowrap border border-border p-4 rounded-2xl">
+                      <Interweave
+                        className="transition-all"
+                        content={selectedTicket.description}
+                        matchers={[
+                          new UrlMatcher('url', {}, (props: UrlProps) => (
+                            <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
+                              {props?.children}
+                            </Link>
+                          )),
+                          new HashtagMatcher('hashtag')
+                        ]}
+                      />
+                    </div>
+                  </div>
+                )}
+                {selectedTicket.cliente && (
+                  <div>
+                    <Label className="font-semibold">Cliente</Label>
+                    <div className="space-y-1">
+                      <p className="font-medium">{selectedTicket.cliente.cliente || '-'}</p>
+                      {selectedTicket.cliente.usuario && (
+                        <p className="text-sm text-muted-foreground">Usuario: {selectedTicket.cliente.usuario}</p>
+                      )}
+                      {selectedTicket.cliente.ip && (
+                        <p className="text-sm text-muted-foreground">IP: {selectedTicket.cliente.ip}</p>
+                      )}
+                      {selectedTicket.cliente.id_servicio && (
+                        <p className="text-sm text-muted-foreground">ID Servicio: {selectedTicket.cliente.id_servicio}</p>
+                      )}
+                      {selectedTicket.cliente.zona && (
+                        <p className="text-sm text-muted-foreground">Zona: {selectedTicket.cliente.zona.nombre} (ID: {selectedTicket.cliente.zona.id})</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="font-semibold">Técnico</Label>
+                    {selectedTicket.technician ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedTicket.technician.photoURL || ''} />
+                          <AvatarFallback>
+                            {selectedTicket.technician.name?.charAt(0)?.toUpperCase() || selectedTicket.technician.email?.charAt(0)?.toUpperCase() || 'T'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p>
+                          {selectedTicket.technician.name || selectedTicket.technician.email || '-'}
+                        </p>
+                      </div>
+                    ) : (
+                      <p>-</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="font-semibold">Zona ID</Label>
+                    <p>{selectedTicket.zoneId || '-'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="font-semibold">Departamento</Label>
+                    <p>{selectedTicket.department ? (DEPARTMENT_LABELS[selectedTicket.department] ?? selectedTicket.department) : '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="font-semibold">Reportado Desde</Label>
+                    <p>{selectedTicket.reportOrigin ? (REPORT_ORIGIN_LABELS[selectedTicket.reportOrigin] ?? selectedTicket.reportOrigin) : '-'}</p>
+                  </div>
+                </div>
+                {selectedTicket.ticketFileAttachment && selectedTicket.ticketFileAttachment.length > 0 && (
+                  <div>
+                    <Label className="font-semibold">Archivos adjuntos</Label>
+                    <AttachedFilesDisplay
+                      className="mt-2"
+                      files={selectedTicket.ticketFileAttachment.map((url) => {
+                        const fullUrl = url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${url}`;
+                        const name = url.split('/').pop() || 'archivo';
+                        return { name, url: fullUrl };
+                      })}
+                    />
+                  </div>
+                )}
+                <div>
+                  <Label className="font-semibold">Comentarios</Label>
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    {selectedTicket.responses && selectedTicket.responses.length > 0 && (
+                      <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+                        {selectedTicket.responses.map((response: any, index: number) => (
+                          <div key={index} className="border-b border-gray-200 dark:border-white/10 pb-4 last:border-b-0 last:pb-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {response.author?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{response.author?.name || 'Usuario'}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {response.createdAt ? format(new Date(response.createdAt), 'PPp', { locale: es }) : ''}
+                              </span>
+                            </div>
+                            <div className="ml-8">
+                              <Interweave
+                                content={response.response}
+                                matchers={[
+                                  new UrlMatcher('url', {}, (props: UrlProps) => (
+                                    <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
+                                      {props?.children}
+                                    </Link>
+                                  )),
+                                  new HashtagMatcher('hashtag')
+                                ]}
+                              />
+                              {response.files && response.files.length > 0 && (
+                                <div className="mt-2">
+                                  <AttachedFilesDisplay
+                                    files={response.files.map((name: string) => ({ name }))}
+                                    size="sm"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <InputComments
+                      disableAttachments
+                      onCommentAdded={handleCommentAdded}
+                      placeholder="Escribe un comentario..."
                     />
                   </div>
                 </div>
-              )}
-              {selectedTicket.cliente && (
-                <div>
-                  <Label className="font-semibold">Cliente</Label>
-                  <div className="space-y-1">
-                    <p className="font-medium">{selectedTicket.cliente.cliente || '-'}</p>
-                    {selectedTicket.cliente.usuario && (
-                      <p className="text-sm text-muted-foreground">Usuario: {selectedTicket.cliente.usuario}</p>
-                    )}
-                    {selectedTicket.cliente.ip && (
-                      <p className="text-sm text-muted-foreground">IP: {selectedTicket.cliente.ip}</p>
-                    )}
-                    {selectedTicket.cliente.id_servicio && (
-                      <p className="text-sm text-muted-foreground">ID Servicio: {selectedTicket.cliente.id_servicio}</p>
-                    )}
-                    {selectedTicket.cliente.zona && (
-                      <p className="text-sm text-muted-foreground">Zona: {selectedTicket.cliente.zona.nombre} (ID: {selectedTicket.cliente.zona.id})</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="font-semibold">Creado por</Label>
+                    {selectedTicket.createdBy ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedTicket.createdBy.photoURL || ''} />
+                          <AvatarFallback>
+                            {selectedTicket.createdBy.name?.charAt(0)?.toUpperCase() || selectedTicket.createdBy.email?.charAt(0)?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p>
+                          {selectedTicket.createdBy.name || selectedTicket.createdBy.email || '-'}
+                        </p>
+                      </div>
+                    ) : (
+                      <p>-</p>
                     )}
                   </div>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Técnico</Label>
-                  {selectedTicket.technician ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedTicket.technician.photoURL || ''} />
-                        <AvatarFallback>
-                          {selectedTicket.technician.name?.charAt(0)?.toUpperCase() || selectedTicket.technician.email?.charAt(0)?.toUpperCase() || 'T'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p>
-                        {selectedTicket.technician.name || selectedTicket.technician.email || '-'}
-                      </p>
-                    </div>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="font-semibold">Zona ID</Label>
-                  <p>{selectedTicket.zoneId || '-'}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Departamento</Label>
-                  <p>{selectedTicket.department ? (DEPARTMENT_LABELS[selectedTicket.department] ?? selectedTicket.department) : '-'}</p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Reportado Desde</Label>
-                  <p>{selectedTicket.reportOrigin ? (REPORT_ORIGIN_LABELS[selectedTicket.reportOrigin] ?? selectedTicket.reportOrigin) : '-'}</p>
-                </div>
-              </div>
-              {selectedTicket.ticketFileAttachment && selectedTicket.ticketFileAttachment.length > 0 && (
-                <div>
-                  <Label className="font-semibold">Archivos adjuntos</Label>
-                  <AttachedFilesDisplay
-                    className="mt-2"
-                    files={selectedTicket.ticketFileAttachment.map((url) => {
-                      const fullUrl = url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${url}`;
-                      const name = url.split('/').pop() || 'archivo';
-                      return { name, url: fullUrl };
-                    })}
-                  />
-                </div>
-              )}
-              <div>
-                <Label className="font-semibold">Comentarios</Label>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  {selectedTicket.responses && selectedTicket.responses.length > 0 && (
-                    <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-                      {selectedTicket.responses.map((response: any, index: number) => (
-                        <div key={index} className="border-b border-gray-200 dark:border-white/10 pb-4 last:border-b-0 last:pb-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-xs">
-                                {response.author?.name?.charAt(0)?.toUpperCase() || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">{response.author?.name || 'Usuario'}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {response.createdAt ? format(new Date(response.createdAt), 'PPp', { locale: es }) : ''}
-                            </span>
-                          </div>
-                          <div className="ml-8">
-                            <Interweave
-                              content={response.response}
-                              matchers={[
-                                new UrlMatcher('url', {}, (props: UrlProps) => (
-                                  <Link href={props?.url || '#'} target="_blank" className="text-primary underline break-all">
-                                    {props?.children}
-                                  </Link>
-                                )),
-                                new HashtagMatcher('hashtag')
-                              ]}
-                            />
-                            {response.files && response.files.length > 0 && (
-                              <div className="mt-2">
-                                <AttachedFilesDisplay
-                                  files={response.files.map((name: string) => ({ name }))}
-                                  size="sm"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <InputComments
-                    disableAttachments
-                    onCommentAdded={handleCommentAdded}
-                    placeholder="Escribe un comentario..."
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Creado por</Label>
-                  {selectedTicket.createdBy ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedTicket.createdBy.photoURL || ''} />
-                        <AvatarFallback>
-                          {selectedTicket.createdBy.name?.charAt(0)?.toUpperCase() || selectedTicket.createdBy.email?.charAt(0)?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p>
-                        {selectedTicket.createdBy.name || selectedTicket.createdBy.email || '-'}
-                      </p>
-                    </div>
-                  ) : (
-                    <p>-</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="font-semibold">Fecha de Creación</Label>
-                  <p>
-                    {selectedTicket.createdAt
-                      ? format(new Date(selectedTicket.createdAt), 'PPp', { locale: es })
-                      : '-'}
-                  </p>
-                </div>
-              </div>
-              {selectedTicket.finishedBy && (
-                <div>
-                  <Label className="font-semibold">Finalizado por</Label>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={selectedTicket.finishedBy.photoURL || ''} />
-                      <AvatarFallback>
-                        {selectedTicket.finishedBy.name?.charAt(0)?.toUpperCase() || selectedTicket.finishedBy.email?.charAt(0)?.toUpperCase() || 'F'}
-                      </AvatarFallback>
-                    </Avatar>
+                  <div>
+                    <Label className="font-semibold">Fecha de Creación</Label>
                     <p>
-                      {selectedTicket.finishedBy.name || selectedTicket.finishedBy.email || '-'}
+                      {selectedTicket.createdAt
+                        ? format(new Date(selectedTicket.createdAt), 'PPp', { locale: es })
+                        : '-'}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+                {selectedTicket.finishedBy && (
+                  <div>
+                    <Label className="font-semibold">Finalizado por</Label>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedTicket.finishedBy.photoURL || ''} />
+                        <AvatarFallback>
+                          {selectedTicket.finishedBy.name?.charAt(0)?.toUpperCase() || selectedTicket.finishedBy.email?.charAt(0)?.toUpperCase() || 'F'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <p>
+                        {selectedTicket.finishedBy.name || selectedTicket.finishedBy.email || '-'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

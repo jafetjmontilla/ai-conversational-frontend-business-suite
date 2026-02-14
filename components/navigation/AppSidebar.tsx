@@ -38,10 +38,12 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const [isSupportExpanded, setIsSupportExpanded] = useState(true);
   const versionLabel = packageJson.version ? `Erp v${packageJson.version}` : "Erp";
 
-  // Verificar si el usuario puede ver el menú de soporte
+  // Permisos para ítems del menú (variables calculadas arriba)
+  const canViewStreaming = hasAnyRole(['admin', 'logicalSupport']);
   const canViewSupport = can('soporte:ver');
   const canViewStatistics = can('soporte:estadisticas');
   const canViewSettings = can('soporte:ajustes');
+  const isAdmin = hasRole('admin');
 
   const handleNavigation = async (href: string, label: string) => {
     if (pathname === href) {
@@ -66,8 +68,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
 
   const buildPersonalItems = (): NavItem[] => [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/streaming', label: 'Televisión', icon: Tv, badge: 0 },
-
+    { href: '/streaming', label: 'Televisión', icon: Tv, badge: 0, condition: canViewStreaming },
   ];
 
   const buildSupportItems = (): NavItem[] => [
@@ -78,9 +79,9 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
 
   const buildAccountItems = (): NavItem[] => [
     { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 0 },
-    { href: '/users', label: 'Usuarios', icon: Users, condition: hasRole("admin") },
-    { href: '/settings', label: 'Configuración', icon: Settings, condition: hasRole("admin") },
-    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: hasRole("admin") },
+    { href: '/users', label: 'Usuarios', icon: Users, condition: isAdmin },
+    { href: '/settings', label: 'Configuración', icon: Settings, condition: isAdmin },
+    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: isAdmin },
   ];
 
   useEffect(() => {

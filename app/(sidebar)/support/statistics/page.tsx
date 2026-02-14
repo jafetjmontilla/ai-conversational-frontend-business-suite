@@ -2,31 +2,32 @@
 
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSupportPermissions } from '@/lib/hooks/useAllowed';
+import { useAllowed } from '@/lib/hooks/useAllowed';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 export default function SupportStatisticsPage() {
-  const { canViewStatistics } = useSupportPermissions();
+  const { can, loading: permissionsLoading } = useAllowed();
   const router = useRouter();
 
   useEffect(() => {
-    if (!canViewStatistics()) {
+    if (permissionsLoading) return;
+    if (!can('soporte:estadisticas')) {
       toast.error('No tienes permiso para acceder a esta página');
-      router.push('/support/tickets');
+      router.replace('/support/tickets');
     }
-  }, [canViewStatistics, router]);
+  }, [permissionsLoading, can, router]);
 
-  if (!canViewStatistics()) {
+  if (permissionsLoading) {
     return (
-      <div className="p-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">No tienes permiso para acceder a esta página.</p>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[50vh] items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  if (!can('soporte:estadisticas')) {
+    return null;
   }
 
   return (

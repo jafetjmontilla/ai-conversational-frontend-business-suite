@@ -205,4 +205,33 @@
     overflow: auto;
   }
 
+  /* Barras de scroll globales: finas y con puntas redondeadas */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+  }
+
+  /* WebKit (Chrome, Safari, Edge): scrollbar fina y redondeada */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.65);
+  }
+
 }

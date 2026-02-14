@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebSocketContext } from '@/contexts/WebSocketContext';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAllowed } from '@/lib/hooks/useAllowed';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { InputInteger } from '@/components/InputInteger';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from "sonner";
 import { Play, Square, RotateCw, Settings, Plus, Trash2, Video, Monitor, ArrowUpDown, ArrowUp, ArrowDown, Copy, ChevronLeft, ChevronRight, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -49,8 +50,11 @@ interface StreamingChannel {
 
 export default function StreamingPage() {
   const { authUser } = useAuth();
-  const { socket, isConnected, onStreamingUpdate, onStreamingError, subscribeToStreaming } = useWebSocketContext();
+  const router = useRouter();
   const pathname = usePathname();
+  const { hasAnyRole, loading: permissionsLoading } = useAllowed();
+  const canAccessStreaming = () => hasAnyRole(['admin', 'logicalSupport']);
+  const { socket, isConnected, onStreamingUpdate, onStreamingError, subscribeToStreaming } = useWebSocketContext();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [streamingChannels, setStreamingChannels] = useState<Map<string, StreamingChannel>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -95,6 +99,15 @@ export default function StreamingPage() {
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
+
+  // Redirigir si no tiene permiso (solo admin y logicalSupport)
+  useEffect(() => {
+    if (permissionsLoading) return;
+    if (!hasAnyRole(['admin', 'logicalSupport'])) {
+      toast.error('No tienes permiso para acceder a esta página');
+      router.replace('/dashboard');
+    }
+  }, [permissionsLoading, hasAnyRole, router]);
 
   // Marcar componente como montado/desmontado
   useEffect(() => {
@@ -538,6 +551,18 @@ export default function StreamingPage() {
       return 0;
     });
   };
+
+  if (permissionsLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!canAccessStreaming()) {
+    return null;
+  }
 
   if (loading) {
     return <div className="p-8">Cargando...</div>;
