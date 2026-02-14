@@ -39,6 +39,20 @@ interface StreamingError {
   timestamp: string;
 }
 
+// Payloads de eventos de tickets (modo colaborativo)
+export interface TicketCreatedPayload {
+  ticket: Record<string, unknown>;
+}
+
+export interface TicketUpdatedPayload {
+  _id: string;
+  ticket: Record<string, unknown>;
+}
+
+export interface TicketDeletedPayload {
+  _id: string;
+}
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -53,6 +67,12 @@ interface WebSocketContextType {
   onStreamingUpdate: (callback: (update: StreamingUpdate) => void) => void;
   onStreamingError: (callback: (error: StreamingError) => void) => void;
   subscribeToStreaming: () => void;
+  // Eventos de tickets (modo colaborativo)
+  onTicketCreated: (callback: (payload: TicketCreatedPayload) => void) => void;
+  onTicketUpdated: (callback: (payload: TicketUpdatedPayload) => void) => void;
+  onTicketDeleted: (callback: (payload: TicketDeletedPayload) => void) => void;
+  // Se invoca al reconectar tras pérdida de conexión
+  onReconnect: (callback: () => void) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -94,6 +114,19 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onUpdate: [],
     onError: []
   });
+
+  const ticketCallbacksRef = useRef<{
+    onTicketCreated: ((payload: TicketCreatedPayload) => void)[];
+    onTicketUpdated: ((payload: TicketUpdatedPayload) => void)[];
+    onTicketDeleted: ((payload: TicketDeletedPayload) => void)[];
+  }>({
+    onTicketCreated: [],
+    onTicketUpdated: [],
+    onTicketDeleted: []
+  });
+
+  const onReconnectCallbacksRef = useRef<(() => void)[]>([]);
+  const hadConnectedOnceRef = useRef<boolean>(false);
 
   // Obtener token de autenticación de Firebase (mismo que GraphQL)
   // Si forceRefresh es true, fuerza la renovación del token
@@ -231,6 +264,29 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     });
   }, []);
 
+  const handleTicketCreated = useCallback((payload: TicketCreatedPayload) => {
+    ticketCallbacksRef.current.onTicketCreated.forEach(cb => cb(payload));
+  }, []);
+
+  const handleTicketUpdated = useCallback((payload: TicketUpdatedPayload) => {
+    ticketCallbacksRef.current.onTicketUpdated.forEach(cb => cb(payload));
+  }, []);
+
+  const handleTicketDeleted = useCallback((payload: TicketDeletedPayload) => {
+    ticketCallbacksRef.current.onTicketDeleted.forEach(cb => cb(payload));
+  }, []);
+
+  // Detectar reconexión (isConnected pasa de false a true tras haber estado conectado)
+  useEffect(() => {
+    if (isConnected) {
+      if (hadConnectedOnceRef.current) {
+        onReconnectCallbacksRef.current.forEach(cb => cb());
+      } else {
+        hadConnectedOnceRef.current = true;
+      }
+    }
+  }, [isConnected]);
+
   useEffect(() => {
     console.log('🔌 Is Connected:', isConnected);
     console.log('🔌 Error:', error);
@@ -266,6 +322,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     socket.on('streaming:error', handleStreamingError);
     socket.on('streaming:initial', handleStreamingInitial);
 
+    // Eventos de tickets (modo colaborativo)
+    socket.on('ticket:created', handleTicketCreated);
+    socket.on('ticket:updated', handleTicketUpdated);
+    socket.on('ticket:deleted', handleTicketDeleted);
+
     // Cleanup
     return () => {
       socket.off('notification', handleNotification);
@@ -273,8 +334,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.off('streaming:update', handleStreamingUpdate);
       socket.off('streaming:error', handleStreamingError);
       socket.off('streaming:initial', handleStreamingInitial);
+      socket.off('ticket:created', handleTicketCreated);
+      socket.off('ticket:updated', handleTicketUpdated);
+      socket.off('ticket:deleted', handleTicketDeleted);
     };
-  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -313,6 +377,22 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, [socket]);
 
+  const onTicketCreated = useCallback((callback: (payload: TicketCreatedPayload) => void) => {
+    ticketCallbacksRef.current.onTicketCreated.push(callback);
+  }, []);
+
+  const onTicketUpdated = useCallback((callback: (payload: TicketUpdatedPayload) => void) => {
+    ticketCallbacksRef.current.onTicketUpdated.push(callback);
+  }, []);
+
+  const onTicketDeleted = useCallback((callback: (payload: TicketDeletedPayload) => void) => {
+    ticketCallbacksRef.current.onTicketDeleted.push(callback);
+  }, []);
+
+  const onReconnect = useCallback((callback: () => void) => {
+    onReconnectCallbacksRef.current.push(callback);
+  }, []);
+
   const value: WebSocketContextType = {
     socket,
     isConnected,
@@ -323,7 +403,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     unsubscribeFromNotifications,
     onStreamingUpdate,
     onStreamingError,
-    subscribeToStreaming
+    subscribeToStreaming,
+    onTicketCreated,
+    onTicketUpdated,
+    onTicketDeleted,
+    onReconnect
   };
 
   return (

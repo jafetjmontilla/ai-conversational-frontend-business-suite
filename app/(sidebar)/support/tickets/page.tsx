@@ -29,6 +29,8 @@ import { fetchApiV1, queries } from '@/lib/Fetching';
 import { useAllowed, useSupportPermissions } from '@/lib/hooks/useAllowed';
 import { useRouter } from 'next/navigation';
 import { InputComments } from '@/components/InputComments';
+import { useTicketsContext } from '@/contexts/TicketsContext';
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 interface TicketUser {
   _id: string;
@@ -173,20 +175,23 @@ export default function TicketsPage() {
   const router = useRouter();
   const { can, loading: permissionsLoading } = useAllowed();
   const { canViewSupport, canCreateEditTickets, canDeleteTickets, canCloseTicket } = useSupportPermissions();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const {
+    tickets: contextTickets,
+    total,
+    loading,
+    listParams,
+    setListParams,
+    loadTickets,
+  } = useTicketsContext();
+  const { isConnected, onTicketUpdated, onTicketDeleted } = useWebSocketContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const { currentPage, pageSize, sortColumn, sortDirection } = listParams;
   const [issues, setIssues] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
@@ -213,45 +218,17 @@ export default function TicketsPage() {
     zoneId: 0,
   });
 
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const sort: any = {};
-      if (sortColumn) {
-        sort[sortColumn] = sortDirection === 'asc' ? 1 : -1;
-      } else {
-        sort.createdAt = -1; // Por defecto ordenar por fecha de creación descendente
-      }
-
-      const response: TicketsResponse = await fetchApiV1({
-        query: queries.getTickets,
-        type: 'json',
-        variables: {
-          sort,
-          skip: (currentPage - 1) * pageSize,
-          limit: pageSize,
-        },
-      });
-
-      let filteredTickets = response.results || [];
-
-      // Aplicar filtros
-      if (statusFilter !== 'all') {
-        filteredTickets = filteredTickets.filter(t => t.status === statusFilter);
-      }
-      if (priorityFilter !== 'all') {
-        filteredTickets = filteredTickets.filter(t => t.priority === priorityFilter);
-      }
-
-      setTickets(filteredTickets);
-      setTotal(response.total || 0);
-    } catch (error: any) {
-      console.error('Error al cargar tickets:', error);
-      toast.error('Error al cargar tickets');
-    } finally {
-      setLoading(false);
+  // Filtrado client-side para la tabla (el contexto guarda la página cruda de la API)
+  const filteredTickets = (() => {
+    let list = contextTickets;
+    if (statusFilter !== 'all') {
+      list = list.filter(t => t.status === statusFilter);
     }
-  };
+    if (priorityFilter !== 'all') {
+      list = list.filter(t => t.priority === priorityFilter);
+    }
+    return list;
+  })();
 
   const loadTicketSettings = async () => {
     try {
@@ -321,20 +298,45 @@ export default function TicketsPage() {
       return;
     }
     if (authUser) {
-      fetchTickets();
+      loadTickets();
       loadTicketSettings();
       loadUsers();
     }
-  }, [permissionsLoading, can, authUser, currentPage, sortColumn, sortDirection, statusFilter, priorityFilter, router]);
+  }, [permissionsLoading, can, authUser, router]);
+
+  // Al reconectar, si el ticket abierto ya no está en la lista, cerrar detalle
+  useEffect(() => {
+    if (selectedTicket && contextTickets.length > 0 && !contextTickets.some(t => String(t._id) === String(selectedTicket._id))) {
+      setSelectedTicket(null);
+      setViewDialogOpen(false);
+    }
+  }, [contextTickets, selectedTicket]);
+
+  // Actualizar o cerrar detalle al recibir eventos en tiempo real
+  useEffect(() => {
+    const handleUpdated = (payload: import('@/contexts/WebSocketContext').TicketUpdatedPayload) => {
+      if (selectedTicket && String(selectedTicket._id) === String(payload._id)) {
+        setSelectedTicket(payload.ticket as unknown as Ticket);
+      }
+    };
+    const handleDeleted = (payload: import('@/contexts/WebSocketContext').TicketDeletedPayload) => {
+      if (selectedTicket && String(selectedTicket._id) === String(payload._id)) {
+        setSelectedTicket(null);
+        setViewDialogOpen(false);
+      }
+    };
+    onTicketUpdated(handleUpdated);
+    onTicketDeleted(handleDeleted);
+  }, [onTicketUpdated, onTicketDeleted, selectedTicket]);
 
 
   const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
+    const nextDirection = sortColumn === column ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
+    setListParams({
+      sortColumn: column,
+      sortDirection: nextDirection,
+    });
+    loadTickets({ sortColumn: column, sortDirection: nextDirection });
   };
 
   const getSortIcon = (column: string) => {
@@ -460,7 +462,7 @@ export default function TicketsPage() {
         },
       });
       toast.success('Cambios guardados correctamente');
-      fetchTickets();
+      loadTickets();
       // Actualizar el ticket seleccionado con los nuevos valores
       setSelectedTicket({
         ...selectedTicket,
@@ -521,7 +523,7 @@ export default function TicketsPage() {
         responses: [...normalizedResponses, newResponse],
       });
 
-      fetchTickets();
+      loadTickets();
     } catch (error: any) {
       toast.error(`Error al agregar comentario: ${error.message || 'Error desconocido'}`);
     }
@@ -554,7 +556,7 @@ export default function TicketsPage() {
         ...selectedTicket,
         status: 'resolved',
       });
-      fetchTickets();
+      loadTickets();
     } catch (error: any) {
       toast.error(`Error al marcar resolución del ticket: ${error.message || 'Error desconocido'}`);
     }
@@ -583,7 +585,7 @@ export default function TicketsPage() {
         ...selectedTicket,
         status: 'closed',
       });
-      fetchTickets();
+      loadTickets();
     } catch (error: any) {
       toast.error(`Error al cerrar ticket: ${error.message || 'Error desconocido'}`);
     }
@@ -612,7 +614,7 @@ export default function TicketsPage() {
         ...selectedTicket,
         status: 'cancelled',
       });
-      fetchTickets();
+      loadTickets();
     } catch (error: any) {
       toast.error(`Error al cancelar ticket: ${error.message || 'Error desconocido'}`);
     }
@@ -635,7 +637,7 @@ export default function TicketsPage() {
         },
       });
       toast.success('Ticket eliminado correctamente');
-      fetchTickets();
+      loadTickets();
       setDeleteDialogOpen(false);
       setTicketToDelete(null);
     } catch (error: any) {
@@ -700,7 +702,7 @@ export default function TicketsPage() {
         toast.success('Ticket creado correctamente');
       }
 
-      fetchTickets();
+      loadTickets();
       setDialogOpen(false);
       setSelectedTicket(null);
       setAttachedFiles([]);
@@ -774,12 +776,17 @@ export default function TicketsPage() {
     return null;
   }
 
-  if (loading && tickets.length === 0) {
+  if (loading && contextTickets.length === 0) {
     return <div className="p-8">Cargando...</div>;
   }
 
   return (
     <div className="p-8 space-y-6">
+      {!isConnected && (
+        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-400">
+          Sin conexión en tiempo real. Los cambios de otros usuarios se verán al reconectar.
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestión de Tickets</h1>
@@ -893,28 +900,30 @@ export default function TicketsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tickets.length === 0 ? (
+              {filteredTickets.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground">
                     No hay tickets disponibles
                   </TableCell>
                 </TableRow>
               ) : (
-                tickets.map((ticket) => (
-                  <TableRow key={ticket._id}>
-                    <TableCell className="font-medium">{ticket.number || '-'}</TableCell>
-                    <TableCell className="font-medium">{ticket.subject}</TableCell>
-                    <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                    <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
+                filteredTickets.map((ticket) => {
+                  const t = ticket as Ticket;
+                  return (
+                  <TableRow key={t._id}>
+                    <TableCell className="font-medium">{t.number || '-'}</TableCell>
+                    <TableCell className="font-medium">{t.subject}</TableCell>
+                    <TableCell>{getStatusBadge(t.status)}</TableCell>
+                    <TableCell>{getPriorityBadge(t.priority)}</TableCell>
                     <TableCell>
-                      {ticket.technician?.name || ticket.technician?.email || '-'}
+                      {t.technician?.name || t.technician?.email || '-'}
                     </TableCell>
                     <TableCell>
-                      {ticket.cliente?.zona?.nombre || '-'}
+                      {t.cliente?.zona?.nombre || '-'}
                     </TableCell>
                     <TableCell>
-                      {ticket.createdAt
-                        ? format(new Date(ticket.createdAt), 'PPp', { locale: es })
+                      {t.createdAt
+                        ? format(new Date(t.createdAt), 'PPp', { locale: es })
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -922,7 +931,7 @@ export default function TicketsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleViewClick(ticket)}
+                          onClick={() => handleViewClick(t)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -930,7 +939,7 @@ export default function TicketsPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleEditClick(ticket)}
+                            onClick={() => handleEditClick(t)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -939,7 +948,7 @@ export default function TicketsPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDeleteClick(ticket)}
+                            onClick={() => handleDeleteClick(t)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -947,7 +956,8 @@ export default function TicketsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -962,7 +972,10 @@ export default function TicketsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => {
+                    const next = Math.max(1, currentPage - 1);
+                    loadTickets({ currentPage: next });
+                  }}
                   disabled={currentPage === 1}
                 >
                   Anterior
@@ -970,7 +983,10 @@ export default function TicketsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => {
+                    const next = Math.min(totalPages, currentPage + 1);
+                    loadTickets({ currentPage: next });
+                  }}
                   disabled={currentPage === totalPages}
                 >
                   Siguiente

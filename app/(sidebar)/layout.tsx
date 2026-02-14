@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { SidebarLayout } from '@/components/layouts/SidebarLayout'
 import { WebSocketProvider } from '@/contexts/WebSocketContext'
+import { TicketsProvider } from '@/contexts/TicketsContext'
 import NotificationHandler from '@/components/NotificationHandler'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -8,12 +9,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <WebSocketProvider>
-      <NotificationHandler />
-      <SidebarLayout defaultOpen={defaultOpen}>
+      <TicketsProvider>
+        <NotificationHandler />
+        <SidebarLayout defaultOpen={defaultOpen}>
         <div className='flex-1 max-h-[100vh] overflow-auto'>
           {children}
         </div>
       </SidebarLayout>
+      </TicketsProvider>
     </WebSocketProvider>
   )
 }
