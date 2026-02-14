@@ -123,6 +123,13 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
       role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
     }
   },
+  'soporte:cerrar_ticket': {
+    action: 'cerrar_ticket',
+    resource: 'soporte',
+    conditions: {
+      role: ['admin', 'logicalSupport', 'technicalSupportSupervisor']
+    }
+  },
 
   // Email verificado
   'email:verificado': {
@@ -282,6 +289,7 @@ export const useSupportPermissions = () => {
     canViewSupport: () => can('soporte:ver'),
     canCreateEditTickets: () => can('soporte:crear_editar'),
     canDeleteTickets: () => can('soporte:eliminar'),
+    canCloseTicket: () => can('soporte:cerrar_ticket'),
     canViewStatistics: () => can('soporte:estadisticas'),
     canViewSettings: () => can('soporte:ajustes'),
     hasPrioritySupport: () => can('soporte:prioritario'),

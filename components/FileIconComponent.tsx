@@ -8,13 +8,13 @@ interface FileIconComponentProps extends DetailedHTMLProps<HTMLAttributes<HTMLDi
 }
 
 export const FileIconComponent: FC<FileIconComponentProps> = (props) => {
-  const { extension } = props;
+  const { extension, className = '', ...rest } = props;
 
   const extensionKey = extension as keyof typeof defaultStyles;
   const styles = defaultStyles[extensionKey] || {};
 
   return (
-    <div {...props}>
+    <div className={`text-foreground ${className}`.trim()} {...rest}>
       <FileIcon extension={extension} {...styles} />
     </div>
   );

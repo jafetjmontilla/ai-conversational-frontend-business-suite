@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { AutocompleteInput } from '@/components/AutocompleteInput';
 import { QuillEditor, PastedAndDropFile } from '@/components/QuillEditor';
 import { FileUpload, UploadedFile, FileUploadRef } from '@/components/FileUpload';
+import { AttachedFilesDisplay } from '@/components/AttachedFilesDisplay';
 import { Interweave } from 'interweave';
 import { HashtagMatcher, UrlMatcher, UrlProps } from 'interweave-autolink';
 import Link from 'next/link';
@@ -65,6 +66,19 @@ interface TicketCliente {
   zona?: TicketZona;
 }
 
+interface TicketFieldChange {
+  field: string;
+  oldValue: string;
+  newValue: string;
+}
+
+interface TicketChange {
+  changedAt: string;
+  changedBy_id?: string;
+  changedBy?: TicketUser;
+  fields: TicketFieldChange[];
+}
+
 interface Ticket {
   _id: string;
   number: number;
@@ -90,6 +104,7 @@ interface Ticket {
   responses?: any[];
   updatedAt?: string;
   cliente?: TicketCliente;
+  changes?: TicketChange[];
 }
 
 interface TicketsResponse {
@@ -97,10 +112,66 @@ interface TicketsResponse {
   results: Ticket[];
 }
 
+// Diccionarios para estados, prioridades, departamentos y origen del reporte
+const STATUS_LABELS: Record<string, string> = {
+  open: 'Abierto',
+  in_progress: 'En Progreso',
+  resolved: 'Resuelto',
+  closed: 'Cerrado',
+  cancelled: 'Cancelado',
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  baja: 'Baja',
+  normal: 'Normal',
+  alta: 'Alta',
+  muy_alta: 'Muy Alta',
+};
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  soporte_tecnico: 'Soporte Técnico',
+  finanzas: 'Finanzas',
+  ventas: 'Ventas',
+  quejas_sugerencias: 'Quejas y Sugerencias',
+  otro: 'Otro',
+};
+
+const REPORT_ORIGIN_LABELS: Record<string, string> = {
+  oficina: 'Oficina',
+  portal_cliente: 'Portal Cliente',
+  via_telefonica: 'Vía telefónica',
+  presencial: 'Presencial',
+  redes_sociales: 'Redes sociales',
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  subject: 'Asunto',
+  failureReason: 'Razón de falla',
+  status: 'Estado',
+  priority: 'Prioridad',
+  technician_id: 'Técnico',
+  department: 'Departamento',
+  reportOrigin: 'Reportado desde',
+  description: 'Descripción',
+  startDate: 'Fecha inicio',
+  endDate: 'Fecha fin',
+};
+
+function formatChangeValue(field: string, value: string): string {
+  if (value === '' || value === null || value === undefined) return '—';
+  switch (field) {
+    case 'status': return STATUS_LABELS[value] ?? value;
+    case 'priority': return PRIORITY_LABELS[value] ?? value;
+    case 'department': return DEPARTMENT_LABELS[value] ?? value;
+    case 'reportOrigin': return REPORT_ORIGIN_LABELS[value] ?? value;
+    default: return value;
+  }
+}
+
 export default function TicketsPage() {
   const { authUser } = useAuth();
   const router = useRouter();
-  const { canViewSupport, canCreateEditTickets, canDeleteTickets } = useSupportPermissions();
+  const { canViewSupport, canCreateEditTickets, canDeleteTickets, canCloseTicket } = useSupportPermissions();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -412,19 +483,25 @@ export default function TicketsPage() {
       // Obtener las respuestas actuales del ticket
       const currentResponses = selectedTicket.responses || [];
 
-      // Agregar la nueva respuesta
+      // Agregar la nueva respuesta (author.id como string para GraphQL ID)
       const newResponse = {
         response: comment.comment,
         createdAt: new Date().toISOString(),
         author: {
-          id: authUser?.customClaims?._id || 0,
+          id: authUser?.customClaims?._id ? String(authUser.customClaims._id) : '0',
           name: authUser?.displayName || authUser?.email || 'Usuario',
         },
         files: comment.attachments?.map((att: any) => att.name) || [],
       };
 
+      // Normalizar author.id a string en respuestas existentes (el backend espera ID = string)
+      const normalizedResponses = currentResponses.map((r: any) => ({
+        ...r,
+        author: r.author ? { ...r.author, id: String(r.author.id ?? '') } : r.author,
+      }));
+
       const args: any = {
-        responses: [...currentResponses, newResponse],
+        responses: [...normalizedResponses, newResponse],
       };
 
       await fetchApiV1({
@@ -439,12 +516,45 @@ export default function TicketsPage() {
       // Actualizar el ticket seleccionado
       setSelectedTicket({
         ...selectedTicket,
-        responses: [...currentResponses, newResponse],
+        responses: [...normalizedResponses, newResponse],
       });
 
       fetchTickets();
     } catch (error: any) {
       toast.error(`Error al agregar comentario: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const handleResolveTicket = async () => {
+    if (!selectedTicket) return;
+    if (!canCloseTicket()) {
+      toast.error('No tienes permiso para marcar la resolución del ticket');
+      return;
+    }
+
+    try {
+      const args: any = {
+        status: 'resolved',
+      };
+
+      await fetchApiV1({
+        query: queries.updateTicket,
+        type: 'json',
+        variables: {
+          id: selectedTicket._id,
+          args,
+        },
+      });
+
+      toast.success('Ticket marcado como resuelto correctamente');
+      setViewDialogStatus('resolved');
+      setSelectedTicket({
+        ...selectedTicket,
+        status: 'resolved',
+      });
+      fetchTickets();
+    } catch (error: any) {
+      toast.error(`Error al marcar resolución del ticket: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -558,7 +668,7 @@ export default function TicketsPage() {
         failureReason: formData.failureReason || undefined,
         status: formData.status || undefined,
         priority: formData.priority || undefined,
-        technician_id: formData.technician_id || undefined,
+        technician_id: formData.technician_id === '' ? null : (formData.technician_id || undefined),
         department: formData.department || undefined,
         reportOrigin: formData.reportOrigin || undefined,
         description: formData.description || undefined,
@@ -613,32 +723,34 @@ export default function TicketsPage() {
   };
 
   const getStatusBadge = (status?: string) => {
-    const variants: Record<string, any> = {
-      open: { label: 'Abierto', className: 'bg-blue-500 hover:bg-blue-600 text-white' },
-      in_progress: { label: 'En Progreso', className: 'bg-yellow-500 hover:bg-yellow-600 text-white' },
-      resolved: { label: 'Resuelto', className: 'bg-green-500 hover:bg-green-600 text-white' },
-      closed: { label: 'Cerrado', className: 'bg-gray-500 hover:bg-gray-600 text-white' },
-      cancelled: { variant: 'destructive' as const, label: 'Cancelado' },
+    const styleVariants: Record<string, { className?: string; variant?: 'destructive' | 'secondary' }> = {
+      open: { className: 'bg-blue-500 hover:bg-blue-600 text-white' },
+      in_progress: { className: 'bg-yellow-500 hover:bg-yellow-600 text-white' },
+      resolved: { className: 'bg-green-500 hover:bg-green-600 text-white' },
+      closed: { className: 'bg-gray-500 hover:bg-gray-600 text-white' },
+      cancelled: { variant: 'destructive' as const },
     };
-    const config = variants[status || ''] || { variant: 'secondary' as const, label: status || 'Sin estado' };
-    if (config.className) {
-      return <Badge className={config.className}>{config.label}</Badge>;
+    const label = status ? (STATUS_LABELS[status] ?? status) : 'Sin estado';
+    const style = styleVariants[status || ''] || { variant: 'secondary' as const };
+    if (style.className) {
+      return <Badge className={style.className}>{label}</Badge>;
     }
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={style.variant ?? 'secondary'}>{label}</Badge>;
   };
 
   const getPriorityBadge = (priority?: string) => {
-    const variants: Record<string, any> = {
-      baja: { label: 'Baja', className: 'bg-gray-500 hover:bg-gray-600 text-white' },
-      normal: { label: 'Normal', className: 'bg-blue-500 hover:bg-blue-600 text-white' },
-      alta: { label: 'Alta', className: 'bg-orange-500 hover:bg-orange-600 text-white' },
-      muy_alta: { variant: 'destructive' as const, label: 'Muy Alta' },
+    const styleVariants: Record<string, { className?: string; variant?: 'destructive' | 'secondary' }> = {
+      baja: { className: 'bg-gray-500 hover:bg-gray-600 text-white' },
+      normal: { className: 'bg-blue-500 hover:bg-blue-600 text-white' },
+      alta: { className: 'bg-orange-500 hover:bg-orange-600 text-white' },
+      muy_alta: { variant: 'destructive' as const },
     };
-    const config = variants[priority || ''] || { variant: 'secondary' as const, label: priority || 'Sin prioridad' };
-    if (config.className) {
-      return <Badge className={config.className}>{config.label}</Badge>;
+    const label = priority ? (PRIORITY_LABELS[priority] ?? priority) : 'Sin prioridad';
+    const style = styleVariants[priority || ''] || { variant: 'secondary' as const };
+    if (style.className) {
+      return <Badge className={style.className}>{label}</Badge>;
     }
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={style.variant ?? 'secondary'}>{label}</Badge>;
   };
 
   const formatTicketNumber = (number?: number): string => {
@@ -696,11 +808,9 @@ export default function TicketsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="open">Abierto</SelectItem>
-                  <SelectItem value="in_progress">En Progreso</SelectItem>
-                  <SelectItem value="resolved">Resuelto</SelectItem>
-                  <SelectItem value="closed">Cerrado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -712,10 +822,9 @@ export default function TicketsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="baja">Baja</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="alta">Alta</SelectItem>
-                  <SelectItem value="muy_alta">Muy Alta</SelectItem>
+                  {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -889,83 +998,102 @@ export default function TicketsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cliente</Label>
-                <div className="relative" ref={clienteDropdownRef}>
+                {selectedTicket ? (
                   <Input
                     value={clienteSearchText}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setClienteSearchText(value);
-                      if (value.length >= 2) {
-                        searchClientes(value);
-                        setIsClienteDropdownOpen(true);
-                      } else {
-                        setClienteOptions([]);
-                        setIsClienteDropdownOpen(false);
-                      }
-                    }}
-                    onFocus={() => {
-                      if (clienteOptions.length > 0) {
-                        setIsClienteDropdownOpen(true);
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // Delay para permitir el click en las opciones
-                      setTimeout(() => {
-                        if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(document.activeElement)) {
+                    readOnly
+                    className="w-full bg-muted cursor-default"
+                  />
+                ) : (
+                  <div className="relative" ref={clienteDropdownRef}>
+                    <Input
+                      value={clienteSearchText}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setClienteSearchText(value);
+                        if (value.length >= 2) {
+                          searchClientes(value);
+                          setIsClienteDropdownOpen(true);
+                        } else {
+                          setClienteOptions([]);
                           setIsClienteDropdownOpen(false);
                         }
-                      }, 200);
-                    }}
-                    placeholder="Buscar cliente por nombre, apellido o usuario"
-                    className="w-full"
-                  />
-                  {isClienteDropdownOpen && clienteOptions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md text-sm max-h-60 overflow-y-auto">
-                      {clienteOptions.map((cliente) => (
-                        <div
-                          key={cliente.id_servicio}
-                          className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            const nombreCompleto = `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || '';
-                            const zonaId = cliente.zona?.id || 0;
-                            const zonaNombre = cliente.zona?.nombre || '';
-                            setSelectedCliente({
-                              cliente: nombreCompleto,
-                              usuario: cliente.usuario,
-                              ip: cliente.ip,
-                              id_servicio: cliente.id_servicio,
-                              zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined
-                            });
-                            setClienteSearchText(nombreCompleto);
-                            setFormData({ ...formData, zoneId: zonaId });
-                            setZonaNombre(zonaNombre);
+                      }}
+                      onFocus={() => {
+                        if (clienteOptions.length > 0) {
+                          setIsClienteDropdownOpen(true);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Delay para permitir el click en las opciones
+                        setTimeout(() => {
+                          if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(document.activeElement)) {
                             setIsClienteDropdownOpen(false);
-                          }}
-                        >
-                          <div className="font-medium">
-                            {`${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || 'Sin nombre'}
+                          }
+                        }, 200);
+                      }}
+                      placeholder="Buscar cliente por nombre, apellido o usuario"
+                      className="w-full"
+                    />
+                    {isClienteDropdownOpen && clienteOptions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md text-sm max-h-60 overflow-y-auto">
+                        {clienteOptions.map((cliente) => (
+                          <div
+                            key={cliente.id_servicio}
+                            className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const nombreCompleto = `${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || '';
+                              const zonaId = cliente.zona?.id || 0;
+                              const zonaNombre = cliente.zona?.nombre || '';
+                              setSelectedCliente({
+                                cliente: nombreCompleto,
+                                usuario: cliente.usuario,
+                                ip: cliente.ip,
+                                id_servicio: cliente.id_servicio,
+                                zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined
+                              });
+                              setClienteSearchText(nombreCompleto);
+                              setFormData({ ...formData, zoneId: zonaId });
+                              setZonaNombre(zonaNombre);
+                              setIsClienteDropdownOpen(false);
+                            }}
+                          >
+                            <div className="font-medium">
+                              {`${cliente.nombre || ''} ${cliente.apellido || ''}`.trim() || cliente.usuario || 'Sin nombre'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ID Servicio: {cliente.id_servicio}
+                              {cliente.usuario && ` • Usuario: ${cliente.usuario}`}
+                              {cliente.ip && ` • IP: ${cliente.ip}`}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            ID Servicio: {cliente.id_servicio}
-                            {cliente.usuario && ` • Usuario: ${cliente.usuario}`}
-                            {cliente.ip && ` • IP: ${cliente.ip}`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
-                <AutocompleteInput
-                  value={formData.subject}
-                  onChange={(value) => setFormData({ ...formData, subject: value })}
-                  options={issues}
-                  label="Asunto"
-                  placeholder="Buscar o escribir asunto"
-                  required
-                />
+                {selectedTicket ? (
+                  <>
+                    <Label>Asunto</Label>
+                    <Input
+                      value={formData.subject}
+                      readOnly
+                      className="w-full bg-muted cursor-default"
+                    />
+                  </>
+                ) : (
+                  <AutocompleteInput
+                    value={formData.subject}
+                    onChange={(value) => setFormData({ ...formData, subject: value })}
+                    options={issues}
+                    label="Asunto"
+                    placeholder="Buscar o escribir asunto"
+                    required
+                  />
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -979,11 +1107,9 @@ export default function TicketsPage() {
                     <SelectValue placeholder="Seleccionar estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="open">Abierto</SelectItem>
-                    <SelectItem value="in_progress">En Progreso</SelectItem>
-                    <SelectItem value="resolved">Resuelto</SelectItem>
-                    <SelectItem value="closed">Cerrado</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -997,10 +1123,9 @@ export default function TicketsPage() {
                     <SelectValue placeholder="Seleccionar prioridad" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="baja">Baja</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="muy_alta">Muy Alta</SelectItem>
+                    {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1042,7 +1167,7 @@ export default function TicketsPage() {
                           );
                         }
                         return <SelectValue placeholder="Seleccionar técnico" />;
-                      })() : <SelectValue placeholder="Seleccionar técnico" />}
+                      })() : <SelectValue placeholder="Sin asignar" />}
                     </div>
                   </SelectTrigger>
                   <SelectContent>
@@ -1071,8 +1196,8 @@ export default function TicketsPage() {
                   <Input
                     type="number"
                     value={formData.zoneId}
-                    disabled
-                    className="flex-1"
+                    readOnly
+                    className="flex-1 bg-muted cursor-default"
                   />
                   {zonaNombre && (
                     <Label className="text-sm text-muted-foreground font-normal">
@@ -1085,25 +1210,33 @@ export default function TicketsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Departamento</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) => setFormData({ ...formData, department: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar departamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="soporte_tecnico">Soporte Técnico</SelectItem>
-                    <SelectItem value="finanzas">Finanzas</SelectItem>
-                    <SelectItem value="ventas">Ventas</SelectItem>
-                    <SelectItem value="quejas_sugerencias">Quejas y Sugerencias</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
+                {selectedTicket
+                  ? <Input
+                    value={DEPARTMENT_LABELS[formData.department] ?? formData.department}
+                    readOnly
+                    className="w-full bg-muted cursor-default"
+                  />
+                  : <Select
+                    value={formData.department}
+                    onValueChange={(value) => setFormData({ ...formData, department: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(DEPARTMENT_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>}
               </div>
               <div>
                 <Label>Reportado Desde</Label>
-                <Select
+                {selectedTicket ? <Input
+                  value={formData.reportOrigin}
+                  readOnly
+                  className="w-full bg-muted cursor-default"
+                /> : <Select
                   value={formData.reportOrigin}
                   onValueChange={(value) => setFormData({ ...formData, reportOrigin: value })}
                 >
@@ -1111,13 +1244,11 @@ export default function TicketsPage() {
                     <SelectValue placeholder="Seleccionar origen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="oficina">Oficina</SelectItem>
-                    <SelectItem value="portal_cliente">Portal Cliente</SelectItem>
-                    <SelectItem value="via_telefonica">Vía telefónica</SelectItem>
-                    <SelectItem value="presencial">Presencial</SelectItem>
-                    <SelectItem value="redes_sociales">Redes sociales</SelectItem>
+                    {Object.entries(REPORT_ORIGIN_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
-                </Select>
+                </Select>}
               </div>
             </div>
             <div>
@@ -1148,6 +1279,45 @@ export default function TicketsPage() {
               </Button>
               <Button type="submit">Guardar</Button>
             </div>
+            {selectedTicket?.changes && selectedTicket.changes.length > 0 && (
+              <div className="border rounded-lg px-0.5 py-1 space-y-3">
+                <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                  {[...(selectedTicket.changes || [])].reverse().map((change, idx) => (
+                    <div key={idx} className="text-sm border-l-2 border-muted pl-3 py-1">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        {change.changedBy && (
+                          <>
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={change.changedBy.photoURL || ''} />
+                              <AvatarFallback className="text-xs">
+                                {change.changedBy.name?.charAt(0)?.toUpperCase() || change.changedBy.email?.charAt(0)?.toUpperCase() || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-foreground">
+                              {change.changedBy.name || change.changedBy.email}
+                            </span>
+                          </>
+                        )}
+                        <span>
+                          {change.changedAt ? format(new Date(change.changedAt), 'PPp', { locale: es }) : ''}
+                        </span>
+                      </div>
+                      <ul className="space-y-0.5">
+                        {change.fields?.map((f, i) => (
+                          <li key={i}>
+                            <span className="font-medium">{FIELD_LABELS[f.field] ?? f.field}</span>
+                            {' '}
+                            <span className="text-muted-foreground">{formatChangeValue(f.field, f.oldValue)}</span>
+                            {' → '}
+                            <span>{formatChangeValue(f.field, f.newValue)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
         </DialogContent>
       </Dialog>
@@ -1165,8 +1335,30 @@ export default function TicketsPage() {
               </div>
             </DialogTitle>
           </DialogHeader>
+          {selectedTicket?.status && selectedTicket?.status !== 'closed' && selectedTicket?.status !== 'cancelled' && selectedTicket?.status !== 'resolved' && (
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                size="sm"
+                variant="default"
+                className="w-1/3 bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleResolveTicket}
+              >
+                Marcar resolución del ticket
+              </Button>
+              {canCloseTicket() && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-1/3"
+                  onClick={handleCloseTicket}
+                >
+                  Marcar cierre del ticket
+                </Button>
+              )}
+            </div>
+          )}
           {selectedTicket && (
-            <div className="space-y-4">
+            <div className="space-y-4 text-sm">
               <div>
                 <Label className="font-semibold">Asunto</Label>
                 <p>{selectedTicket.subject}</p>
@@ -1183,7 +1375,7 @@ export default function TicketsPage() {
               {selectedTicket.description && (
                 <div>
                   <Label className="font-semibold">Descripción</Label>
-                  <div className="overflow-hidden text-ellipsis whitespace-nowrap border-[1px] border-gray-200 p-4 rounded-2xl">
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap border border-border p-4 rounded-2xl">
                     <Interweave
                       className="transition-all"
                       content={selectedTicket.description}
@@ -1246,34 +1438,33 @@ export default function TicketsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Departamento</Label>
-                  <p>
-                    {selectedTicket.department === 'soporte_tecnico' ? 'Soporte Técnico' :
-                      selectedTicket.department === 'finanzas' ? 'Finanzas' :
-                        selectedTicket.department === 'ventas' ? 'Ventas' :
-                          selectedTicket.department === 'quejas_sugerencias' ? 'Quejas y Sugerencias' :
-                            selectedTicket.department === 'otro' ? 'Otro' :
-                              selectedTicket.department || '-'}
-                  </p>
+                  <p>{selectedTicket.department ? (DEPARTMENT_LABELS[selectedTicket.department] ?? selectedTicket.department) : '-'}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Reportado Desde</Label>
-                  <p>
-                    {selectedTicket.reportOrigin === 'oficina' ? 'Oficina' :
-                      selectedTicket.reportOrigin === 'portal_cliente' ? 'Portal Cliente' :
-                        selectedTicket.reportOrigin === 'via_telefonica' ? 'Vía telefónica' :
-                          selectedTicket.reportOrigin === 'presencial' ? 'Presencial' :
-                            selectedTicket.reportOrigin === 'redes_sociales' ? 'Redes sociales' :
-                              selectedTicket.reportOrigin || '-'}
-                  </p>
+                  <p>{selectedTicket.reportOrigin ? (REPORT_ORIGIN_LABELS[selectedTicket.reportOrigin] ?? selectedTicket.reportOrigin) : '-'}</p>
                 </div>
               </div>
+              {selectedTicket.ticketFileAttachment && selectedTicket.ticketFileAttachment.length > 0 && (
+                <div>
+                  <Label className="font-semibold">Archivos adjuntos</Label>
+                  <AttachedFilesDisplay
+                    className="mt-2"
+                    files={selectedTicket.ticketFileAttachment.map((url) => {
+                      const fullUrl = url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${url}`;
+                      const name = url.split('/').pop() || 'archivo';
+                      return { name, url: fullUrl };
+                    })}
+                  />
+                </div>
+              )}
               <div>
                 <Label className="font-semibold">Comentarios</Label>
-                <div className="border-[1px] border-gray-200 rounded-lg">
+                <div className="border border-border rounded-lg overflow-hidden">
                   {selectedTicket.responses && selectedTicket.responses.length > 0 && (
                     <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
                       {selectedTicket.responses.map((response: any, index: number) => (
-                        <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                        <div key={index} className="border-b border-gray-200 dark:border-white/10 pb-4 last:border-b-0 last:pb-0">
                           <div className="flex items-center gap-2 mb-2">
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-xs">
@@ -1298,12 +1489,11 @@ export default function TicketsPage() {
                               ]}
                             />
                             {response.files && response.files.length > 0 && (
-                              <div className="mt-2 space-y-1">
-                                {response.files.map((file: string, fileIndex: number) => (
-                                  <div key={fileIndex} className="text-sm text-muted-foreground">
-                                    📎 {file}
-                                  </div>
-                                ))}
+                              <div className="mt-2">
+                                <AttachedFilesDisplay
+                                  files={response.files.map((name: string) => ({ name }))}
+                                  size="sm"
+                                />
                               </div>
                             )}
                           </div>
@@ -1312,7 +1502,7 @@ export default function TicketsPage() {
                     </div>
                   )}
                   <InputComments
-                    disabled={!canCreateEditTickets()}
+                    disableAttachments
                     onCommentAdded={handleCommentAdded}
                     placeholder="Escribe un comentario..."
                   />
@@ -1360,26 +1550,6 @@ export default function TicketsPage() {
                       {selectedTicket.finishedBy.name || selectedTicket.finishedBy.email || '-'}
                     </p>
                   </div>
-                </div>
-              )}
-              {selectedTicket.status && selectedTicket.status !== 'closed' && selectedTicket.status !== 'cancelled' && (
-                <div className="flex justify-between gap-2 pt-4 border-t">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleCancelTicket}
-                  >
-                    Cancelar Ticket
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="w-1/3"
-                    onClick={handleCloseTicket}
-                  >
-                    Cerrar Ticket
-                  </Button>
                 </div>
               )}
             </div>

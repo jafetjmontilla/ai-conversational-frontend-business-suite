@@ -306,7 +306,7 @@ export const QuillEditor: FC<QuillEditorProps> = ({ value, setValue, setPastedAn
                         }, 50);
                       }
                     }
-                  }} className='w-10 h-10 flex justify-center items-center hover:bg-gray-100 rounded-full'>
+                  }} className='w-10 h-10 flex justify-center items-center hover:bg-muted rounded-full text-foreground'>
                     <GrEmoji className='w-6 h-6' />
                   </div>
                   {showPicker && (
@@ -327,7 +327,7 @@ export const QuillEditor: FC<QuillEditorProps> = ({ value, setValue, setPastedAn
             </div>
           </div>
         )}
-        <div ref={divEditableRef} className={`bg-white min-h-[42.45px] flex-1 border-[1px] border-gray-300 rounded-2xl ${!pastedAndDropFiles.length && "pr-10"}`}>
+        <div ref={divEditableRef} className={`bg-background min-h-[42.45px] flex-1 border border-border rounded-2xl overflow-hidden ${!pastedAndDropFiles.length && "pr-10"}`}>
           {enableEditor && <ReactQuill
             theme="bubble"
             value={value}
@@ -347,6 +347,11 @@ export const QuillEditor: FC<QuillEditorProps> = ({ value, setValue, setPastedAn
       }
       .comment-editor .ql-editor{
         scrollbar-width: none;
+        background: hsl(var(--background)) !important;
+        color: hsl(var(--foreground)) !important;
+      }
+      .comment-editor .ql-editor.ql-blank::before{
+        color: hsl(var(--muted-foreground));
       }
       .comment-editor .ql-tooltip{
         transform: translateY(-220%) !important;

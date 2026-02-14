@@ -25,6 +25,7 @@ export interface User {
   name: string;
   phone: string;
   role: string;
+  zoneId?: number;
   active: boolean;
   emailVerified: boolean;
   photoURL: string;

@@ -163,6 +163,7 @@ export const queries = {
       email
       phone
       role
+      zoneId
       active
       emailVerified
       token
@@ -188,6 +189,7 @@ export const queries = {
         email
         phone
         role
+        zoneId
         token
         code
         expiresAt
@@ -289,6 +291,7 @@ export const queries = {
       email
       phone
       role
+      zoneId
       active
       emailVerified
       photoURL
@@ -307,6 +310,7 @@ export const queries = {
         email
         phone
         role
+        zoneId
         token
         expiresAt
         used
@@ -623,10 +627,28 @@ export const queries = {
         files
       }
       updatedAt
+      changes {
+        changedAt
+        changedBy_id
+        changedBy {
+          _id
+          name
+          email
+          photoURL
+        }
+        fields {
+          field
+          oldValue
+          newValue
+        }
+      }
     }
   }`,
   getWisphubClientes: `query getWisphubClientes($searchText: String, $searchParam: String) {
     getWisphubClientes(searchText: $searchText, searchParam: $searchParam)
+  }`,
+  getWisphubZonas: `query getWisphubZonas {
+    getWisphubZonas
   }`,
   getTickets: `query getTickets($sort: sortCriteriaTickets, $skip: Int, $limit: Int) {
     getTickets(sort: $sort, skip: $skip, limit: $limit) {
@@ -710,6 +732,21 @@ export const queries = {
           zona {
             id
             nombre
+          }
+        }
+        changes {
+          changedAt
+          changedBy_id
+          changedBy {
+            _id
+            name
+            email
+            photoURL
+          }
+          fields {
+            field
+            oldValue
+            newValue
           }
         }
       }

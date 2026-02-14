@@ -3,7 +3,8 @@
 import React, { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload, X, File, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, CloudUpload } from 'lucide-react';
+import { FileIcon, defaultStyles } from 'react-file-icon';
 import { toast } from 'sonner';
 import { fetchApiJaihomV1, fetchApiV1, queries } from '@/lib/Fetching';
 
@@ -252,150 +253,146 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType.startsWith('video/')) return '🎥';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    if (mimeType.includes('pdf')) return '📄';
-    if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-    return '📎';
+  const getExtension = (filename: string): string => {
+    const name = (filename || '').toLowerCase();
+    const ext = name.split('.').pop() || '';
+    return ext;
+  };
+
+  const getFileIconStyles = (extension: string) => {
+    const ext = extension.toLowerCase();
+    const key = ext as keyof typeof defaultStyles;
+    return defaultStyles[key] || {};
   };
 
   const totalFiles = selectedFiles.length + uploadedFiles.length;
 
+  const renderFileThumbnail = (
+    type: 'selected' | 'uploaded',
+    payload: { file?: File; uploaded?: UploadedFile; index?: number }
+  ) => {
+    const isSelected = type === 'selected';
+    const name = isSelected
+      ? (payload.file as File).name
+      : (payload.uploaded as UploadedFile).originalName || (payload.uploaded as UploadedFile).filename || `Archivo`;
+    const ext = getExtension(name);
+    const styles = getFileIconStyles(ext);
+
+    const content = (
+      <div className="flex flex-col items-center gap-1 w-16 min-w-0 flex-shrink-0">
+        <div className="relative group">
+          <div className="w-8 h-10 flex items-center justify-center [&>svg]:w-8 [&>svg]:h-10">
+            <FileIcon extension={ext} {...styles} />
+          </div>
+          {isSelected && (
+            <span
+              className="absolute -bottom-0.5 -left-0.5 rounded-full bg-amber-500/90 p-0.5 text-white shadow-sm"
+              title="Pendiente de subir"
+            >
+              <CloudUpload className="h-3 w-3" />
+            </span>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full opacity-90 hover:opacity-100 shadow-sm z-10"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isSelected && payload.index !== undefined) removeSelectedFile(payload.index);
+              if (!isSelected && payload.uploaded) removeUploadedFile(payload.uploaded._id);
+            }}
+            disabled={disabled || uploading}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+        <span className="text-[10px] font-medium text-center truncate w-full max-w-[4rem]" title={name}>
+          {name}
+        </span>
+      </div>
+    );
+
+    if (!isSelected && payload.uploaded) {
+      const url = payload.uploaded.url || (payload.uploaded.path ? `${process.env.NEXT_PUBLIC_API_JAIHOM_URL || 'http://localhost:5500'}${payload.uploaded.path}` : null);
+      if (url) {
+        return (
+          <a
+            key={payload.uploaded._id}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-90 transition-opacity"
+          >
+            {content}
+          </a>
+        );
+      }
+    }
+    return <div key={isSelected ? `selected-${payload.index}` : payload.uploaded?._id}>{content}</div>;
+  };
+
   return (
     <div className="space-y-4">
       <div>
-        <Label>{label}</Label>
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple={multiple}
-            accept={acceptedTypes || SUPPORTED_EXTENSIONS.map(ext => `.${ext}`).join(',')}
-            onChange={handleFileSelect}
-            disabled={disabled || uploading}
-            className="hidden"
-            id="file-upload-input"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || uploading}
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Seleccionar archivos
-          </Button>
-          {selectedFiles.length > 0 && !uploadOnSave && (
+        <Label className="flex items-center gap-2">
+          {label}
+          <span className="text-xs text-muted-foreground">
+            Tamaño máximo: {maxSize}MB
+          </span>
+        </Label>
+        <div className="mt-2 flex flex-wrap items-start gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple={multiple}
+              accept={acceptedTypes || SUPPORTED_EXTENSIONS.map(ext => `.${ext}`).join(',')}
+              onChange={handleFileSelect}
+              disabled={disabled || uploading}
+              className="hidden"
+              id="file-upload-input"
+            />
             <Button
               type="button"
-              onClick={uploadFiles}
-              disabled={uploading}
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || uploading}
               className="flex items-center gap-2"
             >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Subiendo...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  Subir {selectedFiles.length} archivo(s)
-                </>
-              )}
+              <Upload className="h-4 w-4" />
+              Seleccionar archivos
             </Button>
-          )}
-          {selectedFiles.length > 0 && uploadOnSave && (
-            <span className="text-sm text-muted-foreground">
-              {selectedFiles.length} archivo(s) pendiente(s) de subir
-            </span>
-          )}
+            {selectedFiles.length > 0 && !uploadOnSave && (
+              <Button
+                type="button"
+                onClick={uploadFiles}
+                disabled={uploading}
+                className="flex items-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Subir {selectedFiles.length} archivo(s)
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Contenedor de miniaturas al lado del botón */}
+          <div className="flex flex-wrap gap-3 items-start">
+            {selectedFiles.map((file, index) => renderFileThumbnail('selected', { file, index }))}
+            {uploadedFiles.map((file) => renderFileThumbnail('uploaded', { uploaded: file }))}
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Tamaño máximo: {maxSize}MB
-          {acceptedTypes && ` • Tipos permitidos: ${acceptedTypes}`}
-          {!acceptedTypes && ` • Extensiones permitidas: ${SUPPORTED_EXTENSIONS.join(', ')}`}
-        </p>
       </div>
-
-      {/* Archivos seleccionados (pendientes de subir) */}
-      {selectedFiles.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Archivos seleccionados ({selectedFiles.length})</Label>
-          <div className="space-y-2 border rounded-md p-3 bg-muted/50">
-            {selectedFiles.map((file, index) => (
-              <div
-                key={`selected-${index}`}
-                className="flex items-center justify-between p-2 bg-background rounded border"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <File className="h-4 w-4 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeSelectedFile(index)}
-                  disabled={uploading}
-                  className="h-8 w-8 flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Archivos subidos */}
-      {uploadedFiles.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Archivos adjuntos ({uploadedFiles.length})</Label>
-          <div className="space-y-2 border rounded-md p-3 bg-muted/50">
-            {uploadedFiles.map((file) => (
-              <div
-                key={file._id}
-                className="flex items-center justify-between p-2 bg-background rounded border"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-lg flex-shrink-0">{getFileIcon(file.mimeType || '')}</span>
-                  <div className="flex-1 min-w-0">
-                    <a
-                      href={file.url || (file.path ? `${process.env.NEXT_PUBLIC_API_JAIHOM_URL || 'http://localhost:5500'}${file.path}` : '#')}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium truncate hover:underline block"
-                    >
-                      {file.originalName || file.filename || `Archivo ${file._id}`}
-                    </a>
-                    <p className="text-xs text-muted-foreground">
-                      {file.size ? formatFileSize(file.size) : (file.path || 'Sin información')}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeUploadedFile(file._id)}
-                  disabled={disabled || uploading}
-                  className="h-8 w-8 flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {totalFiles === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
