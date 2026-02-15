@@ -1671,7 +1671,7 @@ export default function TicketsPage() {
                                 openMaps()
                               }
                             }}
-                            className="p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed text-muted-foreground flex flex-col items-center gap-2 cursor-pointer"
+                            className={`p-2 rounded-full transition-colors text-muted-foreground flex flex-col items-center gap-2 cursor-pointer ${hasCoords ? "" : "pointer-events-none opacity-40 cursor-not-allowed"}`}
                           >
                             <MapPin className="h-8 w-8 text-green-600" aria-hidden />
                             <Label className="text-[10px] md:text-xs text-muted-foreground">{hasCoords ? 'Ver en Google Maps' : 'Sin coordenadas'}</Label>
