@@ -2,8 +2,15 @@
 
 import { ThemeDemo } from '@/components/ThemeDemo';
 import { CommentsPanel } from '@/components/CommentsPanel';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+
+function getDeviceType(width: number): string {
+  if (width < 640) return 'Móvil';
+  if (width < 1024) return 'Tablet';
+  return 'Escritorio';
+}
 
 interface Comment {
   _id?: string
@@ -18,6 +25,20 @@ export default function ThemeDemoPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [disabled, setDisabled] = useState(false);
   const [disableAttachments, setDisableAttachments] = useState(false);
+  const [resolution, setResolution] = useState({ width: 0, height: 0 });
+  const [deviceType, setDeviceType] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const w = typeof window !== 'undefined' ? window.innerWidth : 0;
+      const h = typeof window !== 'undefined' ? window.innerHeight : 0;
+      setResolution({ width: w, height: h });
+      setDeviceType(w > 0 ? getDeviceType(w) : '');
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const handleCommentAdded = (comment: Comment) => {
     const newComment: Comment = {
@@ -41,6 +62,9 @@ export default function ThemeDemoPage() {
 
   return (
     <div className="min-h-screen p-8 space-y-8">
+      <Label className="inline-flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 text-sm text-muted-foreground">
+        Resolución: {resolution.width || '—'} × {resolution.height || '—'} px · Dispositivo: {deviceType || '—'}
+      </Label>
       <ThemeDemo />
 
       <Card>

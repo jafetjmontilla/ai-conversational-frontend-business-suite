@@ -21,7 +21,7 @@ import { HashtagMatcher, UrlMatcher, UrlProps } from 'interweave-autolink';
 import Link from 'next/link';
 import { User } from '@/lib/interfases';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
+import { Plus, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Eye, Filter, MapPin } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -53,6 +53,7 @@ interface WisphubCliente {
   ip?: string;
   telefono?: string;
   zona?: WisphubZona;
+  coordenadas?: string;
   [key: string]: any;
 }
 
@@ -67,6 +68,7 @@ interface TicketCliente {
   ip?: string;
   id_servicio: number;
   zona?: TicketZona;
+  coordenadas?: string;
 }
 
 interface TicketFieldChange {
@@ -208,6 +210,7 @@ export default function TicketsPage() {
   const [viewDialogStatus, setViewDialogStatus] = useState<string>('');
   const [viewDialogFailureReason, setViewDialogFailureReason] = useState<string>('');
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [filtersModalOpen, setFiltersModalOpen] = useState(false);
   const [resolveQuantityOnu, setResolveQuantityOnu] = useState(false);
   const [resolveQuantityConnector, setResolveQuantityConnector] = useState('');
   const [resolveMetersDrop, setResolveMetersDrop] = useState('');
@@ -725,6 +728,17 @@ export default function TicketsPage() {
         return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${filePath}`;
       }).filter(url => url !== '');
 
+      const clientePayload = selectedCliente
+        ? {
+          cliente: selectedCliente.cliente,
+          usuario: selectedCliente.usuario,
+          ip: selectedCliente.ip,
+          id_servicio: selectedCliente.id_servicio,
+          zona: selectedCliente.zona,
+          coordenadas: selectedCliente.coordenadas || undefined,
+        }
+        : undefined;
+
       const args: any = {
         subject: formData.subject,
         failureReason: formData.failureReason || undefined,
@@ -736,7 +750,7 @@ export default function TicketsPage() {
         description: formData.description || undefined,
         ticketFileAttachment: fileUrls.length > 0 ? fileUrls : undefined,
         zoneId: formData.zoneId || undefined,
-        cliente: selectedCliente || undefined,
+        cliente: clientePayload,
       };
 
       if (selectedTicket) {
@@ -839,7 +853,7 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       {!isConnected && (
         <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-400">
           Sin conexión en tiempo real. Los cambios de otros usuarios se verán al reconectar.
@@ -847,7 +861,7 @@ export default function TicketsPage() {
       )}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gestión de Tickets</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Gestión de Tickets</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Total de tickets: {total}
           </p>
@@ -860,13 +874,63 @@ export default function TicketsPage() {
         )}
       </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+      {/* Filtros: escritorio = card, móvil = botón que abre modal */}
+      <div className="hidden md:block">
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Estado</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Prioridad</Label>
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Botón Filtros solo móvil */}
+      <div className="block md:hidden">
+        <Button variant="outline" onClick={() => setFiltersModalOpen(true)} className="w-full sm:w-auto">
+          <Filter className="h-4 w-4 mr-2" />
+          Filtros
+        </Button>
+      </div>
+
+      {/* Modal de filtros (móvil) */}
+      <Dialog open={filtersModalOpen} onOpenChange={setFiltersModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filtros</DialogTitle>
+            <DialogDescription>Estado y prioridad para filtrar los tickets</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
             <div>
               <Label>Estado</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -895,100 +959,43 @@ export default function TicketsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <Button onClick={() => setFiltersModalOpen(false)}>Aplicar</Button>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
-      <Card>
-        <CardHeader>
+      <Card className="rounded-none border-0 bg-transparent md:rounded-lg md:border md:bg-card shadow-none md:shadow-sm">
+        <CardHeader className="hidden md:block">
           <CardTitle>Tickets</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('number')}
-                >
-                  <div className="flex items-center">
-                    Número
-                    {getSortIcon('number')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('subject')}
-                >
-                  <div className="flex items-center">
-                    Asunto
-                    {getSortIcon('subject')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center">
-                    Estado
-                    {getSortIcon('status')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('priority')}
-                >
-                  <div className="flex items-center">
-                    Prioridad
-                    {getSortIcon('priority')}
-                  </div>
-                </TableHead>
-                <TableHead>Técnico</TableHead>
-                <TableHead>Zona</TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort('createdAt')}
-                >
-                  <div className="flex items-center">
-                    Fecha Creación
-                    {getSortIcon('createdAt')}
-                  </div>
-                </TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTickets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    No hay tickets disponibles
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const t = ticket as Ticket;
-                  return (
-                    <TableRow key={t._id}>
-                      <TableCell className="font-medium">{t.number || '-'}</TableCell>
-                      <TableCell className="font-medium">{t.subject}</TableCell>
-                      <TableCell>{getStatusBadge(t.status)}</TableCell>
-                      <TableCell>{getPriorityBadge(t.priority)}</TableCell>
-                      <TableCell>
-                        {t.technician?.name || t.technician?.email || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {t.cliente?.zona?.nombre || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {t.createdAt
-                          ? format(new Date(t.createdAt), 'PPp', { locale: es })
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+        <CardContent className="px-0 md:px-6 flex flex-col md:block">
+          {/* Vista móvil: contenedor sin borde ni redondeo; scroll en el content */}
+          <div className="block md:hidden overflow-y-auto max-h-[calc(100vh-16rem)] space-y-2 w-full pr-2 min-w-0">
+            {filteredTickets.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6 px-4">
+                No hay tickets disponibles
+              </p>
+            ) : (
+              filteredTickets.map((ticket) => {
+                const t = ticket as Ticket;
+                const ticketNum = t.number != null ? String(t.number).padStart(5, '0') + '#' : '—';
+                return (
+                  <div key={t._id} className="rounded-lg border bg-card overflow-hidden [&:not(:last-child)]:mb-2">
+                    <div className="p-2.5">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {ticketNum}
+                          </p>
+                          <p className="text-sm font-medium truncate" title={t.subject}>
+                            {t.subject}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
                           <Button
                             size="sm"
                             variant="ghost"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleViewClick(t)}
                           >
                             <Eye className="h-4 w-4" />
@@ -997,6 +1004,7 @@ export default function TicketsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              className="h-8 w-8 p-0"
                               onClick={() => handleEditClick(t)}
                             >
                               <Edit className="h-4 w-4" />
@@ -1006,23 +1014,169 @@ export default function TicketsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              className="h-8 w-8 p-0"
                               onClick={() => handleDeleteClick(t)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {getStatusBadge(t.status)}
+                        {getPriorityBadge(t.priority)}
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>
+                          <span className="font-medium text-foreground">Cliente:</span>{' '}
+                          {t.cliente?.cliente || '-'}
+                        </p>
+                        {authUser?.customClaims?.role !== 'technicalSupport' && (
+                          <p>
+                            <span className="font-medium text-foreground">Técnico:</span>{' '}
+                            {t.technician?.name || t.technician?.email || '-'}
+                          </p>
+                        )}
+                        <p>
+                          <span className="font-medium text-foreground">Zona:</span>{' '}
+                          {t.cliente?.zona?.nombre || '-'}
+                        </p>
+                        <p>
+                          <span className="font-medium text-foreground">Creado:</span>{' '}
+                          {t.createdAt
+                            ? format(new Date(t.createdAt), 'PPp', { locale: es })
+                            : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Vista escritorio: tabla */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('number')}
+                  >
+                    <div className="flex items-center">
+                      Número
+                      {getSortIcon('number')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('subject')}
+                  >
+                    <div className="flex items-center">
+                      Asunto
+                      {getSortIcon('subject')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Estado
+                      {getSortIcon('status')}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('priority')}
+                  >
+                    <div className="flex items-center">
+                      Prioridad
+                      {getSortIcon('priority')}
+                    </div>
+                  </TableHead>
+                  <TableHead>Técnico</TableHead>
+                  <TableHead>Zona</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center">
+                      Fecha Creación
+                      {getSortIcon('createdAt')}
+                    </div>
+                  </TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTickets.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      No hay tickets disponibles
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTickets.map((ticket) => {
+                    const t = ticket as Ticket;
+                    return (
+                      <TableRow key={t._id}>
+                        <TableCell className="font-medium">{t.number || '-'}</TableCell>
+                        <TableCell className="font-medium">{t.subject}</TableCell>
+                        <TableCell>{getStatusBadge(t.status)}</TableCell>
+                        <TableCell>{getPriorityBadge(t.priority)}</TableCell>
+                        <TableCell>
+                          {t.technician?.name || t.technician?.email || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {t.cliente?.zona?.nombre || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {t.createdAt
+                            ? format(new Date(t.createdAt), 'PPp', { locale: es })
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewClick(t)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canCreateEditTickets() && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditClick(t)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteTickets() && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteClick(t)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-between mt-4 px-4 md:px-0">
               <div className="text-sm text-muted-foreground">
                 Página {currentPage} de {totalPages}
               </div>
@@ -1066,7 +1220,7 @@ export default function TicketsPage() {
           setZonaNombre('');
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl h-[100vh] max-h-[100vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedTicket ? 'Editar Ticket' : 'Nuevo Ticket'}</DialogTitle>
           </DialogHeader>
@@ -1127,7 +1281,8 @@ export default function TicketsPage() {
                                 usuario: cliente.usuario,
                                 ip: cliente.ip,
                                 id_servicio: cliente.id_servicio,
-                                zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined
+                                coordenadas: cliente.coordenadas || undefined,
+                                zona: cliente.zona ? { id: cliente.zona.id, nombre: cliente.zona.nombre } : undefined,
                               });
                               setClienteSearchText(nombreCompleto);
                               setFormData({ ...formData, zoneId: zonaId });
@@ -1400,7 +1555,7 @@ export default function TicketsPage() {
 
       {/* Diálogo de visualización */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-xl h-[100vh] max-h-[100vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               <div className="flex items-center gap-2">
@@ -1441,12 +1596,15 @@ export default function TicketsPage() {
                   <p>{selectedTicket.subject}</p>
                 </div>
                 <div>
-                  <Label className="font-semibold">Razón de Falla</Label>
-                  <Input
+                  <AutocompleteInput
                     value={viewDialogFailureReason}
-                    onChange={(e) => setViewDialogFailureReason(e.target.value)}
-                    onBlur={(e) => handleSaveViewDialogChanges(undefined, e.target.value)}
-                    placeholder="Ingrese la razón de falla"
+                    onChange={(value) => {
+                      setViewDialogFailureReason(value);
+                      handleSaveViewDialogChanges(undefined, value);
+                    }}
+                    options={issues}
+                    label="Razón de Falla"
+                    placeholder="Buscar o escribir razón de falla"
                   />
                 </div>
                 {selectedTicket.description && (
@@ -1469,22 +1627,57 @@ export default function TicketsPage() {
                   </div>
                 )}
                 {selectedTicket.cliente && (
-                  <div>
-                    <Label className="font-semibold">Cliente</Label>
-                    <div className="space-y-1">
-                      <p className="font-medium">{selectedTicket.cliente.cliente || '-'}</p>
-                      {selectedTicket.cliente.usuario && (
-                        <p className="text-sm text-muted-foreground">Usuario: {selectedTicket.cliente.usuario}</p>
-                      )}
-                      {selectedTicket.cliente.ip && (
-                        <p className="text-sm text-muted-foreground">IP: {selectedTicket.cliente.ip}</p>
-                      )}
-                      {selectedTicket.cliente.id_servicio && (
-                        <p className="text-sm text-muted-foreground">ID Servicio: {selectedTicket.cliente.id_servicio}</p>
-                      )}
-                      {selectedTicket.cliente.zona && (
-                        <p className="text-sm text-muted-foreground">Zona: {selectedTicket.cliente.zona.nombre} (ID: {selectedTicket.cliente.zona.id})</p>
-                      )}
+                  <div className="flex gap-4 items-center">
+                    <div className="flex-1">
+                      <Label className="font-semibold">Cliente</Label>
+                      <div className="space-y-1">
+                        <p className="font-medium">{selectedTicket.cliente.cliente || '-'}</p>
+                        {selectedTicket.cliente.usuario && (
+                          <p className="text-sm text-muted-foreground">Usuario: {selectedTicket.cliente.usuario}</p>
+                        )}
+                        {selectedTicket.cliente.ip && (
+                          <p className="text-sm text-muted-foreground">IP: {selectedTicket.cliente.ip}</p>
+                        )}
+                        {selectedTicket.cliente.id_servicio && (
+                          <p className="text-sm text-muted-foreground">ID Servicio: {selectedTicket.cliente.id_servicio}</p>
+                        )}
+                        {selectedTicket.cliente.zona && (
+                          <p className="text-sm text-muted-foreground">Zona: {selectedTicket.cliente.zona.nombre} (ID: {selectedTicket.cliente.zona.id})</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-center items-center w-1/3">
+                      {(() => {
+                        const coords = selectedTicket.cliente?.coordenadas?.trim();
+                        const parts = coords ? coords.split(',').map((p) => p.trim()) : [];
+                        const lat = parts[0] ? parseFloat(parts[0]) : NaN;
+                        const lng = parts[1] ? parseFloat(parts[1]) : NaN;
+                        const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lng);
+                        const openMaps = () => {
+                          if (!hasCoords) return;
+                          const q = `${lat},${lng}`;
+                          const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(q)}`;
+                          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          if (isMobile) {
+                            window.location.href = mapsUrl;
+                          } else {
+                            window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+                          }
+                        };
+                        return (
+                          <div
+                            onClick={() => {
+                              if (hasCoords) {
+                                openMaps()
+                              }
+                            }}
+                            className="p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed text-muted-foreground flex flex-col items-center gap-2 cursor-pointer"
+                          >
+                            <MapPin className="h-8 w-8 text-green-600" aria-hidden />
+                            <Label className="text-[10px] md:text-xs text-muted-foreground">{hasCoords ? 'Ver en Google Maps' : 'Sin coordenadas'}</Label>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

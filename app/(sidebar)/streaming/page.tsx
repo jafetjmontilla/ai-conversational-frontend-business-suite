@@ -572,7 +572,7 @@ export default function StreamingPage() {
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gestión de Streaming</h1>
+          <h1 className="text-xl font-bold md:text-2xl">Gestión de Streaming</h1>
           <div className="text-sm text-muted-foreground mt-1">
             Estado de conexión: {isConnected ? (
               <Badge variant="default">Conectado</Badge>

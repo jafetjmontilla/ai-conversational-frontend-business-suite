@@ -49,7 +49,7 @@ export default function DashboardPage() {
       <header className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <h1 className="text-xl font-bold md:text-2xl">Dashboard</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm">
                 <span className="font-medium">{authUser.displayName || authUser.email}</span>

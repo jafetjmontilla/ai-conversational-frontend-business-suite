@@ -233,7 +233,7 @@ export default function SupportSettingsPage() {
   if (loading) {
     return (
       <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Ajustes de Soporte Técnico</h1>
+        <h1 className="text-xl font-bold md:text-2xl mb-6">Ajustes de Soporte Técnico</h1>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -243,7 +243,7 @@ export default function SupportSettingsPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Ajustes de Soporte Técnico</h1>
+      <h1 className="text-xl font-bold md:text-2xl mb-6">Ajustes de Soporte Técnico</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tarjeta de Issues */}

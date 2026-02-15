@@ -729,6 +729,7 @@ export const queries = {
           usuario
           ip
           id_servicio
+          coordenadas
           zona {
             id
             nombre

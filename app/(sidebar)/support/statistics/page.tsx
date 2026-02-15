@@ -33,7 +33,7 @@ export default function SupportStatisticsPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Estadísticas de Soporte Técnico</h1>
+        <h1 className="text-xl font-bold md:text-2xl">Estadísticas de Soporte Técnico</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Visualiza estadísticas y métricas de los tickets de soporte
         </p>
