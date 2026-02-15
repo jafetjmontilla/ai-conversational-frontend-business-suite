@@ -158,7 +158,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetchApiV1<{ total?: number; results?: WisphubZona[] }>({
+        const res = await fetchApiV1({
           query: queries.getWisphubZonas,
           type: "json",
         });

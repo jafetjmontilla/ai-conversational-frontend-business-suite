@@ -11,6 +11,7 @@ import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Shield } from "lucide-react"
+import packageJson from "@/package.json"
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
@@ -49,7 +50,9 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             <span className="md:hidden">
               <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Logo" width={50} height={30} className="rounded-md" />
             </span>
-            <div className="flex-1" />
+            <div className="flex-1 text-xs" >
+              {`ERP V-${packageJson.version}`}
+            </div>
             {authUser &&
               <div className="flex items-center gap-3 md:translate-y-[2px]">
                 <div onClick={() => router.push("/profile")} className="flex items-center gap-2 cursor-pointer">
