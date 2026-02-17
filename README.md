@@ -1,381 +1,96 @@
-# 4netERP Frontend
+# Frontend Business Suite
 
-Aplicación web frontend, construida con Next.js, TypeScript, Tailwind CSS y Firebase Authentication.
+Aplicación web frontend para **Frontend Business Suite**, construida con Next.js, TypeScript, Tailwind CSS y Firebase. Conecta con la API **Api Business Suite** (https://api-v1-business-suite.sistemasjaihom.com).
 
-## 🚀 Características
+**URL producción:** https://suite.sistemasjaihom.com
+
+## Características
 
 - **Next.js 14** con App Router
-- **TypeScript** para type safety
-- **Tailwind CSS** para estilos
-- **Firebase Authentication** con email/contraseña y Google
-- **Context API** para manejo de estado de autenticación
-- **Componentes reutilizables** y responsive
-- **Axios** para comunicación con la API
-- **PWA (Progressive Web App)** con versionado automático ⭐
-  - Instalable en dispositivos móviles y desktop
-  - Funciona offline con caché inteligente
-  - Modal de actualización automático
-  - Sistema de versionado sincronizado con `package.json`
+- **TypeScript**, **Tailwind CSS**
+- **Firebase Authentication** (email/contraseña y Google)
+- **Context API** para estado y autenticación
+- **Axios** para la API (Api Business Suite)
+- **Socket.IO** para notificaciones en tiempo real (`NEXT_PUBLIC_WEBSOCKET_URL`)
+- **PWA** con versionado automático (instalable, caché, modal de actualización)
 
-## 📋 Prerrequisitos
+## Prerrequisitos
 
-- Node.js (v16 o superior)
+- Node.js (v16+)
 - npm o yarn
 - Proyecto Firebase configurado
 
-## 🛠️ Instalación
+## Instalación
 
-1. **Clonar el repositorio**
+1. **Clonar e instalar**
 ```bash
-cd 4net-erp-frontend
-```
-
-2. **Instalar dependencias**
-```bash
+cd frontend-business-suite
 npm install
 ```
 
-3. **Configurar variables de entorno**
+2. **Variables de entorno**
 ```bash
-cp env.example .env.local
+cp environment.local.example .env.local
 ```
 
-Editar `.env.local` con tu configuración de Firebase:
+Editar `.env.local`:
 ```env
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=tu-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu-proyecto-id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef123456
-
-# API Configuration
+# Api Business Suite (backend)
 NEXT_PUBLIC_API_URL=http://localhost:2000
+# Producción: https://api-v1-business-suite.sistemasjaihom.com
+
+# WebSocket (Socket.IO)
+NEXT_PUBLIC_WEBSOCKET_URL=
+# Producción: https://api-v1-business-suite.sistemasjaihom.com
+
+# Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+# ... resto de Firebase
 ```
 
-## 🔥 Configuración Firebase
-
-### 1. Crear Proyecto Firebase
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Crea un nuevo proyecto
-3. Habilita Authentication
-4. Configura los proveedores:
-   - Email/Password
-   - Google
-
-### 2. Configurar Web App
-1. En Firebase Console, ve a Project Settings
-2. En la sección "Your apps", agrega una nueva Web App
-3. Copia la configuración y agrégalo a `.env.local`
-
-### 3. Configurar Authentication
-1. Ve a Authentication > Sign-in method
-2. Habilita Email/Password
-3. Habilita Google y configura el OAuth consent screen
-
-## 🚀 Desarrollo
+## Desarrollo
 
 ```bash
-# Iniciar servidor de desarrollo
-npm run dev
-
-# Construir para producción
+npm run dev    # http://localhost:3010
 npm run build
-
-# Iniciar en producción
 npm start
 ```
 
-## 🏗️ Estructura del Proyecto
+## Estructura de rutas (sidebar)
 
-```
-app/
-├── layout.tsx              # Layout principal con AuthProvider
-├── page.tsx                # Página principal
-└── globals.css             # Estilos globales
+- **Dashboard** — `/dashboard`
+- **Televisión** — `/streaming` (según permisos)
+- **Notificaciones** — `/notifications`
+- **Usuarios** — `/users` (admin)
+- **Demo componentes** — `/theme-demo` (admin)
+- **Perfil** — `/profile`
 
-components/
-├── auth/
-│   ├── AuthContainer.tsx   # Contenedor de autenticación
-│   ├── LoginForm.tsx       # Formulario de login
-│   └── RegisterForm.tsx    # Formulario de registro
-└── ui/                     # Componentes de UI
+Páginas públicas: `/login`, `/register`, `/register-invitation`.
 
-contexts/
-└── AuthContext.tsx         # Contexto de autenticación
+## Scripts
 
-lib/
-├── api.ts                  # Configuración de Axios
-├── fetch.ts                # Funciones de fetch
-└── firebase.ts             # Configuración de Firebase
-```
+- `npm run dev` — Desarrollo
+- `npm run build` — Build (actualiza versión PWA)
+- `npm run lint` — Linter
+- `npm run pwa:version` — Actualizar versión del Service Worker
+- `npm run version:patch|minor|major` — Incrementar versión
+- `npm run release:patch|minor|major` — Versión + commit + tag + push
 
-## 🔐 Autenticación
+## Documentación
 
-### Métodos de Autenticación
-- ✅ **Email/Contraseña** - Registro e inicio de sesión tradicional
-- ✅ **Google** - Inicio de sesión con cuenta de Google
-- ✅ **Persistencia** - Mantiene la sesión entre recargas
-- ✅ **Protección de rutas** - Redirección automática
+- [docs/INDEX.md](docs/INDEX.md) — Índice de documentación
+- [docs/PWA.md](docs/PWA.md) — PWA
+- [docs/PWA-VERSIONING.md](docs/PWA-VERSIONING.md) — Versionado PWA
+- [docs/VERCEL-DEPLOY.md](docs/VERCEL-DEPLOY.md) — Deploy en Vercel
+- [scripts/README.md](scripts/README.md) — Scripts de automatización
 
-### Flujo de Autenticación
-1. **Registro**: Usuario crea cuenta con email/contraseña o Google
-2. **Verificación**: Firebase verifica las credenciales
-3. **Token**: Se genera un token de autenticación
-4. **Contexto**: El estado se mantiene en AuthContext
-5. **API**: Las peticiones incluyen el token automáticamente
+## Integración con backend
 
-## 🎨 Componentes de Autenticación
+- **API:** `NEXT_PUBLIC_API_URL` → Api Business Suite (GraphQL en `/graphql`, REST en `/api/notifications`, `/api/worker`)
+- **WebSocket:** `NEXT_PUBLIC_WEBSOCKET_URL` → mismo origen en producción para Socket.IO
 
-### AuthContainer
-- Contenedor principal que maneja el cambio entre login y registro
-- Diseño responsive con gradiente de fondo
-- Transiciones suaves entre formularios
+## Licencia
 
-### LoginForm
-- Formulario de inicio de sesión con email/contraseña
-- Botón de inicio de sesión con Google
-- Validaciones en tiempo real
-- Manejo de errores con mensajes descriptivos
-
-### RegisterForm
-- Formulario de registro con validaciones
-- Confirmación de contraseña
-- Registro con Google
-- Validaciones de seguridad
-
-## 🔧 Scripts Disponibles
-
-### Desarrollo
-- `npm run dev` - Servidor de desarrollo
-- `npm run build` - Construir para producción (incluye actualización automática de versión PWA)
-- `npm start` - Iniciar en producción
-- `npm run lint` - Ejecutar linter
-
-### PWA y Versionado ⭐
-- `npm run pwa:test` - Build y test de PWA en modo producción
-- `npm run pwa:version` - Actualizar versión del Service Worker manualmente
-- `npm run version:patch` - Incrementar versión patch (1.0.0 → 1.0.1)
-- `npm run version:minor` - Incrementar versión minor (1.0.0 → 1.1.0)
-- `npm run version:major` - Incrementar versión major (1.0.0 → 2.0.0)
-
-### Deploy y Release 🚀
-- `npm run release:patch` - Release patch (versión + commit + tag + push)
-- `npm run release:minor` - Release minor (versión + commit + tag + push)
-- `npm run release:major` - Release major (versión + commit + tag + push)
-
-Ver [documentación de versionado](./docs/PWA-VERSIONING.md) y [guía de Vercel](./docs/VERCEL-DEPLOY.md) para más detalles.
-
-## 🛡️ Seguridad
-
-- ✅ **Variables de entorno** para configuración sensible
-- ✅ **Validación de formularios** en frontend y backend
-- ✅ **Tokens de autenticación** seguros
-- ✅ **Manejo de errores** robusto
-- ✅ **Protección CSRF** con tokens
-
-## 📱 Responsive Design
-
-- ✅ **Mobile-first** approach
-- ✅ **Breakpoints** optimizados
-- ✅ **Componentes adaptativos**
-- ✅ **Touch-friendly** interfaces
-
-## 🔄 Integración con Backend
-
-- ✅ **Axios** para peticiones HTTP
-- ✅ **Interceptores** para tokens automáticos
-- ✅ **Manejo de errores** centralizado
-- ✅ **Tipos TypeScript** compartidos
-
-## 🌐 Estructura de Rutas
-
-La aplicación utiliza rutas directas sin prefijos de país para simplicidad:
-
-### Rutas principales
-- **Páginas públicas**: `/`, `/login`, `/register`, `/about`, `/contact`
-- **Páginas protegidas**: `/dashboard`, `/settings`, `/users`, `/notifications`
-- **Demo**: `/theme-demo` - Demostración del sistema de temas
-
-### Middleware
-- Archivo: `middleware.ts`
-- Función: Manejo básico de archivos estáticos y API routes
-
-## 📱 Progressive Web App (PWA)
-
-La aplicación es una PWA completamente funcional con sistema de versionado automático.
-
-### ✨ Características PWA
-- ✅ Instalable en dispositivos móviles y desktop
-- ✅ Funciona offline con estrategias de caché inteligentes
-- ✅ Modal de actualización elegante en el dashboard
-- ✅ Versionado automático sincronizado con `package.json`
-- ✅ Verificación de actualizaciones al entrar al dashboard
-- ✅ Atajos rápidos (Dashboard, Facturas, Inventario)
-
-### 🔄 Sistema de Versionado Automático
-
-El sistema sincroniza automáticamente la versión del Service Worker con el `package.json`:
-
-```bash
-# Incrementar versión y actualizar PWA automáticamente
-npm run version:patch  # 1.0.0 → 1.0.1 (bugs)
-npm run version:minor  # 1.0.0 → 1.1.0 (características)
-npm run version:major  # 1.0.0 → 2.0.0 (cambios importantes)
-
-# Build (actualiza versión automáticamente)
-npm run build
-
-# Los usuarios verán modal de actualización en el dashboard
-```
-
-### 📚 Documentación PWA
-- [Documentación PWA](./docs/PWA.md) - Guía completa de PWA
-- [Sistema de Versionado](./docs/PWA-VERSIONING.md) - Guía de versionado automático
-- [Ejemplos de Workflow](./docs/WORKFLOW-EXAMPLE.md) - Casos de uso reales
-
-### 🎯 Flujo de trabajo típico
-
-```bash
-# 1. Desarrollar nueva característica
-npm run dev
-
-# 2. Incrementar versión
-npm run version:minor
-
-# 3. Build con versión actualizada
-npm run build
-
-# 4. Deploy
-npm start
-
-# ✨ Los usuarios verán el modal de actualización automáticamente
-```
-
----
-
-## 🚀 Deploy en Vercel
-
-El proyecto está optimizado para deploy en Vercel con versionado automático.
-
-### Comando Rápido
-
-```bash
-# Un solo comando hace todo:
-# - Incrementa versión
-# - Crea commit y tag
-# - Push a remoto
-# - Vercel deploya automáticamente
-
-npm run release:minor  # o release:patch / release:major
-```
-
-### Flujo Manual
-
-```bash
-# 1. Incrementar versión localmente
-npm run version:minor
-
-# 2. Commit y push
-git add .
-git commit -m "feat: nueva característica"
-git push origin main
-
-# 3. Vercel detecta el push y:
-#    - Ejecuta npm run build
-#    - Actualiza versión del Service Worker automáticamente
-#    - Deploya la nueva versión
-
-# ✨ Los usuarios verán el modal de actualización
-```
-
-### Documentación Completa
-
-- **[Guía de Deploy en Vercel](./docs/VERCEL-DEPLOY.md)** - Configuración, troubleshooting, best practices
-
----
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crear rama feature (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
-
-## 📄 Licencia
-
-MIT License - ver archivo [LICENSE](LICENSE) para detalles. 
-
-## 🧱 Patrón: Componentes de Alto Nivel (HLC) con props estructuradas
-
-- **Qué es**: crear un componente contenedor que resuelva la interacción/estilos y reciba "props estructuradas" (evita prop drilling desordenado y repetición de `className`).
-- **Beneficios**: consistencia visual, reusabilidad, menor código repetido, mejor DX.
-- **Dónde aplicarlo**: Dropdowns, menús de usuario, selectores (idioma/tema/país), barras de herramientas, acciones masivas, etc.
-
-### Ejemplo: Dropdown de usuario
-
-```tsx
-import Dropdown, { StructuredDropdownItem } from '@/components/Dropdown';
-import { User, Settings, LogOut } from 'lucide-react';
-
-const userMenuItems: StructuredDropdownItem[] = [
-  {
-    value: 'profile',
-    label: (
-      <span className="flex items-center"><User className="mr-2" size={16} /><span>Perfil</span></span>
-    ),
-    onSelect: () => navigate('/profile'),
-  },
-  {
-    value: 'settings',
-    label: (
-      <span className="flex items-center"><Settings className="mr-2" size={16} /><span>Configuración</span></span>
-    ),
-    onSelect: () => navigate('/settings'),
-  },
-];
-
-<Dropdown
-  text={userInitial}          // Inicial del usuario
-  items={userMenuItems}       // Opciones estructuradas
-  header="Mi cuenta"          // Encabezado del menú
-/>
-```
-
-Notas:
-- Los estilos base de `DropdownMenuContent` y `DropdownMenuItem` están centralizados en `components/ui/dropdown-menu.tsx` para heredar tema/hover sin repetir clases.
-- Prefiere pasar `items` como arreglo de `{ value, label, onSelect, disabled? }`.
-- Evita duplicar estilos en cada uso; si hace falta una variante, exponerla como prop en el HLC.
-
-## 🧩 Estilo de código: "código conciso/denso"
-
-- **Importaciones**: agrupar dentro de llaves en una sola línea.
-- **Funciones**: no dejar líneas en blanco internas; excepción permitida justo antes de `return` si mejora legibilidad.
-- **Componentes funcionales**: en el `return ( ... )` no dejar líneas en blanco entre nodos.
-
-Ejemplos:
-
-```ts
-// ✅ Importaciones en una sola línea
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-
-// ✅ Función sin líneas en blanco internas (salvo antes del return)
-function doSomething(a: number, b: number) {
-  const sum = a + b;
-  if (sum < 0) return 0;
-
-  return sum;
-}
-
-// ✅ Componentes funcionales: separar la lógica en funciones/secciones; en el JSX del return no dejes líneas en blanco
-export const Widget = () => {
-  return (
-    <div>
-      <span>Hola</span>
-      <button>Aceptar</button>
-    </div>
-  );
-};
-```
+MIT — ver [LICENSE](LICENSE).

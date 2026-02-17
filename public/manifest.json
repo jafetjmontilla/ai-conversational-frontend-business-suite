@@ -1,7 +1,7 @@
 {
-  "name": "4netERP - ERP",
-  "short_name": "Jaihom ERP",
-  "description": "Aplicación SaaS ERP de 4NET",
+  "name": "Frontend Business Suite",
+  "short_name": "Business Suite",
+  "description": "Frontend Business Suite - suite.sistemasjaihom.com",
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "display": "standalone",

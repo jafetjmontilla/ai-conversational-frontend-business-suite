@@ -1,4 +1,4 @@
-// Script de registro del Service Worker - 4NET-ERP
+// Script de registro del Service Worker - Frontend Business Suite
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker

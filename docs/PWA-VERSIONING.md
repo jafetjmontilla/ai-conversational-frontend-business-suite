@@ -108,10 +108,10 @@ npm start
 **Ejemplo:**
 ```javascript
 // Antes
-const CACHE_NAME = '4net-erp-erp-v1';
+const CACHE_NAME = 'frontend-business-suite-v1';
 
 // Después (versión 1.2.3)
-const CACHE_NAME = '4net-erp-erp-v1-2-3';
+const CACHE_NAME = 'frontend-business-suite-v1-2-3';
 ```
 
 ### `bump-version.js`
@@ -191,7 +191,7 @@ Sigue [Semantic Versioning](https://semver.org/):
 Puedes ver la versión actual del Service Worker en:
 
 1. **DevTools → Application → Service Workers**
-   - Verás el nombre del caché: `4net-erp-erp-v1-2-3`
+   - Verás el nombre del caché: `frontend-business-suite-v1-2-3`
 
 2. **Console del navegador**
    ```javascript

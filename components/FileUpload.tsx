@@ -315,7 +315,7 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
     );
 
     if (!isSelected && payload.uploaded) {
-      const url = payload.uploaded.url || (payload.uploaded.path ? `${process.env.NEXT_PUBLIC_API_JAIHOM_URL || 'http://localhost:5500'}${payload.uploaded.path}` : null);
+      const url = payload.uploaded.url || (payload.uploaded.path ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${payload.uploaded.path}` : null);
       if (url) {
         return (
           <a

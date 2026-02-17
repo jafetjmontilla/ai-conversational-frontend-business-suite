@@ -1,12 +1,12 @@
-# Scripts del Proyecto 🛠️
+# Scripts del Proyecto
 
-Scripts de automatización para el proyecto 4NET-ERP.
+Scripts de automatización para **Frontend Business Suite** (suite.sistemasjaihom.com).
 
-## 📂 Archivos
+## Archivos
 
 ### `update-sw-version.js`
 
-Actualiza automáticamente la versión del Service Worker basándose en `package.json`.
+Actualiza la versión del Service Worker según `package.json`.
 
 **Uso:**
 ```bash
@@ -14,100 +14,28 @@ npm run pwa:version
 ```
 
 **Qué hace:**
-1. Lee la versión del `package.json`
-2. Actualiza las constantes de caché en `service-worker.js`:
-   - `CACHE_NAME`
-   - `RUNTIME_CACHE`
-   - `IMAGE_CACHE`
-3. Agrega comentario con versión y fecha de generación
-
-**Ejemplo:**
-```javascript
-// Versión en package.json: 1.2.3
-// Resultado en service-worker.js:
-const CACHE_NAME = '4net-erp-erp-v1-2-3';
-const RUNTIME_CACHE = '4net-erp-runtime-v1-2-3';
-const IMAGE_CACHE = '4net-erp-images-v1-2-3';
-```
+1. Lee la versión de `package.json`
+2. Actualiza en `public/service-worker.js`:
+   - `CACHE_NAME` → `frontend-business-suite-vX-Y-Z`
+   - `IMAGE_CACHE` → `frontend-business-suite-images-vX-Y-Z`
+3. Añade comentario con versión y fecha
 
 ### `bump-version.js`
 
-Incrementa la versión del proyecto y actualiza el Service Worker automáticamente.
+Incrementa la versión del proyecto y actualiza el Service Worker.
 
 **Uso:**
 ```bash
-npm run version:patch  # 1.0.0 → 1.0.1
-npm run version:minor  # 1.0.0 → 1.1.0
-npm run version:major  # 1.0.0 → 2.0.0
+npm run version:patch   # 1.0.0 → 1.0.1
+npm run version:minor   # 1.0.0 → 1.1.0
+npm run version:major   # 1.0.0 → 2.0.0
 ```
 
-**Qué hace:**
-1. Incrementa la versión en `package.json` según el tipo
-2. Ejecuta `update-sw-version.js`
-3. Muestra instrucciones para commit y tag
+## Integración con build
 
-**Flujo completo:**
-```bash
-# Incrementar versión
-npm run version:minor
+`npm run build` ejecuta `update-sw-version.js` antes de construir, así el Service Worker queda con la versión actual.
 
-# Build
-npm run build
+## Documentación
 
-# Commit y tag
-git add .
-git commit -m "feat: nueva característica"
-git tag v1.1.0
-git push && git push --tags
-```
-
-## 🔄 Integración con build
-
-El comando `npm run build` ejecuta automáticamente `update-sw-version.js` antes de construir:
-
-```json
-"build": "node scripts/update-sw-version.js && next build"
-```
-
-Esto garantiza que el Service Worker siempre tenga la versión correcta.
-
-## 📚 Documentación adicional
-
-- [PWA Documentation](../docs/PWA.md)
+- [PWA](../docs/PWA.md)
 - [PWA Versioning](../docs/PWA-VERSIONING.md)
-
-## 🐛 Troubleshooting
-
-### Error: Cannot find module
-
-Asegúrate de estar en el directorio raíz del proyecto:
-```bash
-cd /root/facturador/frontend-facturador
-npm run pwa:version
-```
-
-### Los scripts no se ejecutan
-
-Verifica los permisos:
-```bash
-chmod +x scripts/*.js
-```
-
-### La versión no se actualiza
-
-1. Verifica que el `package.json` tenga la versión correcta
-2. Ejecuta manualmente: `node scripts/update-sw-version.js`
-3. Revisa los logs en la consola
-
-## 💡 Tips
-
-- **Desarrollo normal**: No necesitas incrementar versión en cada cambio
-- **Bug fixes**: Usa `version:patch`
-- **Nuevas características**: Usa `version:minor`
-- **Cambios importantes**: Usa `version:major`
-- **Build automático**: `npm run build` actualiza versiones automáticamente
-
----
-
-Creado como parte del sistema PWA de sistemasJaihom 🚀
-

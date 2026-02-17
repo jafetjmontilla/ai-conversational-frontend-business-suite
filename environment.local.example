@@ -1,11 +1,17 @@
-# URL de la API principal
+# Api Business Suite (backend)
 NEXT_PUBLIC_API_URL=http://localhost:2000
+# Producción: https://api-v1-business-suite.sistemasjaihom.com
 
-# URL de la API Jaihom (si existe)
-NEXT_PUBLIC_API_JAIHOM_URL=
+# WebSocket / Socket.IO (misma base que la API en producción)
+NEXT_PUBLIC_WEBSOCKET_URL=
+# Producción: https://api-v1-business-suite.sistemasjaihom.com
 
-# Configuración de Firebase
-# (Agrega aquí las configuraciones de Firebase si es necesario)
+# Firebase (agrega tus variables de Firebase)
+# NEXT_PUBLIC_FIREBASE_API_KEY=...
+# NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+# NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+# NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+# NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+# NEXT_PUBLIC_FIREBASE_APP_ID=...
 
-# Configuración de desarrollo
 NEXT_PUBLIC_ENV=development

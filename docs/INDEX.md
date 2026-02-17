@@ -1,4 +1,4 @@
-# 📚 Índice de Documentación - 4NET Frontend
+# Índice de Documentación - Frontend Business Suite
 
 Guía completa de toda la documentación del proyecto.
 
@@ -83,7 +83,7 @@ Guía completa de toda la documentación del proyecto.
 ```bash
 # Clonar e instalar
 git clone [repo]
-cd frontend-facturador
+cd frontend-business-suite
 npm install
 
 # Configurar

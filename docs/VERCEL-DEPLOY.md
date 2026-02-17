@@ -143,9 +143,8 @@ Running "npm run build"
 🔄 Actualizando versión del Service Worker...
 📦 Versión del package.json: 1.1.0
 ✅ Service Worker actualizado a versión 1.1.0
-   - CACHE_NAME: 4net-erp-erp-v1-1-0
-   - RUNTIME_CACHE: 4net-erp-runtime-v1-1-0
-   - IMAGE_CACHE: 4net-erp-images-v1-1-0
+   - CACHE_NAME: frontend-business-suite-v1-1-0
+   - IMAGE_CACHE: frontend-business-suite-images-v1-1-0
 
 Creating an optimized production build...
 ✓ Compiled successfully
@@ -156,7 +155,7 @@ Creating an optimized production build...
 1. Abre la app en producción
 2. Abre DevTools (F12)
 3. Ve a Application → Service Workers
-4. Verifica que el nombre del caché sea correcto: `4net-erp-erp-v1-1-0`
+4. Verifica que el nombre del caché sea correcto: `frontend-business-suite-v1-1-0`
 
 ### Como Usuario
 

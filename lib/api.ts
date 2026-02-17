@@ -14,8 +14,9 @@ const instanceApiV1FormData = axios.create({
   },
 });
 
+// Misma API (Api Business Suite); se mantiene instancia separada por compatibilidad
 const instanceApiJaihomV1 = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_JAIHOM_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000',
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,7 +1,7 @@
-// Service Worker Manual para PWA - sistemasJaihom
-// Versión: 1.0.0 - Generado: 2025-10-12T01:48:15.887Z
-const CACHE_NAME = '4net-erp-erp-v1-1-0';
-const IMAGE_CACHE = '4net-erp-images-v1-1-0';
+// Service Worker Manual para PWA - Frontend Business Suite
+// Versión: 1.1.0 - Generado: 2026-02-17T23:01:08.431Z
+const CACHE_NAME = 'frontend-business-suite-v1-1-0';
+const IMAGE_CACHE = 'frontend-business-suite-images-v1-1-0';
 
 // Archivos estáticos para cachear en la instalación (solo assets básicos)
 const STATIC_ASSETS = [
