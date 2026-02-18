@@ -1,6 +1,6 @@
 # Frontend Business Suite
 
-Aplicación web frontend para **Frontend Business Suite**, construida con Next.js, TypeScript, Tailwind CSS y Firebase. Conecta con la API **Api Business Suite** (https://api-v1-business-suite.sistemasjaihom.com).
+Aplicación web frontend para **Frontend Business Suite**, construida con Next.js, TypeScript, Tailwind CSS y Firebase. Conecta con la API **Api Business Suite** (https://api-v1-suite.sistemasjaihom.com).
 
 **URL producción:** https://suite.sistemasjaihom.com
 
@@ -37,11 +37,11 @@ Editar `.env.local`:
 ```env
 # Api Business Suite (backend)
 NEXT_PUBLIC_API_URL=http://localhost:2000
-# Producción: https://api-v1-business-suite.sistemasjaihom.com
+# Producción: https://api-v1-suite.sistemasjaihom.com
 
 # WebSocket (Socket.IO)
 NEXT_PUBLIC_WEBSOCKET_URL=
-# Producción: https://api-v1-business-suite.sistemasjaihom.com
+# Producción: https://api-v1-suite.sistemasjaihom.com
 
 # Firebase
 NEXT_PUBLIC_FIREBASE_API_KEY=...

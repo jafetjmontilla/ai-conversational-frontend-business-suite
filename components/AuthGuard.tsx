@@ -15,7 +15,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   //Modificar para el primer usuario que se registre sea admin
   // Rutas que no requieren autenticación
-  const publicRoutes = ['/login', '/register-invitation', '/forgot-password'];
+  const publicRoutes = ['/login', '/register-invitation', '/forgot-password', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   // Redirección basada en el estado de autenticación
@@ -26,7 +26,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         router.push('/dashboard');
       } else if (!authUser && !isPublicRoute) {
         // Si no está logueado y no está en una ruta pública, redirigir al login
-        router.push('/login');
+        //router.push('/login');
       }
     }
   }, [authUser, loading, router, pathname, isPublicRoute]);
