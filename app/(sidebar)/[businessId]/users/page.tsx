@@ -21,7 +21,7 @@ import { businessRoles, type BusinessRole } from "@/lib/interfases";
 
 interface BusinessMemberWithUser {
   userId: string;
-  businessId: string;
+  business_id: string;
   role: string;
   name?: string | null;
   email?: string | null;
@@ -39,7 +39,7 @@ export default function BusinessUsersPage() {
   const slug = params?.businessId as string;
   const { businessRole } = useBusinessRole(slug);
   const { canManageBusinessUsers } = useBusinessPermissions(businessRole);
-  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [business_id, setBusinessId] = useState<string | null>(null);
   const [members, setMembers] = useState<BusinessMemberWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,11 +49,18 @@ export default function BusinessUsersPage() {
     let cancelled = false;
     (async () => {
       try {
-        const business = await fetchApiV1({
+        let business = await fetchApiV1({
           query: queries.getBusiness,
           type: "json",
-          variables: { slug },
-        });
+          variables: { id: slug },
+        }) as { _id: string } | null;
+        if (!business && slug) {
+          business = await fetchApiV1({
+            query: queries.getBusiness,
+            type: "json",
+            variables: { businessId: slug },
+          }) as { _id: string } | null;
+        }
         if (cancelled) return;
         if (!business) {
           toast.error("Negocio no encontrado");
@@ -64,7 +71,7 @@ export default function BusinessUsersPage() {
         const list = await fetchApiV1({
           query: queries.getBusinessMembers,
           type: "json",
-          variables: { businessId: business._id },
+          variables: { id: business._id },
         });
         if (cancelled) return;
         setMembers(Array.isArray(list) ? list : []);
@@ -81,12 +88,12 @@ export default function BusinessUsersPage() {
   }, [slug, router]);
 
   const fetchMembers = async () => {
-    if (!businessId) return;
+    if (!business_id) return;
     try {
       const list = await fetchApiV1({
         query: queries.getBusinessMembers,
         type: "json",
-        variables: { businessId },
+        variables: { id: business_id },
       });
       setMembers(Array.isArray(list) ? list : []);
     } catch {
@@ -95,13 +102,13 @@ export default function BusinessUsersPage() {
   };
 
   const handleRemove = async (userId: string) => {
-    if (!businessId) return;
+    if (!business_id) return;
     if (!confirm("¿Quitar a este usuario del negocio?")) return;
     try {
       await fetchApiV1({
         query: queries.removeBusinessMember,
         type: "json",
-        variables: { userId, businessId },
+        variables: { userId, id: business_id },
       });
       toast.success("Usuario quitado del negocio");
       fetchMembers();
@@ -191,11 +198,11 @@ export default function BusinessUsersPage() {
           </div>
         </CardContent>
       </Card>
-      {isModalOpen && businessId && (
+      {isModalOpen && business_id && (
         <BusinessMemberFormModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          businessId={businessId}
+          business_id={business_id}
           onSuccess={fetchMembers}
         />
       )}

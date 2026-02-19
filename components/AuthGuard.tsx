@@ -12,27 +12,27 @@ interface AuthGuardProps {
 
 const SYSTEM_SCOPE_SEGMENTS = ['dashboard', 'users', 'businesses', 'profile'];
 
-/** Redirige a usuario con rol de negocio a su primer negocio (por slug para evitar bucle con páginas que usan slug). */
+/** Redirige a usuario con rol de negocio a su primer negocio (URL por businessId string). */
 async function redirectToBusiness(router: ReturnType<typeof useRouter>): Promise<void> {
-  const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { businessId: string }[] | undefined;
+  const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { business_id: string }[] | undefined;
   const first = list?.length ? list[0] : null;
-  if (!first?.businessId) {
+  if (!first?.business_id) {
     router.push('/dashboard');
     return;
   }
   const business = await fetchApiV1({
     query: queries.getBusiness,
     type: 'json',
-    variables: { id: first.businessId },
-  }) as { slug: string } | undefined;
-  if (business?.slug) {
-    router.push(`/${business.slug}`);
+    variables: { id: first.business_id },
+  }) as { businessId: string } | undefined;
+  if (business?.businessId) {
+    router.push(`/${business.businessId}`);
   } else {
     router.push('/dashboard');
   }
 }
 
-export default function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children }: AuthGuardProps) {
   const { authUser, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -66,7 +66,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     redirectToBusiness(router).finally(() => { redirectingRef.current = false; });
   }, [authUser, loading, isPublicRoute, isSystemRole, router]);
 
-  // Redirección: rol de negocio en ruta del sistema -> al negocio (por slug). Evita redirigir si ya estamos en un negocio.
+  // Redirección: rol de negocio en ruta del sistema -> al negocio (por businessId). Evita redirigir si ya estamos en un negocio.
   useEffect(() => {
     if (loading || !authUser || isPublicRoute || isSystemRole || !isSystemScopeRoute) return;
     if (redirectingRef.current) return;

@@ -229,13 +229,13 @@ export function getBusinessIdFromPathname(pathname: string): string | null {
   return segment;
 }
 
-/** Hook: obtiene el rol del usuario en el negocio. businessIdFromUrl puede ser _id o slug. */
-export function useBusinessRole(businessIdFromUrl: string | null) {
+/** Hook: obtiene el rol del usuario en el negocio. slugFromUrl = business_id (_id) o businessId (string) según la ruta. */
+export function useBusinessRole(slugFromUrl: string | null) {
   const [businessRole, setBusinessRole] = useState<BusinessRole | null>(null);
-  const [loading, setLoading] = useState(!!businessIdFromUrl);
+  const [loading, setLoading] = useState(!!slugFromUrl);
 
   useEffect(() => {
-    if (!businessIdFromUrl) {
+    if (!slugFromUrl) {
       setBusinessRole(null);
       setLoading(false);
       return;
@@ -244,25 +244,25 @@ export function useBusinessRole(businessIdFromUrl: string | null) {
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { userId: string; businessId: string; role: string }[] | undefined;
+        const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { userId: string; business_id: string; role: string }[] | undefined;
         if (cancelled) return;
-        let m = list?.find((x) => x.businessId === businessIdFromUrl);
+        let m = list?.find((x) => x.business_id === slugFromUrl);
         if (!m && list?.length) {
           let business = await fetchApiV1({
             query: queries.getBusiness,
             type: 'json',
-            variables: { slug: businessIdFromUrl },
+            variables: { businessId: slugFromUrl },
           }) as { _id: string } | undefined;
-          if (!business && businessIdFromUrl) {
+          if (!business && slugFromUrl) {
             business = await fetchApiV1({
               query: queries.getBusiness,
               type: 'json',
-              variables: { id: businessIdFromUrl },
+              variables: { id: slugFromUrl },
             }) as { _id: string } | undefined;
           }
           if (cancelled) return;
           if (business?._id) {
-            m = list?.find((x) => x.businessId === business._id) ?? null;
+            m = list?.find((x) => x.business_id === business._id) ?? undefined;
           }
         }
         setBusinessRole((m?.role as BusinessRole) ?? null);
@@ -273,7 +273,7 @@ export function useBusinessRole(businessIdFromUrl: string | null) {
       }
     })();
     return () => { cancelled = true; };
-  }, [businessIdFromUrl]);
+  }, [slugFromUrl]);
 
   return { businessRole, loading };
 }

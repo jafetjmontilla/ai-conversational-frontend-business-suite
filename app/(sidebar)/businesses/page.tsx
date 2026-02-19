@@ -132,7 +132,7 @@ export default function BusinessesPage() {
                       <TableRow key={b._id}>
                         <TableCell className="font-medium">{b.name}</TableCell>
                         <TableCell>
-                          <code className="text-sm bg-muted px-2 py-1 rounded">{b.slug}</code>
+                          <code className="text-sm bg-muted px-2 py-1 rounded">{b.businessId}</code>
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">
                           {b.description || "—"}
@@ -153,7 +153,7 @@ export default function BusinessesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleOpenBusiness(b.slug)}
+                              onClick={() => handleOpenBusiness(b.businessId)}
                               title="Abrir negocio"
                             >
                               <ExternalLink className="h-4 w-4" />

@@ -335,18 +335,18 @@ export const queries = {
     listBusinesses {
       _id
       name
-      slug
+      businessId
       description
       active
       createdAt
       updatedAt
     }
   }`,
-  getBusiness: `query getBusiness($id: ID, $slug: String) {
-    getBusiness(id: $id, slug: $slug) {
+  getBusiness: `query getBusiness($id: ID, $businessId: String) {
+    getBusiness(id: $id, businessId: $businessId) {
       _id
       name
-      slug
+      businessId
       description
       active
       createdAt
@@ -356,7 +356,7 @@ export const queries = {
   getMyBusinessMemberships: `query getMyBusinessMemberships {
     getMyBusinessMemberships {
       userId
-      businessId
+      business_id
       role
     }
   }`,
@@ -364,7 +364,7 @@ export const queries = {
     createBusiness(args: $args) {
       _id
       name
-      slug
+      businessId
       description
       active
       createdAt
@@ -375,7 +375,7 @@ export const queries = {
     updateBusiness(id: $id, args: $args) {
       _id
       name
-      slug
+      businessId
       description
       active
       createdAt
@@ -385,10 +385,10 @@ export const queries = {
   deleteBusiness: `mutation deleteBusiness($id: ID!) {
     deleteBusiness(id: $id)
   }`,
-  getBusinessMembers: `query getBusinessMembers($businessId: ID!) {
-    getBusinessMembers(businessId: $businessId) {
+  getBusinessMembers: `query getBusinessMembers($id: ID!) {
+    getBusinessMembers(id: $id) {
       userId
-      businessId
+      business_id
       role
       name
       email
@@ -397,12 +397,12 @@ export const queries = {
   setBusinessMember: `mutation setBusinessMember($args: SetBusinessMemberInput!) {
     setBusinessMember(args: $args) {
       userId
-      businessId
+      business_id
       role
     }
   }`,
-  removeBusinessMember: `mutation removeBusinessMember($userId: String!, $businessId: ID!) {
-    removeBusinessMember(userId: $userId, businessId: $businessId)
+  removeBusinessMember: `mutation removeBusinessMember($userId: String!, $id: ID!) {
+    removeBusinessMember(userId: $userId, id: $id)
   }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {

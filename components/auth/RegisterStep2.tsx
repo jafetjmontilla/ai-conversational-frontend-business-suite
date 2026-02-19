@@ -43,7 +43,7 @@ export function RegisterStep2({ userData, onBack, onSuccess }: RegisterStep2Prop
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      role: 'none',
+      role: 'system_viewer',
       phone: '',
     },
   });

@@ -31,7 +31,7 @@ export default function BusinessEditPage() {
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [business, setBusiness] = useState<{ _id: string; name: string; slug: string; description?: string; active: boolean } | null>(null);
+  const [business, setBusiness] = useState<{ _id: string; name: string; businessId?: string; description?: string; active: boolean } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -43,11 +43,18 @@ export default function BusinessEditPage() {
     let cancelled = false;
     (async () => {
       try {
-        const b = await fetchApiV1({
+        let b = await fetchApiV1({
           query: queries.getBusiness,
           type: "json",
-          variables: { slug: businessId },
-        });
+          variables: { id: businessId },
+        }) as { _id: string; name: string; description?: string; active: boolean } | null;
+        if (!b && businessId) {
+          b = await fetchApiV1({
+            query: queries.getBusiness,
+            type: "json",
+            variables: { businessId },
+          }) as { _id: string; name: string; description?: string; active: boolean } | null;
+        }
         if (cancelled) return;
         if (b) {
           setBusiness(b);
@@ -120,7 +127,7 @@ export default function BusinessEditPage() {
         <CardHeader>
           <CardTitle>Editar negocio</CardTitle>
           <CardDescription>
-            {business.name} — <code className="text-sm bg-muted px-1 rounded">{business.slug}</code>
+            {business.name} — <code className="text-sm bg-muted px-1 rounded">{business.businessId ?? business._id}</code>
           </CardDescription>
         </CardHeader>
         <CardContent>

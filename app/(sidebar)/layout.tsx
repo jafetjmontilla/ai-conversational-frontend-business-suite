@@ -1,3 +1,4 @@
+import React from 'react'
 import { cookies } from 'next/headers'
 import { SidebarLayout } from '@/components/layouts/SidebarLayout'
 import { WebSocketProvider } from '@/contexts/WebSocketContext'

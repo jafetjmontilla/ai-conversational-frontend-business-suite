@@ -54,14 +54,9 @@ const formFields: FormFieldInput[] = [
 ];
 
 const roleLabels: Record<Role, string> = {
-  admin: 'Administrador',
-  accounting: 'Contabilidad',
-  callCenter: 'Call Center',
-  technicalSupport: 'Soporte Técnico',
-  logicalSupport: 'Soporte Lógico',
-  technicalSupportSupervisor: 'Supervisor Soporte Técnico',
-  sales: 'Ventas',
-  none: 'Sin rol'
+  system_admin: 'Administrador del sistema',
+  system_operator: 'Operador del sistema',
+  system_viewer: 'Solo lectura (sistema)',
 };
 
 export default function ProfilePage() {

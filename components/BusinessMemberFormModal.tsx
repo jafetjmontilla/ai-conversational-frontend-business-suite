@@ -28,14 +28,15 @@ const roleLabels: Record<BusinessRole, string> = {
 interface BusinessMemberFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  businessId: string;
+  /** _id del documento Business (business_id). */
+  business_id: string;
   onSuccess: () => void;
 }
 
 export default function BusinessMemberFormModal({
   isOpen,
   onClose,
-  businessId,
+  business_id,
   onSuccess,
 }: BusinessMemberFormModalProps) {
   const form = useForm<FormValues>({
@@ -51,7 +52,7 @@ export default function BusinessMemberFormModal({
         variables: {
           args: {
             email: values.email.trim().toLowerCase(),
-            businessId,
+            business_id,
             role: values.role,
           },
         },

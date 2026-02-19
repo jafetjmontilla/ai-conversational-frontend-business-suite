@@ -48,7 +48,7 @@ export interface User {
 export interface Business {
   _id: string;
   name: string;
-  slug: string;
+  businessId: string;
   description?: string;
   active: boolean;
   createdAt?: string;

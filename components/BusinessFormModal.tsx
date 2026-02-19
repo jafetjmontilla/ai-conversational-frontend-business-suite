@@ -16,14 +16,14 @@ import { Business } from "@/lib/interfases";
 
 const formSchema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres"),
-  slug: z.string().optional(),
+  businessId: z.string().optional(),
   description: z.string().optional(),
   active: z.boolean(),
   mainUserName: z.string().optional(),
   mainUserEmail: z.string().optional(),
   mainUserPhone: z.string().optional(),
 }).superRefine((data, ctx) => {
-  const isCreate = !data.slug;
+  const isCreate = !data.businessId;
   if (!isCreate) return;
   if (!(data.mainUserName ?? "").trim()) {
     ctx.addIssue({ path: ["mainUserName"], message: "Nombre del usuario requerido", code: z.ZodIssueCode.custom });
@@ -54,7 +54,7 @@ export default function BusinessFormModal({ isOpen, onClose, business, onSuccess
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "", slug: "", description: "", active: true,
+      name: "", businessId: "", description: "", active: true,
       mainUserName: "", mainUserEmail: "", mainUserPhone: "",
     },
   });
@@ -63,7 +63,7 @@ export default function BusinessFormModal({ isOpen, onClose, business, onSuccess
     if (isOpen) {
       form.reset({
         name: business?.name ?? "",
-        slug: business?.slug ?? "",
+        businessId: business?.businessId ?? "",
         description: business?.description ?? "",
         active: business?.active ?? true,
         mainUserName: "", mainUserEmail: "", mainUserPhone: "",
@@ -74,7 +74,7 @@ export default function BusinessFormModal({ isOpen, onClose, business, onSuccess
   const onSubmit = async (values: FormValues) => {
     try {
       if (isEditing && business?._id) {
-        await fetchApiV1({ query: queries.updateBusiness, type: "json", variables: { id: business._id, args: { name: values.name, slug: values.slug, description: values.description || undefined, active: values.active } } });
+        await fetchApiV1({ query: queries.updateBusiness, type: "json", variables: { id: business._id, args: { name: values.name, businessId: values.businessId, description: values.description || undefined, active: values.active } } });
         toast.success("Negocio actualizado");
       } else {
         const mainUserName = values.mainUserName?.trim() ?? "";
@@ -112,7 +112,7 @@ export default function BusinessFormModal({ isOpen, onClose, business, onSuccess
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar negocio" : "Nuevo negocio"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Modifica los datos. El identificador (slug) es la parte de la URL." : "El identificador se genera automáticamente. Indica los datos del usuario principal para enviarle la invitación."}
+            {isEditing ? "Modifica los datos. El identificador (businessId) es la parte de la URL." : "El identificador se genera automáticamente. Indica los datos del usuario principal para enviarle la invitación."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -121,8 +121,8 @@ export default function BusinessFormModal({ isOpen, onClose, business, onSuccess
               <FormItem><FormLabel>Nombre del negocio</FormLabel><FormControl><Input placeholder="Mi Negocio" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             {isEditing && (
-              <FormField control={form.control} name="slug" render={({ field }) => (
-                <FormItem><FormLabel>Identificador (slug)</FormLabel><FormControl><Input placeholder="123456789012" {...field} disabled /></FormControl><FormMessage /></FormItem>
+              <FormField control={form.control} name="businessId" render={({ field }) => (
+                <FormItem><FormLabel>Identificador (businessId)</FormLabel><FormControl><Input placeholder="123456789012" {...field} disabled /></FormControl><FormMessage /></FormItem>
               )} />
             )}
             <FormField control={form.control} name="description" render={({ field }) => (
