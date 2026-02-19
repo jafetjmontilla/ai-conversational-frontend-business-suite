@@ -163,7 +163,6 @@ export const queries = {
       email
       phone
       role
-      zoneId
       active
       emailVerified
       token
@@ -189,7 +188,6 @@ export const queries = {
         email
         phone
         role
-        zoneId
         token
         code
         expiresAt
@@ -291,7 +289,6 @@ export const queries = {
       email
       phone
       role
-      zoneId
       active
       emailVerified
       photoURL
@@ -310,7 +307,6 @@ export const queries = {
         email
         phone
         role
-        zoneId
         token
         expiresAt
         used
@@ -334,12 +330,79 @@ export const queries = {
       photoURL
     }
   }`,
-  // Query para obtener tasas BCV
-  getTasasBCV: `query getTasasBCV($fecha: String!, $skip: Int!, $limit: Int!) {
-    getTasasBCV(fecha: $fecha, skip: $skip, limit: $limit) {
-      tasa
-      fecha
+  // Negocios
+  listBusinesses: `query listBusinesses {
+    listBusinesses {
+      _id
+      name
+      slug
+      description
+      active
+      createdAt
+      updatedAt
     }
+  }`,
+  getBusiness: `query getBusiness($id: ID, $slug: String) {
+    getBusiness(id: $id, slug: $slug) {
+      _id
+      name
+      slug
+      description
+      active
+      createdAt
+      updatedAt
+    }
+  }`,
+  getMyBusinessMemberships: `query getMyBusinessMemberships {
+    getMyBusinessMemberships {
+      userId
+      businessId
+      role
+    }
+  }`,
+  createBusiness: `mutation createBusiness($args: CreateBusinessInput!) {
+    createBusiness(args: $args) {
+      _id
+      name
+      slug
+      description
+      active
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateBusiness: `mutation updateBusiness($id: ID!, $args: UpdateBusinessInput!) {
+    updateBusiness(id: $id, args: $args) {
+      _id
+      name
+      slug
+      description
+      active
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteBusiness: `mutation deleteBusiness($id: ID!) {
+    deleteBusiness(id: $id)
+  }`,
+  getBusinessMembers: `query getBusinessMembers($businessId: ID!) {
+    getBusinessMembers(businessId: $businessId) {
+      userId
+      businessId
+      role
+      name
+      email
+    }
+  }`,
+  setBusinessMember: `mutation setBusinessMember($args: SetBusinessMemberInput!) {
+    setBusinessMember(args: $args) {
+      userId
+      businessId
+      role
+    }
+  }`,
+  removeBusinessMember: `mutation removeBusinessMember($userId: String!, $businessId: ID!) {
+    removeBusinessMember(userId: $userId, businessId: $businessId)
   }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {
@@ -616,7 +679,6 @@ export const queries = {
           name
         }
       }
-      zoneId
       responses {
         response
         createdAt
@@ -713,7 +775,6 @@ export const queries = {
             name
           }
         }
-        zoneId
         responses {
           response
           createdAt
@@ -792,7 +853,6 @@ export const queries = {
       reportOrigin
       description
       ticketFileAttachment
-      zoneId
       updatedAt
     }
   }`,
@@ -832,7 +892,6 @@ export const queries = {
       reportOrigin
       description
       ticketFileAttachment
-      zoneId
       updatedAt
       usedSupplies {
         _id

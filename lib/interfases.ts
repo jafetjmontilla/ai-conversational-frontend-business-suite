@@ -1,15 +1,21 @@
+// Roles del sistema (suite general)
+export const systemRoles = ['system_admin', 'system_operator', 'system_viewer'] as const;
+export type SystemRole = typeof systemRoles[number];
 
-// Define el arreglo de roles
-export const roles = ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales', 'none'] as const;
+// Roles por negocio
+export const businessRoles = ['business_admin', 'business_editor', 'business_viewer'] as const;
+export type BusinessRole = typeof businessRoles[number];
 
-// Crea el tipo a partir del arreglo
-export type Role = typeof roles[number];
+// Todos los roles que puede tener un usuario en el sistema (rol global)
+export const roles = [...systemRoles] as const;
+export type Role = SystemRole;
 
 export interface Permission {
   action: string;
   resource: string;
   conditions?: {
     role?: Role[];
+    businessRole?: BusinessRole[];
     emailVerified?: boolean;
     custom?: (user: any) => boolean;
   };
@@ -25,20 +31,34 @@ export interface User {
   name: string;
   phone: string;
   role: string;
-  zoneId?: number;
   active: boolean;
   emailVerified: boolean;
   photoURL: string;
   updatedAt: string;
   createdAt: string;
-  // Campos para invitaciones (opcionales)
   token?: string;
   code?: string;
   used?: boolean;
   expiresAt?: string;
   createdBy?: string;
   whatsappSent?: boolean;
-  uid?: string; // Los usuarios tienen uid, las invitaciones no
+  uid?: string;
+}
+
+export interface Business {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BusinessMemberInfo {
+  userId: string;
+  businessId: string;
+  role: string;
 }
 
 export type FormFieldInput = {
@@ -61,7 +81,6 @@ export interface OptionSelect {
   color?: string;
 }
 
-// Interfaces para inventario
 export interface PriceHistory {
   value: number;
   valorUsd: number;

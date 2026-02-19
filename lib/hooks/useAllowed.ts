@@ -1,247 +1,163 @@
 import { useAuth } from '../../contexts/AuthContext';
-import { useMemo } from 'react';
-import { PermissionConfig, Role } from '../interfases';
+import { useMemo, useEffect, useState } from 'react';
+import { PermissionConfig, Role, BusinessRole } from '../interfases';
+import { fetchApiV1, queries } from '../Fetching';
 
-// Configuración de permisos por defecto
 const DEFAULT_PERMISSIONS: PermissionConfig = {
-  // Configuración
+  // Perfil (cualquier usuario autenticado)
   'configuracion:perfil': {
     action: 'perfil',
     resource: 'configuracion',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
-    }
-  },
-  'configuracion:avanzada': {
-    action: 'avanzada',
-    resource: 'configuracion',
-    conditions: {
-      role: ['admin',]
-    }
-  },
-  'configuracion:sistema': {
-    action: 'sistema',
-    resource: 'configuracion',
-    conditions: {
-      role: ['admin']
+      role: ['system_admin', 'system_operator', 'system_viewer']
     }
   },
 
-  // Usuarios (solo para administradores y profesionales)
+  // Negocios (solo sistema)
+  'negocios:ver': {
+    action: 'ver',
+    resource: 'negocios',
+    conditions: { role: ['system_admin', 'system_operator'] }
+  },
+  'negocios:crear': {
+    action: 'crear',
+    resource: 'negocios',
+    conditions: { role: ['system_admin', 'system_operator'] }
+  },
+  'negocios:editar': {
+    action: 'editar',
+    resource: 'negocios',
+    conditions: { role: ['system_admin', 'system_operator'] }
+  },
+  'negocios:eliminar': {
+    action: 'eliminar',
+    resource: 'negocios',
+    conditions: { role: ['system_admin', 'system_operator'] }
+  },
+
+  // Usuarios del sistema (solo sistema)
   'usuarios:ver': {
     action: 'ver',
     resource: 'usuarios',
-    conditions: {
-      role: ['admin']
-    }
+    conditions: { role: ['system_admin', 'system_operator'] }
   },
   'usuarios:crear': {
     action: 'crear',
     resource: 'usuarios',
-    conditions: {
-      role: ['admin']
-    }
+    conditions: { role: ['system_admin', 'system_operator'] }
   },
   'usuarios:editar': {
     action: 'editar',
     resource: 'usuarios',
-    conditions: {
-      role: ['admin']
-    }
+    conditions: { role: ['system_admin', 'system_operator'] }
   },
   'usuarios:eliminar': {
     action: 'eliminar',
     resource: 'usuarios',
-    conditions: {
-      role: ['admin']
-    }
+    conditions: { role: ['system_admin', 'system_operator'] }
   },
 
-  // Exportación de datos
-  'exportar:datos': {
-    action: 'datos',
-    resource: 'exportar',
+  // Editar negocio (dentro del negocio: business_admin; desde sistema: system_admin/operator)
+  'negocio:editar': {
+    action: 'editar',
+    resource: 'negocio',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
+      role: ['system_admin', 'system_operator'],
+      businessRole: ['business_admin']
     }
   },
-  'exportar:reportes': {
-    action: 'reportes',
-    resource: 'exportar',
+  // Usuarios del negocio (gestionar miembros)
+  'negocio:usuarios': {
+    action: 'usuarios',
+    resource: 'negocio',
     conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
-    }
-  },
-
-  // Soporte
-  'soporte:ver': {
-    action: 'ver',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'logicalSupport', 'technicalSupport', 'technicalSupportSupervisor']
-    }
-  },
-  'soporte:crear_editar': {
-    action: 'crear_editar',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'logicalSupport']
-    }
-  },
-  'soporte:eliminar': {
-    action: 'eliminar',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin']
-    }
-  },
-  'soporte:estadisticas': {
-    action: 'estadisticas',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'logicalSupport']
-    }
-  },
-  'soporte:ajustes': {
-    action: 'ajustes',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin']
-    }
-  },
-  'soporte:prioritario': {
-    action: 'prioritario',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
-    }
-  },
-  'soporte:gestionar': {
-    action: 'gestionar',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']
-    }
-  },
-  'soporte:cerrar_ticket': {
-    action: 'cerrar_ticket',
-    resource: 'soporte',
-    conditions: {
-      role: ['admin', 'logicalSupport', 'technicalSupportSupervisor']
-    }
-  },
-
-  // Email verificado
-  'email:verificado': {
-    action: 'verificado',
-    resource: 'email',
-    conditions: {
-      emailVerified: true
+      role: ['system_admin', 'system_operator'],
+      businessRole: ['business_admin']
     }
   }
 };
 
-// Hook principal para manejar permisos
-export const useAllowed = () => {
-  const { authUser, loading } = useAuth();
+export type UseAllowedOptions = {
+  businessRole?: BusinessRole | null;
+};
 
-  // Función para verificar si un usuario tiene un permiso específico
+export const useAllowed = (options: UseAllowedOptions = {}) => {
+  const { authUser, loading } = useAuth();
+  const { businessRole = null } = options;
+
   const can = useMemo(() => {
     return (permission: string, customPermissions?: PermissionConfig): boolean => {
-      // Si está cargando, no permitir nada
       if (loading) return false;
-
-      // Si no hay usuario autenticado, no permitir nada
       if (!authUser) return false;
 
-      // Combinar permisos por defecto con permisos personalizados
       const allPermissions = { ...DEFAULT_PERMISSIONS, ...customPermissions };
-
-      // Obtener la configuración del permiso
       const permissionConfig = allPermissions[permission];
-      if (!permissionConfig) {
-        console.warn(`Permiso no encontrado: ${permission}`);
-        return false;
-      }
+      if (!permissionConfig) return false;
 
       const { conditions } = permissionConfig;
 
-      // Verificar condiciones de rol
       if (conditions?.role) {
-        // Obtener el rol del usuario desde los custom claims
-        const userRole: Role = (authUser.customClaims?.role as Role) || 'client';
+        const userRole: Role = (authUser.customClaims?.role as Role) || 'system_viewer';
         if (!conditions.role.includes(userRole)) {
+          // Para permiso negocio:editar, si no tiene rol sistema permitido, comprobar rol en negocio
+          if (permission === 'negocio:editar' && conditions.businessRole && businessRole) {
+            return conditions.businessRole.includes(businessRole);
+          }
           return false;
         }
       }
 
-      // Verificar si el email está verificado
+      if (permission === 'negocio:editar' && conditions?.businessRole && businessRole) {
+        return conditions.businessRole.includes(businessRole);
+      }
+
       if (conditions?.emailVerified !== undefined) {
-        if (authUser.emailVerified !== conditions.emailVerified) {
-          return false;
-        }
+        if (authUser.emailVerified !== conditions.emailVerified) return false;
       }
 
-      // Verificar condiciones personalizadas
-      if (conditions?.custom) {
-        if (!conditions.custom(authUser)) {
-          return false;
-        }
-      }
+      if (conditions?.custom && !conditions.custom(authUser)) return false;
 
       return true;
     };
-  }, [authUser, loading]);
+  }, [authUser, loading, businessRole]);
 
-  // Función para verificar múltiples permisos (AND)
   const canAll = useMemo(() => {
     return (permissions: string[], customPermissions?: PermissionConfig): boolean => {
-      return permissions.every(permission => can(permission, customPermissions));
+      return permissions.every((p) => can(p, customPermissions));
     };
   }, [can]);
 
-  // Función para verificar múltiples permisos (OR)
   const canAny = useMemo(() => {
     return (permissions: string[], customPermissions?: PermissionConfig): boolean => {
-      return permissions.some(permission => can(permission, customPermissions));
+      return permissions.some((p) => can(p, customPermissions));
     };
   }, [can]);
 
-  // Función para obtener permisos disponibles para el usuario actual
   const getAvailablePermissions = useMemo(() => {
     return (customPermissions?: PermissionConfig): string[] => {
-      const allPermissions = { ...DEFAULT_PERMISSIONS, ...customPermissions };
-      return Object.keys(allPermissions).filter(permission =>
-        can(permission, customPermissions)
-      );
+      const all = { ...DEFAULT_PERMISSIONS, ...customPermissions };
+      return Object.keys(all).filter((p) => can(p, customPermissions));
     };
   }, [can]);
 
-
-
-  // Función para verificar si el usuario tiene un rol específico
   const hasRole = useMemo(() => {
     return (role: Role): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role);
-      return userRole === role;
+      return (authUser.customClaims?.role as Role) === role;
     };
   }, [authUser]);
 
-  // Función para verificar si el usuario tiene al menos un rol específico
   const hasAnyRole = useMemo(() => {
     return (roles: Role[]): boolean => {
       if (!authUser) return false;
-      const userRole: Role = (authUser.customClaims?.role as Role);
-      return roles.includes(userRole);
+      return roles.includes(authUser.customClaims?.role as Role);
     };
   }, [authUser]);
 
-  // Función para obtener el rol actual del usuario
   const getCurrentRole = useMemo(() => {
     return (): Role | null => {
       if (!authUser) return null;
-      return (authUser.customClaims?.role as Role);
+      return (authUser.customClaims?.role as Role) ?? null;
     };
   }, [authUser]);
 
@@ -258,66 +174,106 @@ export const useAllowed = () => {
   };
 };
 
-// Hook específico para verificar permisos de configuración
 export const useConfigPermissions = () => {
   const { can, hasRole } = useAllowed();
-
   return {
     canEditProfile: () => can('configuracion:perfil'),
-    canAdvancedConfig: () => can('configuracion:avanzada'),
-    canSystemConfig: () => can('configuracion:sistema'),
-    isAdmin: () => hasRole('admin')
+    isSystemAdmin: () => hasRole('system_admin'),
+    isSystemOperator: () => hasRole('system_operator')
   };
 };
 
-// Hook específico para verificar permisos de exportación
-export const useExportPermissions = () => {
-  const { can, hasAnyRole } = useAllowed();
-
-  return {
-    canExportData: () => can('exportar:datos'),
-    canExportReports: () => can('exportar:reportes'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales'])
-  };
-};
-
-// Hook específico para verificar permisos de soporte
-export const useSupportPermissions = () => {
-  const { can, hasAnyRole } = useAllowed();
-
-  return {
-    canViewSupport: () => can('soporte:ver'),
-    canCreateEditTickets: () => can('soporte:crear_editar'),
-    canDeleteTickets: () => can('soporte:eliminar'),
-    canCloseTicket: () => can('soporte:cerrar_ticket'),
-    canViewStatistics: () => can('soporte:estadisticas'),
-    canViewSettings: () => can('soporte:ajustes'),
-    hasPrioritySupport: () => can('soporte:prioritario'),
-    canManageSupport: () => can('soporte:gestionar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales'])
-  };
-};
-
-// Hook específico para verificar permisos de usuarios
 export const useUserPermissions = () => {
-  const { can, hasAnyRole, hasRole } = useAllowed();
-
+  const { can, hasRole, hasAnyRole } = useAllowed();
   return {
     canViewUsers: () => can('usuarios:ver'),
     canCreateUsers: () => can('usuarios:crear'),
     canEditUsers: () => can('usuarios:editar'),
     canDeleteUsers: () => can('usuarios:eliminar'),
-    hasProfessionalAccess: () => hasAnyRole(['admin', 'accounting', 'callCenter', 'technicalSupport', 'logicalSupport', 'technicalSupportSupervisor', 'sales']),
-    isAdmin: () => hasRole('admin')
+    isSystemAdmin: () => hasRole('system_admin'),
+    canManageSystem: () => hasAnyRole(['system_admin', 'system_operator'])
   };
 };
 
-// Hook específico para verificar verificación de email
+export const useBusinessPermissions = (businessRole: BusinessRole | null = null) => {
+  const { can, hasAnyRole } = useAllowed({ businessRole });
+  return {
+    canViewBusinesses: () => can('negocios:ver'),
+    canCreateBusinesses: () => can('negocios:crear'),
+    canEditBusinesses: () => can('negocios:editar'),
+    canDeleteBusinesses: () => can('negocios:eliminar'),
+    canEditCurrentBusiness: () => can('negocio:editar'),
+    canManageBusinessUsers: () => can('negocio:usuarios'),
+    canManageSystem: () => hasAnyRole(['system_admin', 'system_operator'])
+  };
+};
+
 export const useEmailPermissions = () => {
   const { can, user } = useAllowed();
-
   return {
     isEmailVerified: () => can('email:verificado'),
     emailVerified: user?.emailVerified || false
   };
-}; 
+};
+
+/** Rutas que corresponden al sistema general (no a un negocio). */
+export const SYSTEM_PATH_SEGMENTS = [
+  'dashboard', 'users', 'businesses', 'profile', 'notifications', 'theme-demo',
+  'login', 'register', 'register-invitation', 'forgot-password'
+];
+
+/** Dado pathname, devuelve businessId si estamos en una ruta de negocio. */
+export function getBusinessIdFromPathname(pathname: string): string | null {
+  const segment = pathname.split('/').filter(Boolean)[0];
+  if (!segment || SYSTEM_PATH_SEGMENTS.includes(segment)) return null;
+  return segment;
+}
+
+/** Hook: obtiene el rol del usuario en el negocio. businessIdFromUrl puede ser _id o slug. */
+export function useBusinessRole(businessIdFromUrl: string | null) {
+  const [businessRole, setBusinessRole] = useState<BusinessRole | null>(null);
+  const [loading, setLoading] = useState(!!businessIdFromUrl);
+
+  useEffect(() => {
+    if (!businessIdFromUrl) {
+      setBusinessRole(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { userId: string; businessId: string; role: string }[] | undefined;
+        if (cancelled) return;
+        let m = list?.find((x) => x.businessId === businessIdFromUrl);
+        if (!m && list?.length) {
+          let business = await fetchApiV1({
+            query: queries.getBusiness,
+            type: 'json',
+            variables: { slug: businessIdFromUrl },
+          }) as { _id: string } | undefined;
+          if (!business && businessIdFromUrl) {
+            business = await fetchApiV1({
+              query: queries.getBusiness,
+              type: 'json',
+              variables: { id: businessIdFromUrl },
+            }) as { _id: string } | undefined;
+          }
+          if (cancelled) return;
+          if (business?._id) {
+            m = list?.find((x) => x.businessId === business._id) ?? null;
+          }
+        }
+        setBusinessRole((m?.role as BusinessRole) ?? null);
+      } catch {
+        if (!cancelled) setBusinessRole(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [businessIdFromUrl]);
+
+  return { businessRole, loading };
+}

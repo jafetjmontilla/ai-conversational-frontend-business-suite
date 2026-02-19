@@ -10,67 +10,13 @@ import { Form } from "@/components/ui/form";
 import { FormFieldInput, OptionSelect, Role, roles, User } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
-import { User as UserIcon, Mail, Phone, Image, Shield, MapPin } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Image, Shield } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface WisphubZona {
-  id: number;
-  nombre: string;
-}
 
 const roleOptions: OptionSelect[] = [
-  {
-    value: 'accounting' as Role,
-    title: 'Contabilidad',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'callCenter' as Role,
-    title: 'Call Center',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'technicalSupport' as Role,
-    title: 'Soporte Técnico',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'logicalSupport' as Role,
-    title: 'Soporte Lógico',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'technicalSupportSupervisor' as Role,
-    title: 'Supervisor Soporte Técnico',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'sales' as Role,
-    title: 'Ventas',
-    description: '',
-    icon: '👤',
-    features: []
-  },
-  {
-    value: 'admin' as Role,
-    title: 'Administrador',
-    description: '',
-    icon: '⚙️',
-    features: []
-  },
-
+  { value: 'system_admin' as Role, title: 'Administrador del sistema', description: '', icon: '⚙️', features: [] },
+  { value: 'system_operator' as Role, title: 'Operador del sistema', description: '', icon: '👤', features: [] },
+  { value: 'system_viewer' as Role, title: 'Solo lectura (sistema)', description: '', icon: '👤', features: [] },
 ].sort((a, b) => a.title.localeCompare(b.title));
 
 interface UserFormModalProps {
@@ -87,7 +33,6 @@ const formSchema = z.object({
   role: z.enum(roles, {
     message: "El rol es requerido",
   }),
-  zoneId: z.number().int().min(0).optional().nullable(),
   active: z.boolean(),
   photoURL: z.string().url("URL de foto inválida").optional().or(z.literal("")),
 });
@@ -149,28 +94,8 @@ const formFields: FormFieldInput[] = [
 export default function UserFormModal({ isOpen, onClose, user, onSuccess }: UserFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
-  const [zonas, setZonas] = useState<WisphubZona[]>([]);
   const isInvitation = !user?.uid;
   const isEditing = !!user;
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetchApiV1({
-          query: queries.getWisphubZonas,
-          type: "json",
-        });
-        if (cancelled) return;
-        const list = Array.isArray(res?.results) ? res.results : [];
-        setZonas(list);
-      } catch (e) {
-        if (!cancelled) console.warn("Error cargando zonas Wisphub:", e);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [isOpen]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -178,8 +103,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as "admin" | "accounting" | "callCenter" | "technicalSupport" | "logicalSupport" | "technicalSupportSupervisor" | "sales"),
-      zoneId: user?.zoneId ?? undefined,
+      role: (user?.role as Role) || "system_viewer",
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
@@ -201,7 +125,6 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
                 email: values.email,
                 phone: values.phone,
                 role: values.role,
-                ...(values.role === 'technicalSupportSupervisor' && values.zoneId != null && { zoneId: values.zoneId }),
               },
             },
           });
@@ -226,7 +149,6 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
               email: values.email,
               phone: values.phone,
               role: values.role,
-              ...(values.role === 'technicalSupportSupervisor' && values.zoneId != null && { zoneId: values.zoneId }),
               photoURL: values.photoURL || "",
               emailVerified: user?.emailVerified,
             },
@@ -251,7 +173,6 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
               email: values.email,
               phone: values.phone,
               role: values.role,
-              ...(values.role === 'technicalSupportSupervisor' && values.zoneId != null && { zoneId: values.zoneId }),
             },
           },
         });
@@ -346,38 +267,6 @@ Este enlace expira en 7 días.
                   />
                 )
               })}
-            {form.watch("role") === "technicalSupportSupervisor" && (
-              <FormField
-                control={form.control}
-                name="zoneId"
-                render={({ field: formField }) => (
-                  <FormItem className="space-y-0 relative">
-                    <FormLabel>Zona (opcional)</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={formField.value != null ? String(formField.value) : "__none__"}
-                        onValueChange={(v) => formField.onChange(v === "__none__" ? undefined : parseInt(v, 10))}
-                        disabled={form.formState.isSubmitting}
-                      >
-                        <SelectTrigger className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <SelectValue placeholder="Seleccionar zona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Sin zona</SelectItem>
-                          {zonas.map((z) => (
-                            <SelectItem key={z.id} value={String(z.id)}>
-                              {z.nombre || `Zona ${z.id}`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage className="absolute text-xs" />
-                  </FormItem>
-                )}
-              />
-            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar

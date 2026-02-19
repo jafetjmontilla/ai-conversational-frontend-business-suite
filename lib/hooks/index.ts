@@ -1,12 +1,13 @@
 // Hook principal de permisos
-export {
-  useAllowed,
-} from './useAllowed';
+export { useAllowed } from './useAllowed';
 
-// Hooks especializados (se mantienen solo los generales)
+// Hooks especializados
 export {
   useConfigPermissions,
-  useExportPermissions,
-  useSupportPermissions,
-  useEmailPermissions
+  useUserPermissions,
+  useBusinessPermissions,
+  useEmailPermissions,
+  useBusinessRole,
+  getBusinessIdFromPathname,
+  SYSTEM_PATH_SEGMENTS,
 } from './useAllowed';

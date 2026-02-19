@@ -8,17 +8,19 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, FileSpreadsheet, Tv } from 'lucide-react';
+import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
-import { useAllowed } from "@/lib/hooks/useAllowed"
+import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import packageJson from '../../package.json' assert { type: 'json' };
 
 type NavItem = {
   href: string;
-  label: string; icon: React.ElementType;
-  badge?: number; condition?: boolean
+  label: string;
+  icon: React.ElementType;
+  badge?: number;
+  condition?: boolean;
 };
 
 export interface AppSidebarProps {
@@ -26,59 +28,66 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({ setSlugs }: AppSidebarProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { state, toggleSidebar } = useSidebar()
+  const router = useRouter();
+  const pathname = usePathname();
+  const { state, toggleSidebar } = useSidebar();
   const { theme } = useThemeContext();
-  const { hasRole, hasAnyRole, can } = useAllowed();
+  const businessId = getBusinessIdFromPathname(pathname || '');
+  const { businessRole } = useBusinessRole(businessId);
+  const { hasRole, hasAnyRole, can } = useAllowed({ businessRole: businessRole ?? undefined });
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
   const versionLabel = packageJson.version ? `Business Suite v${packageJson.version}` : "Business Suite";
 
-  // Permisos para ítems del menú
-  const canViewStreaming = hasAnyRole(['admin', 'logicalSupport']);
-  const isAdmin = hasRole('admin');
+  const canViewBusinesses = can('negocios:ver');
+  const canViewUsers = can('usuarios:ver');
+  const canEditCurrentBusiness = can('negocio:editar');
+  const canManageBusinessUsers = can('negocio:usuarios');
 
   const handleNavigation = async (href: string, label: string) => {
-    if (pathname === href) {
-      return;
-    }
+    if (pathname === href) return;
     setLoading(true);
     setCurrentPath(href);
     router.push(href);
-    // Cerrar sidebar en móvil
-    await new Promise(resolve => setTimeout(resolve, 800));
-    if (isMobile) {
-      toggleSidebar();
-    }
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (isMobile) toggleSidebar();
   };
 
   useEffect(() => {
-    if (pathname === currentPath) {
-      setLoading(false);
+    if (pathname === currentPath) setLoading(false);
+  }, [pathname, currentPath]);
+
+  const isSystemScope = !businessId;
+
+  const buildPersonalItems = (): NavItem[] => {
+    if (!isSystemScope) {
+      return [
+        { href: `/${businessId}/edit`, label: 'Editar negocio', icon: Pencil, condition: canEditCurrentBusiness },
+        { href: `/${businessId}/users`, label: 'Usuarios del negocio', icon: UserPlus, condition: canManageBusinessUsers },
+      ].filter((item) => item.condition !== false);
     }
-  }, [pathname])
+    return [
+      { href: '/dashboard', label: 'Dashboard', icon: Home },
+    ];
+  };
 
-
-  const buildPersonalItems = (): NavItem[] => [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/streaming', label: 'Televisión', icon: Tv, badge: 0, condition: canViewStreaming },
-  ];
-
-  const buildAccountItems = (): NavItem[] => [
-    { href: '/notifications', label: 'Notificaciones', icon: Bell, badge: 0 },
-    { href: '/users', label: 'Usuarios', icon: Users, condition: isAdmin },
-    { href: '/theme-demo', label: 'Demo Componentes', icon: FileSpreadsheet, condition: isAdmin },
-  ];
+  const buildAccountItems = (): NavItem[] => {
+    if (!isSystemScope) return [];
+    return [
+      { href: '/notifications', label: 'Notificaciones', icon: Bell },
+      { href: '/businesses', label: 'Negocios', icon: Building2, condition: canViewBusinesses },
+      { href: '/users', label: 'Usuarios', icon: Users, condition: canViewUsers },
+    ].filter((item) => item.condition !== false);
+  };
 
   useEffect(() => {
     setSlugs([
       ...buildPersonalItems().map((item) => ({ name: item.label, href: item.href })),
       ...buildAccountItems().map((item) => ({ name: item.label, href: item.href })),
     ]);
-  }, []);
+  }, [businessId, canEditCurrentBusiness, canManageBusinessUsers, canViewBusinesses, canViewUsers]);
 
   const personalItems = buildPersonalItems();
   const accountItems = buildAccountItems();
@@ -91,25 +100,18 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         </div>,
         document.body
       )}
-      <Sidebar side="left" variant="floating" collapsible="icon" >
-        <Button variant="secondary" size="icon" className='absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full' onClick={toggleSidebar} >
-          {state == "collapsed"
-            ? <div className="flex">
-              <ChevronRight className="w-4 h-4 translate-x-1" />
-              <ChevronRight className="w-4 h-4 -translate-x-1" />
-            </div>
-            : <div className="flex">
-              <ChevronLeft className="w-4 h-4 translate-x-1" />
-              <ChevronLeft className="w-4 h-4 -translate-x-1" />
-            </div>}
+      <Sidebar side="left" variant="floating" collapsible="icon">
+        <Button variant="secondary" size="icon" className="absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full" onClick={toggleSidebar}>
+          {state === "collapsed"
+            ? <div className="flex"><ChevronRight className="w-4 h-4 translate-x-1" /><ChevronRight className="w-4 h-4 -translate-x-1" /></div>
+            : <div className="flex"><ChevronLeft className="w-4 h-4 translate-x-1" /><ChevronLeft className="w-4 h-4 -translate-x-1" /></div>}
         </Button>
         <SidebarHeader>
           <SidebarMenu>
             <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
               <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-                <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Frontend Business Suite" width={50} height={30} className="rounded-md" />
-                {state == "expanded" && <span className="font-bold text-sm">{versionLabel}</span>}
-
+                <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Business Suite" width={50} height={30} className="rounded-md" />
+                {state === "expanded" && <span className="font-bold text-sm">{versionLabel}</span>}
               </div>
             </div>
           </SidebarMenu>
@@ -119,8 +121,8 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {personalItems.map((item) => {
-                  const isActive = currentPath === item.href;
-                  return (item?.condition === undefined || item?.condition === true) &&
+                  const isActive = pathname === item.href;
+                  return (
                     <SidebarMenuItem key={item.label}>
                       <SidebarMenuButton
                         tooltip={item.label}
@@ -134,16 +136,17 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
                         </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                  );
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          </SidebarContent>
+        </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
             {accountItems.map((item) => {
-              const isActive = currentPath === item.href;
-              return (item?.condition === undefined || item?.condition === true) &&
+              const isActive = pathname === item.href;
+              return (
                 <SidebarMenuItem key={item.label}>
                   <SidebarMenuButton
                     tooltip={item.label}
@@ -158,9 +161,10 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
                   </SidebarMenuButton>
                   <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
                 </SidebarMenuItem>
+              );
             })}
             <Separator className="my-2" />
-            <SidebarMenuItem onClick={() => !loading && handleNavigation("/profile", "Perfil")} >
+            <SidebarMenuItem onClick={() => !loading && handleNavigation("/profile", "Perfil")}>
               <SidebarMenuButton className={`h-14 ${pathname === "/profile" ? "bg-accent text-accent-foreground" : ""}`}>
                 <Avatar className="scale-[80%] -translate-x-[12px]">
                   <AvatarImage src={user?.photoURL || ""} />
@@ -171,9 +175,6 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
                   <span className="text-xs text-muted-foreground">{user?.email}</span>
                 </div>
               </SidebarMenuButton>
-              {/* <SidebarMenuAction className="translate-y-3">
-              <Plus />  
-            </SidebarMenuAction> */}
               <SidebarMenuBadge className="translate-y-3">
                 <SquareArrowOutUpRight className="w-4 h-4" />
               </SidebarMenuBadge>
@@ -183,5 +184,5 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         </SidebarFooter>
       </Sidebar>
     </>
-  )
+  );
 }

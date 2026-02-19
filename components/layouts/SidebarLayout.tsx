@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/navigation/AppSidebar"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { useTasaBCV } from "@/hooks/useTasaBCV"
 import { useThemeContext } from "@/contexts/ThemeContext"
 import { useAuth } from "@/contexts/AuthContext"
 import Image from "next/image"
@@ -14,21 +13,15 @@ import { Shield } from "lucide-react"
 import packageJson from "@/package.json"
 
 const roleLabels: Record<string, string> = {
-  admin: 'Administrador',
-  accounting: 'Contabilidad',
-  callCenter: 'Call Center',
-  technicalSupport: 'Soporte Técnico',
-  logicalSupport: 'Soporte Lógico',
-  technicalSupportSupervisor: 'Supervisor Soporte Técnico',
-  sales: 'Ventas',
-  none: 'Sin rol'
+  system_admin: 'Administrador del sistema',
+  system_operator: 'Operador del sistema',
+  system_viewer: 'Solo lectura (sistema)',
 };
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
   const [slugs, setSlugs] = useState<{ name: string, href: string }[]>([])
   const [currentDate, setCurrentDate] = useState(new Date())
   const pathname = usePathname()
-  const { tasaBCV, loading: tasaLoading, error: tasaError } = useTasaBCV()
   const { theme } = useThemeContext();
   const { authUser } = useAuth();
   const router = useRouter();
@@ -88,9 +81,6 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             }
             {/* <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span> */}
           </div>
-          {/* <span id="tasaBCV" className="block">
-            {tasaLoading ? 'Cargando...' : tasaError ? 'Error' : tasaBCV ? `$ ${tasaBCV.tasa.toFixed(2)}` : '$ 0.00'}
-          </span> */}
           <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
           <span className="hidden md:block first-letter:uppercase text-sm">{currentDate.toLocaleDateString('es-VE', {
             weekday: 'long',

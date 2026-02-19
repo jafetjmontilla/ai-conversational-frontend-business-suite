@@ -1,35 +1,78 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { systemRoles } from '@/lib/interfases';
+import { fetchApiV1, queries } from '@/lib/Fetching';
 
 interface AuthGuardProps {
   children: React.ReactNode;
+}
+
+const SYSTEM_SCOPE_SEGMENTS = ['dashboard', 'users', 'businesses', 'profile'];
+
+/** Redirige a usuario con rol de negocio a su primer negocio (por slug para evitar bucle con páginas que usan slug). */
+async function redirectToBusiness(router: ReturnType<typeof useRouter>): Promise<void> {
+  const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { businessId: string }[] | undefined;
+  const first = list?.length ? list[0] : null;
+  if (!first?.businessId) {
+    router.push('/dashboard');
+    return;
+  }
+  const business = await fetchApiV1({
+    query: queries.getBusiness,
+    type: 'json',
+    variables: { id: first.businessId },
+  }) as { slug: string } | undefined;
+  if (business?.slug) {
+    router.push(`/${business.slug}`);
+  } else {
+    router.push('/dashboard');
+  }
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const { authUser, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const redirectingRef = useRef(false);
 
-  //Modificar para el primer usuario que se registre sea admin
-  // Rutas que no requieren autenticación
   const publicRoutes = ['/login', '/register-invitation', '/forgot-password', '/register'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
-  // Redirección basada en el estado de autenticación
+  const role = authUser?.customClaims?.role as string | undefined;
+  const isSystemRole = role && systemRoles.includes(role as 'system_admin' | 'system_operator' | 'system_viewer');
+  const firstSegment = pathname?.split('/').filter(Boolean)[0] ?? '';
+  const isSystemScopeRoute = SYSTEM_SCOPE_SEGMENTS.includes(firstSegment);
+
+  // Redirección: no autenticado -> login
   useEffect(() => {
-    if (!loading) {
-      if (authUser && isPublicRoute) {
-        // Si está logueado y está en una ruta pública, redirigir al dashboard
-        router.push('/dashboard');
-      } else if (!authUser && !isPublicRoute) {
-        // Si no está logueado y no está en una ruta pública, redirigir al login
-        //router.push('/login');
-      }
+    if (loading) return;
+    if (!authUser && !isPublicRoute) {
+      router.push('/login');
     }
   }, [authUser, loading, router, pathname, isPublicRoute]);
+
+  // Redirección: autenticado en ruta pública -> dashboard o al negocio según rol
+  useEffect(() => {
+    if (loading || !authUser || !isPublicRoute) return;
+    if (isSystemRole) {
+      router.push('/dashboard');
+      return;
+    }
+    if (redirectingRef.current) return;
+    redirectingRef.current = true;
+    redirectToBusiness(router).finally(() => { redirectingRef.current = false; });
+  }, [authUser, loading, isPublicRoute, isSystemRole, router]);
+
+  // Redirección: rol de negocio en ruta del sistema -> al negocio (por slug). Evita redirigir si ya estamos en un negocio.
+  useEffect(() => {
+    if (loading || !authUser || isPublicRoute || isSystemRole || !isSystemScopeRoute) return;
+    if (redirectingRef.current) return;
+    redirectingRef.current = true;
+    redirectToBusiness(router).finally(() => { redirectingRef.current = false; });
+  }, [authUser, loading, pathname, isPublicRoute, isSystemRole, isSystemScopeRoute, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {
@@ -40,9 +83,24 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Si no está autenticado y no es una ruta pública, no mostrar nada mientras se redirige
-  if (!authUser && !isPublicRoute) {
-    return null;
+  if (!authUser && !isPublicRoute) return null;
+
+  // Usuario autenticado en ruta pública: no mostrar login, mostrar loading hasta redirigir
+  if (authUser && isPublicRoute) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-wellness-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400" />
+      </div>
+    );
+  }
+
+  // Rol de negocio en ruta del sistema: mostrar loading hasta redirigir al negocio
+  if (authUser && isSystemScopeRoute && !isSystemRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-wellness-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400" />
+      </div>
+    );
   }
 
   return <>{children}</>;
