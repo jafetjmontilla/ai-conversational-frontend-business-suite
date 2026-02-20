@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchApiV1, queries } from "@/lib/Fetching";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import BusinessMemberFormModal from "@/components/BusinessMemberFormModal";
 import { Plus, Trash2 } from "lucide-react";
@@ -37,6 +38,7 @@ export default function BusinessUsersPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.businessId as string;
+  const { meData } = useAuth();
   const { businessRole } = useBusinessRole(slug);
   const { canManageBusinessUsers } = useBusinessPermissions(businessRole);
   const [business_id, setBusinessId] = useState<string | null>(null);
@@ -46,6 +48,29 @@ export default function BusinessUsersPage() {
 
   useEffect(() => {
     if (!slug) return;
+    const isMyBusiness = meData?.business && (meData.business.businessId === slug || meData.business._id === slug);
+    if (isMyBusiness && meData?.business) {
+      setBusinessId(meData.business._id);
+      let cancelled = false;
+      (async () => {
+        try {
+          const list = await fetchApiV1({
+            query: queries.getBusinessMembers,
+            type: "json",
+            variables: { id: meData.business!._id },
+          });
+          if (!cancelled) setMembers(Array.isArray(list) ? list : []);
+        } catch {
+          if (!cancelled) {
+            toast.error("Error al cargar usuarios del negocio");
+            router.push("/businesses");
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+      return () => { cancelled = true; };
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -85,7 +110,7 @@ export default function BusinessUsersPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [slug, router]);
+  }, [slug, meData?.business, router]);
 
   const fetchMembers = async () => {
     if (!business_id) return;

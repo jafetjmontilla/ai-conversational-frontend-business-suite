@@ -156,6 +156,33 @@ export const queries = {
       updatedAt
     }
   }`,
+  /** Una sola llamada: usuario actual + negocio (poblado desde user.business_id) + businessRole. */
+  getMe: `query getMe {
+    getMe {
+      user {
+        _id
+        name
+        email
+        phone
+        role
+        active
+        emailVerified
+        photoURL
+        createdAt
+        updatedAt
+      }
+      business {
+        _id
+        name
+        businessId
+        description
+        active
+        createdAt
+        updatedAt
+      }
+      businessRole
+    }
+  }`,
   getUsers: `query getUsers {
     getUsers {
       _id

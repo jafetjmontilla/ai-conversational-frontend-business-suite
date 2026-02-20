@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import type { MeData } from '@/contexts/AuthContext';
 import { systemRoles } from '@/lib/interfases';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 
@@ -12,8 +13,12 @@ interface AuthGuardProps {
 
 const SYSTEM_SCOPE_SEGMENTS = ['dashboard', 'users', 'businesses', 'profile'];
 
-/** Redirige a usuario con rol de negocio a su primer negocio (URL por businessId string). */
-async function redirectToBusiness(router: ReturnType<typeof useRouter>): Promise<void> {
+/** Redirige a usuario con rol de negocio a su primer negocio. Usa meData.business si existe (una sola llamada getMe); si no, getMyBusinessMemberships + getBusiness. */
+async function redirectToBusiness(router: ReturnType<typeof useRouter>, meData: MeData | null): Promise<void> {
+  if (meData?.business?.businessId) {
+    router.push(`/${meData.business.businessId}`);
+    return;
+  }
   const list = await fetchApiV1({ query: queries.getMyBusinessMemberships, type: 'json' }) as { business_id: string }[] | undefined;
   const first = list?.length ? list[0] : null;
   if (!first?.business_id) {
@@ -33,7 +38,7 @@ async function redirectToBusiness(router: ReturnType<typeof useRouter>): Promise
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { authUser, loading } = useAuth();
+  const { authUser, meData, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const redirectingRef = useRef(false);
@@ -63,16 +68,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
     if (redirectingRef.current) return;
     redirectingRef.current = true;
-    redirectToBusiness(router).finally(() => { redirectingRef.current = false; });
-  }, [authUser, loading, isPublicRoute, isSystemRole, router]);
+    redirectToBusiness(router, meData).finally(() => { redirectingRef.current = false; });
+  }, [authUser, loading, isPublicRoute, isSystemRole, meData, router]);
 
   // Redirección: rol de negocio en ruta del sistema -> al negocio (por businessId). Evita redirigir si ya estamos en un negocio.
   useEffect(() => {
     if (loading || !authUser || isPublicRoute || isSystemRole || !isSystemScopeRoute) return;
     if (redirectingRef.current) return;
     redirectingRef.current = true;
-    redirectToBusiness(router).finally(() => { redirectingRef.current = false; });
-  }, [authUser, loading, pathname, isPublicRoute, isSystemRole, isSystemScopeRoute, router]);
+    redirectToBusiness(router, meData).finally(() => { redirectingRef.current = false; });
+  }, [authUser, loading, pathname, isPublicRoute, isSystemRole, isSystemScopeRoute, meData, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {

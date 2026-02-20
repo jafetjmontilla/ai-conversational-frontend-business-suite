@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 
 const formSchema = z.object({
@@ -27,6 +28,7 @@ export default function BusinessEditPage() {
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
+  const { meData } = useAuth();
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,14 @@ export default function BusinessEditPage() {
 
   useEffect(() => {
     if (!businessId) return;
+    const isMyBusiness = meData?.business && (meData.business.businessId === businessId || meData.business._id === businessId);
+    if (isMyBusiness && meData?.business) {
+      const b = meData.business;
+      setBusiness(b);
+      form.reset({ name: b.name, description: b.description ?? "", active: b.active ?? true });
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -73,7 +83,7 @@ export default function BusinessEditPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [businessId, form]);
+  }, [businessId, meData?.business]);
 
   const onSubmit = async (values: FormValues) => {
     if (!business) return;

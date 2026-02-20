@@ -229,14 +229,21 @@ export function getBusinessIdFromPathname(pathname: string): string | null {
   return segment;
 }
 
-/** Hook: obtiene el rol del usuario en el negocio. slugFromUrl = business_id (_id) o businessId (string) según la ruta. */
+/** Hook: obtiene el rol del usuario en el negocio. slugFromUrl = business_id (_id) o businessId (string) según la ruta. Usa meData cuando el slug es el negocio actual (evita fetch). */
 export function useBusinessRole(slugFromUrl: string | null) {
+  const { meData } = useAuth();
   const [businessRole, setBusinessRole] = useState<BusinessRole | null>(null);
   const [loading, setLoading] = useState(!!slugFromUrl);
 
   useEffect(() => {
     if (!slugFromUrl) {
       setBusinessRole(null);
+      setLoading(false);
+      return;
+    }
+    // Si el slug es el negocio ya cargado en meData, no hacemos fetch
+    if (meData?.business && (meData.business.businessId === slugFromUrl || meData.business._id === slugFromUrl)) {
+      setBusinessRole((meData.businessRole as BusinessRole) ?? null);
       setLoading(false);
       return;
     }
@@ -273,7 +280,7 @@ export function useBusinessRole(slugFromUrl: string | null) {
       }
     })();
     return () => { cancelled = true; };
-  }, [slugFromUrl]);
+  }, [slugFromUrl, meData?.business?._id, meData?.business?.businessId, meData?.businessRole]);
 
   return { businessRole, loading };
 }

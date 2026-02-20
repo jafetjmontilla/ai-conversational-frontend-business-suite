@@ -4,10 +4,19 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { AuthUser, AuthResponse, } from '../lib/firebase';
 
+/** Respuesta de getMe: usuario + negocio poblado (si tiene business_id) + rol en ese negocio. */
+export interface MeData {
+  user: { _id: string; name?: string; email?: string; phone?: string; role?: string; active?: boolean; emailVerified?: boolean; photoURL?: string; createdAt?: string; updatedAt?: string };
+  business: { _id: string; name: string; businessId: string; description?: string; active: boolean; createdAt?: string; updatedAt?: string } | null;
+  businessRole: string | null;
+}
+
 // Tipos para el contexto
 interface AuthContextType {
   user: User | null;
   authUser: AuthUser | null;
+  /** Datos del usuario actual desde getMe (una sola llamada: user + business + businessRole). */
+  meData: MeData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signInGoogle: () => Promise<AuthResponse>;
@@ -25,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [meData, setMeData] = useState<MeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorAuth, setErrorAuth] = useState<string | undefined>(undefined);
 
@@ -44,23 +54,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (typeof window !== 'undefined' && window.location.pathname !== '/register-invitation') {
               try {
                 if (user?.uid) {
-                  const userData = await fetchApiV1({
-                    query: queries.getUser,
-                    variables: {
-                      uid: user.uid
-                    }
-                  });
+                  const data = await fetchApiV1({
+                    query: queries.getMe,
+                    type: 'json',
+                  }) as { user?: { _id: string }; business?: MeData['business']; businessRole?: string | null } | undefined;
+                  const userData = data?.user;
 
                   if (!userData?._id) {
                     setUser(null);
                     setAuthUser(null);
+                    setMeData(null);
                     await auth.currentUser?.delete();
                     setLoading(false);
                     return;
                   }
+                  setMeData(data ? { user: data.user!, business: data.business ?? null, businessRole: data.businessRole ?? null } : null);
+                } else {
+                  setMeData(null);
                 }
               } catch (error) {
                 console.error('Error al verificar usuario en base de datos:', error);
+                setMeData(null);
               }
             }
 
@@ -181,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (response.success) {
       setUser(null);
       setAuthUser(null);
+      setMeData(null);
     }
     return response;
   };
@@ -198,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     authUser,
+    meData,
     loading,
     signIn,
     signInGoogle,
