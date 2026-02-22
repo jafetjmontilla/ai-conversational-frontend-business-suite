@@ -1,8 +1,8 @@
-# Sistema de Temas - 4netERP Frontend
+# Sistema de Temas - Frontend Business Suite
 
-## Descripción
+## Descripcion
 
-El sistema de temas implementado en 4netERP permite a los usuarios cambiar entre modo claro, oscuro y automático (sistema) de manera fluida y sin recargar la página.
+El sistema de temas implementado en Frontend Business Suite permite a los usuarios cambiar entre modo claro, oscuro y automatico (sistema) de manera fluida y sin recargar la pagina.
 
 ## Características
 
