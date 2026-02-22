@@ -497,6 +497,44 @@ export const queries = {
       status
     }
   }`,
+  listKnowledgeDrafts: `query listKnowledgeDrafts($businessId: String!, $sourceId: String!, $status: String) {
+    listKnowledgeDrafts(businessId: $businessId, sourceId: $sourceId, status: $status) {
+      _id
+      businessId
+      sourceId
+      draftId
+      status
+      payload
+      createdBy
+      conversationId
+      approvedAt
+      createdAt
+      updatedAt
+    }
+  }`,
+  sendKnowledgeNarrative: `mutation sendKnowledgeNarrative($businessId: String!, $sourceId: String!, $content: String!) {
+    sendKnowledgeNarrative(businessId: $businessId, sourceId: $sourceId, content: $content)
+  }`,
+  approveKnowledgeDraft: `mutation approveKnowledgeDraft($id: ID!, $sourceId: String!) {
+    approveKnowledgeDraft(id: $id, sourceId: $sourceId) {
+      _id
+      status
+      approvedAt
+    }
+  }`,
+  rejectKnowledgeDraft: `mutation rejectKnowledgeDraft($id: ID!, $sourceId: String!) {
+    rejectKnowledgeDraft(id: $id, sourceId: $sourceId) {
+      _id
+      status
+    }
+  }`,
+  updateKnowledgeDraft: `mutation updateKnowledgeDraft($id: ID!, $sourceId: String!, $payload: String!) {
+    updateKnowledgeDraft(id: $id, sourceId: $sourceId, payload: $payload) {
+      _id
+      status
+      updatedAt
+    }
+  }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {
     getChannels(status: $status) {
