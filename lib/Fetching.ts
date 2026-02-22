@@ -431,6 +431,72 @@ export const queries = {
   removeBusinessMember: `mutation removeBusinessMember($userId: String!, $id: ID!) {
     removeBusinessMember(userId: $userId, id: $id)
   }`,
+  // Protocol drafts (De Charla a Protocolo)
+  listProtocolDrafts: `query listProtocolDrafts($businessId: String!, $status: String) {
+    listProtocolDrafts(businessId: $businessId, status: $status) {
+      _id
+      businessId
+      protocolId
+      version
+      category
+      title
+      content { summary steps raw_markdown }
+      retrieval_hints { semantic_intents tags }
+      tools { tool_name required_params }
+      metadata { priority author last_updated requires_human_handoff }
+      status
+      createdBy
+      conversationId
+      approvedAt
+      createdAt
+      updatedAt
+    }
+  }`,
+  getProtocolDraft: `query getProtocolDraft($id: ID!) {
+    getProtocolDraft(id: $id) {
+      _id
+      businessId
+      protocolId
+      version
+      category
+      title
+      content { summary steps raw_markdown }
+      retrieval_hints { semantic_intents tags }
+      tools { tool_name required_params }
+      metadata { priority author last_updated requires_human_handoff }
+      status
+      createdBy
+      conversationId
+      approvedAt
+      createdAt
+      updatedAt
+    }
+  }`,
+  sendProtocolNarrative: `mutation sendProtocolNarrative($businessId: String!, $content: String!) {
+    sendProtocolNarrative(businessId: $businessId, content: $content)
+  }`,
+  updateProtocolDraft: `mutation updateProtocolDraft($id: ID!, $input: UpdateProtocolDraftInput!) {
+    updateProtocolDraft(id: $id, input: $input) {
+      _id
+      protocolId
+      title
+      status
+      updatedAt
+    }
+  }`,
+  approveProtocolDraft: `mutation approveProtocolDraft($id: ID!, $sourceId: String) {
+    approveProtocolDraft(id: $id, sourceId: $sourceId) {
+      _id
+      status
+      approvedAt
+    }
+  }`,
+  rejectProtocolDraft: `mutation rejectProtocolDraft($id: ID!) {
+    rejectProtocolDraft(id: $id) {
+      _id
+      status
+    }
+  }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {
     getChannels(status: $status) {

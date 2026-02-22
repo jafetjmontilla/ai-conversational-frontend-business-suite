@@ -53,6 +53,10 @@ export interface TicketDeletedPayload {
   _id: string;
 }
 
+export interface ProtocolDraftUpdatedPayload {
+  businessId: string;
+}
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -71,6 +75,10 @@ interface WebSocketContextType {
   onTicketCreated: (callback: (payload: TicketCreatedPayload) => void) => void;
   onTicketUpdated: (callback: (payload: TicketUpdatedPayload) => void) => void;
   onTicketDeleted: (callback: (payload: TicketDeletedPayload) => void) => void;
+  // Knowledge: borradores de protocolos (sustituye polling listProtocolDrafts). Devuelve unsubscribe.
+  onProtocolDraftUpdated: (callback: (payload: ProtocolDraftUpdatedPayload) => void) => () => void;
+  subscribeToKnowledge: (businessId: string) => void;
+  unsubscribeFromKnowledge: (businessId: string) => void;
   // Se invoca al reconectar tras pérdida de conexión
   onReconnect: (callback: () => void) => void;
 }
@@ -124,6 +132,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onTicketUpdated: [],
     onTicketDeleted: []
   });
+
+  const protocolDraftCallbacksRef = useRef<((payload: ProtocolDraftUpdatedPayload) => void)[]>([]);
 
   const onReconnectCallbacksRef = useRef<(() => void)[]>([]);
   const hadConnectedOnceRef = useRef<boolean>(false);
@@ -276,6 +286,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     ticketCallbacksRef.current.onTicketDeleted.forEach(cb => cb(payload));
   }, []);
 
+  const handleProtocolDraftUpdated = useCallback((payload: ProtocolDraftUpdatedPayload) => {
+    protocolDraftCallbacksRef.current.forEach(cb => cb(payload));
+  }, []);
+
   // Detectar reconexión (isConnected pasa de false a true tras haber estado conectado)
   useEffect(() => {
     if (isConnected) {
@@ -327,6 +341,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     socket.on('ticket:updated', handleTicketUpdated);
     socket.on('ticket:deleted', handleTicketDeleted);
 
+    // Knowledge: borradores de protocolos
+    socket.on('protocolDraft:updated', handleProtocolDraftUpdated);
+
     // Cleanup
     return () => {
       socket.off('notification', handleNotification);
@@ -337,8 +354,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.off('ticket:created', handleTicketCreated);
       socket.off('ticket:updated', handleTicketUpdated);
       socket.off('ticket:deleted', handleTicketDeleted);
+      socket.off('protocolDraft:updated', handleProtocolDraftUpdated);
     };
-  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -389,6 +407,26 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     ticketCallbacksRef.current.onTicketDeleted.push(callback);
   }, []);
 
+  const onProtocolDraftUpdated = useCallback((callback: (payload: ProtocolDraftUpdatedPayload) => void) => {
+    protocolDraftCallbacksRef.current.push(callback);
+    return () => {
+      const i = protocolDraftCallbacksRef.current.indexOf(callback);
+      if (i !== -1) protocolDraftCallbacksRef.current.splice(i, 1);
+    };
+  }, []);
+
+  const subscribeToKnowledge = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('knowledge:subscribe', { businessId });
+    }
+  }, [socket]);
+
+  const unsubscribeFromKnowledge = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('knowledge:unsubscribe', { businessId });
+    }
+  }, [socket]);
+
   const onReconnect = useCallback((callback: () => void) => {
     onReconnectCallbacksRef.current.push(callback);
   }, []);
@@ -407,6 +445,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onTicketCreated,
     onTicketUpdated,
     onTicketDeleted,
+    onProtocolDraftUpdated,
+    subscribeToKnowledge,
+    unsubscribeFromKnowledge,
     onReconnect
   };
 

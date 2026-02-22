@@ -115,6 +115,46 @@ export const checkApiHealth = async (): Promise<boolean> => {
   }
 };
 
+/** Respuesta de auditoría Knowledge-RAG (config vs contenido indexado) */
+export type KnowledgeAuditResponse = {
+  businessId: string;
+  configSources: { sourceId: string; name?: string; roles: string[] }[];
+  documentsBySource: {
+    sourceId: string;
+    name: string;
+    documentCount: number;
+    documents: {
+      documentId?: string;
+      contentLength: number;
+      contentPreview: string;
+      metadata?: Record<string, unknown>;
+    }[];
+  }[];
+  summary: {
+    totalDocuments: number;
+    totalConfigSources: number;
+    sourcesWithDocuments: number;
+    sourcesWithoutDocuments: string[];
+    orphanSources: string[];
+  };
+};
+
+/** GET /api/knowledge/audit?businessId=xxx — requiere autenticación */
+export const fetchKnowledgeAudit = async (businessId: string): Promise<KnowledgeAuditResponse> => {
+  const token = await getIdToken();
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
+  const url = `${baseURL}/api/knowledge/audit?businessId=${encodeURIComponent(businessId)}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Error ${res.status} al obtener auditoría`);
+  }
+  return res.json();
+};
+
 // Función específica para enviar FormData usando fetch nativo
 // fetch maneja FormData de manera más directa que axios en el navegador
 const sendFormDataGraphQL = async (formData: FormData): Promise<AxiosResponse> => {
