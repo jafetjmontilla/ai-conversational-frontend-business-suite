@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { fetchKnowledgeAudit, type KnowledgeAuditResponse } from "@/lib/api";
 import { toast } from "sonner";
-import { useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusinessRole, useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import { Badge } from "@/components/ui/badge";
 import { FileSearch, AlertTriangle, Info } from "lucide-react";
@@ -38,7 +38,8 @@ type ProtocolDraft = {
 export default function ProtocolsKnowledgePage() {
   const params = useParams();
   const businessId = params?.businessId as string;
-  const { canEditCurrentBusiness } = useBusinessRole(businessId);
+  const { businessRole } = useBusinessRole(businessId);
+  const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const { onProtocolDraftUpdated, subscribeToKnowledge, unsubscribeFromKnowledge } = useWebSocketContext();
 
   const [generateMode, setGenerateMode] = useState(false);

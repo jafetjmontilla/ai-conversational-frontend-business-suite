@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
-import { useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusinessRole, useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import type { KnowledgeSourceId } from "@/lib/knowledgeTypes";
 
@@ -37,7 +37,8 @@ type Props = {
 export function KnowledgeGenericPage({ sourceId, title, description, narrativePlaceholder }: Props) {
   const params = useParams();
   const businessId = params?.businessId as string;
-  const { canEditCurrentBusiness } = useBusinessRole(businessId);
+  const { businessRole } = useBusinessRole(businessId);
+  const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const { onProtocolDraftUpdated, subscribeToKnowledge, unsubscribeFromKnowledge } = useWebSocketContext();
 
   const [generateMode, setGenerateMode] = useState(false);
