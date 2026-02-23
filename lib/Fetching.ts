@@ -376,6 +376,42 @@ export const queries = {
       businessId
       description
       active
+      config {
+        conversationTimeout
+        messageLimit
+        personality {
+          tone
+          language
+          customInstructions
+        }
+        knowledgeSources {
+          sourceId
+          name
+          roles
+        }
+        globalResponses {
+          greeting
+          goodbye
+          noData
+        }
+        tools {
+          name
+          description
+          params
+        }
+        dataProviders {
+          id
+          kind
+          baseUrl
+          endpoint
+          auth {
+            type
+            headerName
+            apiKeyMasked
+          }
+          tools
+        }
+      }
       createdAt
       updatedAt
     }

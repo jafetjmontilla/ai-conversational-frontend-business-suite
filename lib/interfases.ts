@@ -45,12 +45,77 @@ export interface User {
   uid?: string;
 }
 
+// Tipos de config del worker (conversaciones, RAG, herramientas)
+export interface KnowledgeSource {
+  sourceId: string;
+  name: string;
+  roles: string[];
+}
+
+export interface PersonalityConfig {
+  tone: string;
+  language: string;
+  customInstructions?: string;
+}
+
+export interface GlobalResponses {
+  greeting?: string;
+  goodbye?: string;
+  noData?: string;
+}
+
+/** Herramienta disponible para que el modelo decida cuándo llamar (ej. get_saldo). */
+export interface ToolConfig {
+  name: string;
+  description: string;
+  params?: string[];
+}
+
+/** Auth de un data provider (en lectura solo apiKeyMasked; en edición se envía apiKey para cambiar). */
+export interface DataProviderAuth {
+  type: "header" | "bearer";
+  headerName?: string;
+  apiKey?: string;
+  apiKeyMasked?: boolean;
+}
+
+/** Proveedor de datos: REST (baseUrl) o GraphQL (endpoint). */
+export interface DataProvider {
+  id: string;
+  kind: "rest" | "graphql";
+  baseUrl?: string | null;
+  endpoint?: string | null;
+  auth?: DataProviderAuth | null;
+  tools: string[];
+}
+
+export interface BusinessConfig {
+  conversationTimeout: number;
+  messageLimit?: number;
+  personality: PersonalityConfig;
+  knowledgeSources: KnowledgeSource[];
+  globalResponses: GlobalResponses;
+  tools?: ToolConfig[];
+  dataProviders?: DataProvider[];
+}
+
+export interface WhatsAppConfig {
+  phoneNumberId: string;
+  phoneNumber: string;
+  accessToken: string;
+  verifyToken: string;
+}
+
 export interface Business {
   _id: string;
   name: string;
   businessId: string;
   description?: string;
   active: boolean;
+  /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
+  config?: BusinessConfig;
+  whatsapp?: WhatsAppConfig;
+  callbackUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

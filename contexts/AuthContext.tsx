@@ -4,10 +4,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { AuthUser, AuthResponse, } from '../lib/firebase';
 
+import type { Business } from '@/lib/interfases';
+
 /** Respuesta de getMe: usuario + negocio poblado (si tiene business_id) + rol en ese negocio. */
 export interface MeData {
   user: { _id: string; name?: string; email?: string; phone?: string; role?: string; active?: boolean; emailVerified?: boolean; photoURL?: string; createdAt?: string; updatedAt?: string };
-  business: { _id: string; name: string; businessId: string; description?: string; active: boolean; createdAt?: string; updatedAt?: string } | null;
+  business: Business | null;
   businessRole: string | null;
 }
 

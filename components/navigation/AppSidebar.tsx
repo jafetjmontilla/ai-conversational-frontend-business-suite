@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen } from 'lucide-react';
+import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -65,6 +65,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
     if (!isSystemScope) {
       return [
         { href: `/${businessId}/edit`, label: 'Editar negocio', icon: Pencil, condition: canEditCurrentBusiness },
+        { href: `/${businessId}/config`, label: 'Configuración del negocio', icon: Settings, condition: canEditCurrentBusiness },
         { href: `/${businessId}/users`, label: 'Usuarios del negocio', icon: UserPlus, condition: canManageBusinessUsers },
         { href: `/${businessId}/knowledge`, label: 'Generar conocimiento', icon: BookOpen, condition: canEditCurrentBusiness },
       ].filter((item) => item.condition !== false);
