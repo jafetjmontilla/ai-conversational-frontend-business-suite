@@ -23,7 +23,6 @@ export default function BusinessesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const { canViewBusinesses, canCreateBusinesses, canEditBusinesses, canDeleteBusinesses } = useBusinessPermissions();
   const router = useRouter();
 
@@ -45,13 +44,11 @@ export default function BusinessesPage() {
   }, []);
 
   const handleAdd = () => {
-    setSelectedBusiness(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (b: Business) => {
-    setSelectedBusiness(b);
-    setIsModalOpen(true);
+    router.push(`/${b.businessId}/edit`);
   };
 
   const handleDelete = async (b: Business) => {
@@ -193,11 +190,7 @@ export default function BusinessesPage() {
       {isModalOpen && (
         <BusinessFormModal
           isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setSelectedBusiness(null);
-          }}
-          business={selectedBusiness}
+          onClose={() => setIsModalOpen(false)}
           onSuccess={fetchBusinesses}
         />
       )}

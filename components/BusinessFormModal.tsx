@@ -9,150 +9,309 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
-import { Business } from "@/lib/interfases";
+import type { BusinessAddress } from "@/lib/interfases";
+
+const addressSchema = z.object({
+  street: z.string().optional(),
+  number: z.string().optional(),
+  sector: z.string().optional(),
+  city: z.string().optional(),
+  stateProvince: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().optional(),
+});
+
+const invoiceNumberingSchema = z.object({
+  prefix: z.string().optional(),
+  rangeFrom: z.number().optional(),
+  rangeTo: z.number().optional(),
+});
 
 const formSchema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres"),
-  businessId: z.string().optional(),
   description: z.string().optional(),
-  active: z.boolean(),
-  mainUserName: z.string().optional(),
-  mainUserEmail: z.string().optional(),
-  mainUserPhone: z.string().optional(),
-}).superRefine((data, ctx) => {
-  const isCreate = !data.businessId;
-  if (!isCreate) return;
-  if (!(data.mainUserName ?? "").trim()) {
-    ctx.addIssue({ path: ["mainUserName"], message: "Nombre del usuario requerido", code: z.ZodIssueCode.custom });
-  }
-  if (!(data.mainUserEmail ?? "").trim()) {
-    ctx.addIssue({ path: ["mainUserEmail"], message: "Correo requerido", code: z.ZodIssueCode.custom });
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((data.mainUserEmail ?? "").trim())) {
-    ctx.addIssue({ path: ["mainUserEmail"], message: "Correo inválido", code: z.ZodIssueCode.custom });
-  }
-  if (!(data.mainUserPhone ?? "").trim()) {
-    ctx.addIssue({ path: ["mainUserPhone"], message: "Teléfono requerido", code: z.ZodIssueCode.custom });
-  } else if ((data.mainUserPhone ?? "").trim().length < 6) {
-    ctx.addIssue({ path: ["mainUserPhone"], message: "Mínimo 6 caracteres", code: z.ZodIssueCode.custom });
-  }
+  mainUserName: z.string().min(1, "Requerido"),
+  mainUserEmail: z.string().min(1, "Requerido").email("Correo inválido"),
+  mainUserPhone: z.string().min(6, "Mínimo 6 caracteres"),
+  legalName: z.string().optional(),
+  taxId: z.string().optional(),
+  slogan: z.string().optional(),
+  logoUrl: z.union([z.string().url("URL inválida"), z.literal("")]).optional(),
+  email: z.union([z.string().email("Correo inválido"), z.literal("")]).optional(),
+  phone: z.string().optional(),
+  address: addressSchema.optional(),
+  currency: z.string().optional(),
+  timezone: z.string().optional(),
+  language: z.string().optional(),
+  businessCategory: z.string().optional(),
+  defaultTaxPercent: z.number().optional(),
+  taxRegime: z.string().optional(),
+  digitalSignatureOrStamp: z.string().optional(),
+  invoiceNumbering: invoiceNumberingSchema.optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+function emptyAddress(): BusinessAddress {
+  return { street: "", number: "", sector: "", city: "", stateProvince: "", postalCode: "", country: "" };
+}
+
+function emptyInvoiceNumbering(): NonNullable<FormValues["invoiceNumbering"]> {
+  return { prefix: "", rangeFrom: undefined, rangeTo: undefined };
+}
+
+function toOptionalNumber(v: number | undefined): number | undefined {
+  return typeof v === "number" && !Number.isNaN(v) ? v : undefined;
+}
+
 interface BusinessFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  business?: Business | null;
   onSuccess: () => void;
 }
 
-export default function BusinessFormModal({ isOpen, onClose, business, onSuccess }: BusinessFormModalProps) {
-  const isEditing = !!business;
+export default function BusinessFormModal({ isOpen, onClose, onSuccess }: BusinessFormModalProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "", businessId: "", description: "", active: true,
-      mainUserName: "", mainUserEmail: "", mainUserPhone: "",
+      name: "",
+      description: "",
+      mainUserName: "",
+      mainUserEmail: "",
+      mainUserPhone: "",
+      legalName: "",
+      taxId: "",
+      slogan: "",
+      logoUrl: "",
+      email: "",
+      phone: "",
+      address: emptyAddress(),
+      currency: "",
+      timezone: "",
+      language: "",
+      businessCategory: "",
+      defaultTaxPercent: undefined,
+      taxRegime: "",
+      digitalSignatureOrStamp: "",
+      invoiceNumbering: emptyInvoiceNumbering(),
     },
   });
 
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        name: business?.name ?? "",
-        businessId: business?.businessId ?? "",
-        description: business?.description ?? "",
-        active: business?.active ?? true,
-        mainUserName: "", mainUserEmail: "", mainUserPhone: "",
+        name: "",
+        description: "",
+        mainUserName: "",
+        mainUserEmail: "",
+        mainUserPhone: "",
+        legalName: "",
+        taxId: "",
+        slogan: "",
+        logoUrl: "",
+        email: "",
+        phone: "",
+        address: emptyAddress(),
+        currency: "",
+        timezone: "",
+        language: "",
+        businessCategory: "",
+        defaultTaxPercent: undefined,
+        taxRegime: "",
+        digitalSignatureOrStamp: "",
+        invoiceNumbering: emptyInvoiceNumbering(),
       });
     }
-  }, [isOpen, business, form]);
+  }, [isOpen, form]);
 
   const onSubmit = async (values: FormValues) => {
     try {
-      if (isEditing && business?._id) {
-        await fetchApiV1({ query: queries.updateBusiness, type: "json", variables: { id: business._id, args: { name: values.name, businessId: values.businessId, description: values.description || undefined, active: values.active } } });
-        toast.success("Negocio actualizado");
-      } else {
-        const mainUserName = values.mainUserName?.trim() ?? "";
-        const mainUserEmail = values.mainUserEmail?.trim() ?? "";
-        const mainUserPhone = values.mainUserPhone?.trim() ?? "";
-        if (!mainUserName || !mainUserEmail || !mainUserPhone) {
-          toast.error("Nombre, correo y teléfono del usuario principal son obligatorios.");
-          return;
-        }
-        await fetchApiV1({
-          query: queries.createBusiness,
-          type: "json",
-          variables: {
-            args: {
-              name: values.name,
-              description: values.description || undefined,
-              mainUserName,
-              mainUserEmail,
-              mainUserPhone,
-            },
+      const address =
+        values.address && (values.address.street || values.address.city || values.address.country)
+          ? {
+              street: values.address.street || undefined,
+              number: values.address.number || undefined,
+              sector: values.address.sector || undefined,
+              city: values.address.city || undefined,
+              stateProvince: values.address.stateProvince || undefined,
+              postalCode: values.address.postalCode || undefined,
+              country: values.address.country || undefined,
+            }
+          : undefined;
+      const invoiceNumbering =
+        values.invoiceNumbering &&
+        (values.invoiceNumbering.prefix || values.invoiceNumbering.rangeFrom != null || values.invoiceNumbering.rangeTo != null)
+          ? {
+              prefix: values.invoiceNumbering.prefix || undefined,
+              rangeFrom: toOptionalNumber(values.invoiceNumbering.rangeFrom),
+              rangeTo: toOptionalNumber(values.invoiceNumbering.rangeTo),
+            }
+          : undefined;
+      await fetchApiV1({
+        query: queries.createBusiness,
+        type: "json",
+        variables: {
+          args: {
+            name: values.name,
+            description: values.description || undefined,
+            mainUserName: values.mainUserName.trim(),
+            mainUserEmail: values.mainUserEmail.trim().toLowerCase(),
+            mainUserPhone: values.mainUserPhone.trim(),
+            legalName: values.legalName || undefined,
+            taxId: values.taxId || undefined,
+            slogan: values.slogan || undefined,
+            logoUrl: values.logoUrl || undefined,
+            email: values.email || undefined,
+            phone: values.phone || undefined,
+            address: Object.keys(address || {}).length ? address : undefined,
+            currency: values.currency || undefined,
+            timezone: values.timezone || undefined,
+            language: values.language || undefined,
+            businessCategory: values.businessCategory || undefined,
+            defaultTaxPercent: toOptionalNumber(values.defaultTaxPercent),
+            taxRegime: values.taxRegime || undefined,
+            digitalSignatureOrStamp: values.digitalSignatureOrStamp || undefined,
+            invoiceNumbering: Object.keys(invoiceNumbering || {}).length ? invoiceNumbering : undefined,
           },
-        });
-        toast.success("Negocio creado. Se envió la invitación al usuario principal.");
-      }
+        },
+      });
+      toast.success("Negocio creado. Se envió la invitación al usuario principal.");
       onSuccess();
       onClose();
     } catch (e: any) {
-      toast.error(e?.message || (isEditing ? "Error al actualizar" : "Error al crear"));
+      toast.error(e?.message || "Error al crear negocio");
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar negocio" : "Nuevo negocio"}</DialogTitle>
+          <DialogTitle>Nuevo negocio</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Modifica los datos. El identificador (businessId) es la parte de la URL." : "El identificador se genera automáticamente. Indica los datos del usuario principal para enviarle la invitación."}
+            El identificador (businessId) se genera automáticamente. Completa identidad, contacto y el usuario principal que recibirá la invitación.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField control={form.control} name="name" render={({ field }) => (
-              <FormItem><FormLabel>Nombre del negocio</FormLabel><FormControl><Input placeholder="Mi Negocio" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            {isEditing && (
-              <FormField control={form.control} name="businessId" render={({ field }) => (
-                <FormItem><FormLabel>Identificador (businessId)</FormLabel><FormControl><Input placeholder="123456789012" {...field} disabled /></FormControl><FormMessage /></FormItem>
-              )} />
-            )}
-            <FormField control={form.control} name="description" render={({ field }) => (
-              <FormItem><FormLabel>Descripción (opcional)</FormLabel><FormControl><Textarea placeholder="Descripción" className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            {!isEditing && (
-              <>
-                <div className="text-sm font-medium text-muted-foreground border-t pt-3 mt-2">Usuario principal (recibirá la invitación)</div>
-                <FormField control={form.control} name="mainUserName" render={({ field }) => (
-                  <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Juan Pérez" {...field} /></FormControl><FormMessage /></FormItem>
+            <Tabs defaultValue="identity" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="identity" className="text-xs">Identidad</TabsTrigger>
+                <TabsTrigger value="contact" className="text-xs">Contacto</TabsTrigger>
+                <TabsTrigger value="regional" className="text-xs">Regional</TabsTrigger>
+                <TabsTrigger value="billing" className="text-xs">Facturación</TabsTrigger>
+                <TabsTrigger value="user" className="text-xs">Usuario</TabsTrigger>
+              </TabsList>
+              <TabsContent value="identity" className="space-y-3 pt-3">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel>Nombre comercial *</FormLabel><FormControl><Input placeholder="Nombre que ven los clientes" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="mainUserEmail" render={({ field }) => (
-                  <FormItem><FormLabel>Correo</FormLabel><FormControl><Input type="email" placeholder="juan@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormField control={form.control} name="legalName" render={({ field }) => (
+                  <FormItem><FormLabel>Razón social</FormLabel><FormControl><Input placeholder="Nombre legal" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="mainUserPhone" render={({ field }) => (
+                <FormField control={form.control} name="taxId" render={({ field }) => (
+                  <FormItem><FormLabel>ID fiscal</FormLabel><FormControl><Input placeholder="RIF, NIT, RFC, VAT" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="slogan" render={({ field }) => (
+                  <FormItem><FormLabel>Eslogan</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="logoUrl" render={({ field }) => (
+                  <FormItem><FormLabel>Logo (URL)</FormLabel><FormControl><Input placeholder="SVG o PNG" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="description" render={({ field }) => (
+                  <FormItem><FormLabel>Descripción</FormLabel><FormControl><Textarea placeholder="Descripción" className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </TabsContent>
+              <TabsContent value="contact" className="space-y-3 pt-3">
+                <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Correo principal</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="+58 412 1234567" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-              </>
-            )}
-            {isEditing && (
-              <FormField control={form.control} name="active" render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div><FormLabel className="text-base">Activo</FormLabel><p className="text-sm text-muted-foreground">Desactiva sin borrar.</p></div>
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                </FormItem>
-              )} />
-            )}
+                <FormField control={form.control} name="address.street" render={({ field }) => (
+                  <FormItem><FormLabel>Calle</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField control={form.control} name="address.number" render={({ field }) => (
+                    <FormItem><FormLabel>Número</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="address.sector" render={({ field }) => (
+                    <FormItem><FormLabel>Sector</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField control={form.control} name="address.city" render={({ field }) => (
+                    <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="address.stateProvince" render={({ field }) => (
+                    <FormItem><FormLabel>Estado / Provincia</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField control={form.control} name="address.postalCode" render={({ field }) => (
+                    <FormItem><FormLabel>Código postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="address.country" render={({ field }) => (
+                    <FormItem><FormLabel>País</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+              </TabsContent>
+              <TabsContent value="regional" className="space-y-3 pt-3">
+                <FormField control={form.control} name="currency" render={({ field }) => (
+                  <FormItem><FormLabel>Moneda</FormLabel><FormControl><Input placeholder="USD, VES, EUR" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="timezone" render={({ field }) => (
+                  <FormItem><FormLabel>Zona horaria</FormLabel><FormControl><Input placeholder="America/Caracas" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="language" render={({ field }) => (
+                  <FormItem><FormLabel>Idioma</FormLabel><FormControl><Input placeholder="es, en" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="businessCategory" render={({ field }) => (
+                  <FormItem><FormLabel>Tipo de negocio</FormLabel><FormControl><Input placeholder="Retail, Servicios, etc." {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </TabsContent>
+              <TabsContent value="billing" className="space-y-3 pt-3">
+                <FormField control={form.control} name="defaultTaxPercent" render={({ field }) => (
+                  <FormItem><FormLabel>% impuesto</FormLabel><FormControl><Input type="number" step={0.01} {...field} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="taxRegime" render={({ field }) => (
+                  <FormItem><FormLabel>Régimen contributivo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="digitalSignatureOrStamp" render={({ field }) => (
+                  <FormItem><FormLabel>Firma / Sello</FormLabel><FormControl><Input placeholder="URL o referencia" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="invoiceNumbering.prefix" render={({ field }) => (
+                  <FormItem><FormLabel>Prefijo factura</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-2 gap-2">
+                  <FormField control={form.control} name="invoiceNumbering.rangeFrom" render={({ field }) => (
+                    <FormItem><FormLabel>Rango desde</FormLabel><FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="invoiceNumbering.rangeTo" render={({ field }) => (
+                    <FormItem><FormLabel>Rango hasta</FormLabel><FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+              </TabsContent>
+              <TabsContent value="user" className="space-y-3 pt-3">
+                <p className="text-sm text-muted-foreground">Usuario principal que recibirá la invitación por correo/WhatsApp.</p>
+                <FormField control={form.control} name="mainUserName" render={({ field }) => (
+                  <FormItem><FormLabel>Nombre *</FormLabel><FormControl><Input placeholder="Juan Pérez" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="mainUserEmail" render={({ field }) => (
+                  <FormItem><FormLabel>Correo *</FormLabel><FormControl><Input type="email" placeholder="juan@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="mainUserPhone" render={({ field }) => (
+                  <FormItem><FormLabel>Teléfono *</FormLabel><FormControl><Input placeholder="+58 412 1234567" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </TabsContent>
+            </Tabs>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Guardando..." : isEditing ? "Guardar" : "Crear"}</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creando..." : "Crear negocio"}</Button>
             </DialogFooter>
           </form>
         </Form>

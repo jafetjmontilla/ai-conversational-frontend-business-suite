@@ -106,12 +106,45 @@ export interface WhatsAppConfig {
   verifyToken: string;
 }
 
+/** Dirección física o de facturación. */
+export interface BusinessAddress {
+  street?: string;
+  number?: string;
+  sector?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+/** Numeración de factura: prefijo y rangos autorizados. */
+export interface InvoiceNumbering {
+  prefix?: string;
+  rangeFrom?: number;
+  rangeTo?: number;
+}
+
 export interface Business {
   _id: string;
   name: string;
   businessId: string;
   description?: string;
   active: boolean;
+  legalName?: string;
+  taxId?: string;
+  slogan?: string;
+  logoUrl?: string;
+  email?: string;
+  phone?: string;
+  address?: BusinessAddress;
+  currency?: string;
+  timezone?: string;
+  language?: string;
+  businessCategory?: string;
+  defaultTaxPercent?: number;
+  taxRegime?: string;
+  digitalSignatureOrStamp?: string;
+  invoiceNumbering?: InvoiceNumbering;
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
   whatsapp?: WhatsAppConfig;

@@ -365,6 +365,33 @@ export const queries = {
       businessId
       description
       active
+      legalName
+      taxId
+      slogan
+      logoUrl
+      email
+      phone
+      address {
+        street
+        number
+        sector
+        city
+        stateProvince
+        postalCode
+        country
+      }
+      currency
+      timezone
+      language
+      businessCategory
+      defaultTaxPercent
+      taxRegime
+      digitalSignatureOrStamp
+      invoiceNumbering {
+        prefix
+        rangeFrom
+        rangeTo
+      }
       createdAt
       updatedAt
     }
@@ -376,6 +403,33 @@ export const queries = {
       businessId
       description
       active
+      legalName
+      taxId
+      slogan
+      logoUrl
+      email
+      phone
+      address {
+        street
+        number
+        sector
+        city
+        stateProvince
+        postalCode
+        country
+      }
+      currency
+      timezone
+      language
+      businessCategory
+      defaultTaxPercent
+      taxRegime
+      digitalSignatureOrStamp
+      invoiceNumbering {
+        prefix
+        rangeFrom
+        rangeTo
+      }
       config {
         conversationTimeout
         messageLimit
@@ -441,6 +495,21 @@ export const queries = {
       businessId
       description
       active
+      legalName
+      taxId
+      slogan
+      logoUrl
+      email
+      phone
+      address { street number sector city stateProvince postalCode country }
+      currency
+      timezone
+      language
+      businessCategory
+      defaultTaxPercent
+      taxRegime
+      digitalSignatureOrStamp
+      invoiceNumbering { prefix rangeFrom rangeTo }
       createdAt
       updatedAt
     }
