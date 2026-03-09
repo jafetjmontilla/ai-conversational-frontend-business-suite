@@ -466,6 +466,19 @@ export const queries = {
           tools
         }
       }
+      whatsapps {
+        metaCloudApiNumbers {
+          phoneNumberId
+          phoneNumber
+          accessToken
+          verifyToken
+        }
+        baileysApiNumbers {
+          sessionId
+          phoneNumber
+        }
+      }
+      callbackUrl
       createdAt
       updatedAt
     }
@@ -510,9 +523,42 @@ export const queries = {
       taxRegime
       digitalSignatureOrStamp
       invoiceNumbering { prefix rangeFrom rangeTo }
+      whatsapps {
+        metaCloudApiNumbers { phoneNumberId phoneNumber accessToken verifyToken }
+        baileysApiNumbers { sessionId phoneNumber }
+      }
+      callbackUrl
       createdAt
       updatedAt
     }
+  }`,
+  getBaileysSessionStatus: `query getBaileysSessionStatus($sessionId: String!) {
+    getBaileysSessionStatus(sessionId: $sessionId) {
+      id
+      development
+      userId
+      isConnected
+      qrCode
+      phoneNumber
+      connectionTime
+      lastActivity
+    }
+  }`,
+  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String) {
+    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber) {
+      success
+      qrCode
+      error
+      session {
+        id
+        isConnected
+        qrCode
+        phoneNumber
+      }
+    }
+  }`,
+  removeBaileysNumber: `mutation removeBaileysNumber($id: ID!, $sessionId: String!, $disconnect: Boolean) {
+    removeBaileysNumber(id: $id, sessionId: $sessionId, disconnect: $disconnect)
   }`,
   deleteBusiness: `mutation deleteBusiness($id: ID!) {
     deleteBusiness(id: $id)

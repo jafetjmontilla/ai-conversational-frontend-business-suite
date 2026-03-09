@@ -99,6 +99,24 @@ export interface BusinessConfig {
   dataProviders?: DataProvider[];
 }
 
+export interface MetaCloudApiNumber {
+  phoneNumberId: string;
+  phoneNumber: string;
+  accessToken: string;
+  verifyToken: string;
+}
+
+export interface BaileysApiNumber {
+  sessionId: string;
+  phoneNumber?: string | null;
+}
+
+export interface WhatsappsConfig {
+  metaCloudApiNumbers: MetaCloudApiNumber[];
+  baileysApiNumbers: BaileysApiNumber[];
+}
+
+/** @deprecated Usar WhatsappsConfig.metaCloudApiNumbers */
 export interface WhatsAppConfig {
   phoneNumberId: string;
   phoneNumber: string;
@@ -147,7 +165,7 @@ export interface Business {
   invoiceNumbering?: InvoiceNumbering;
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
-  whatsapp?: WhatsAppConfig;
+  whatsapps?: WhatsappsConfig;
   callbackUrl?: string;
   createdAt?: string;
   updatedAt?: string;
