@@ -490,6 +490,16 @@ export const queries = {
       role
     }
   }`,
+  getMyBusinesses: `query getMyBusinesses {
+    getMyBusinesses {
+      _id
+      name
+      businessId
+    }
+  }`,
+  setCurrentBusiness: `mutation setCurrentBusiness($id: ID!) {
+    setCurrentBusiness(id: $id)
+  }`,
   createBusiness: `mutation createBusiness($args: CreateBusinessInput!) {
     createBusiness(args: $args) {
       _id

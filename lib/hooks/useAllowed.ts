@@ -284,3 +284,33 @@ export function useBusinessRole(slugFromUrl: string | null) {
 
   return { businessRole, loading };
 }
+
+export interface MyBusinessItem {
+  _id: string;
+  name: string;
+  businessId: string;
+}
+
+/** Hook: lista de negocios del usuario (para selector en header). */
+export function useMyBusinesses() {
+  const [businesses, setBusinesses] = useState<MyBusinessItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const list = await fetchApiV1({ query: queries.getMyBusinesses, type: 'json' }) as MyBusinessItem[] | undefined;
+        if (!cancelled) setBusinesses(Array.isArray(list) ? list : []);
+      } catch {
+        if (!cancelled) setBusinesses([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { businesses, loading };
+}

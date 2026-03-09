@@ -9,14 +9,25 @@ import { useAuth } from "@/contexts/AuthContext"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Shield } from "lucide-react"
+import { Shield, Building2 } from "lucide-react"
 import packageJson from "@/package.json"
+import { getBusinessIdFromPathname, useMyBusinesses } from "@/lib/hooks/useAllowed"
+import { fetchApiV1, queries } from "@/lib/Fetching"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const roleLabels: Record<string, string> = {
   system_admin: 'Administrador del sistema',
   system_operator: 'Operador del sistema',
   system_viewer: 'Solo lectura (sistema)',
 };
+
+const SYSTEM_VALUE = "__system__"
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
   const [slugs, setSlugs] = useState<{ name: string, href: string }[]>([])
@@ -25,6 +36,9 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
   const { theme } = useThemeContext();
   const { authUser } = useAuth();
   const router = useRouter();
+  const { businesses, loading: loadingBusinesses } = useMyBusinesses();
+  const currentBusinessId = getBusinessIdFromPathname(pathname || "");
+  const selectValue = currentBusinessId || SYSTEM_VALUE;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -46,6 +60,40 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             <div className="flex-1 text-xs" >
               {`ERP V-${packageJson.version}`}
             </div>
+            {authUser && (businesses.length > 0 || authUser.customClaims?.role) && (
+              <Select
+                value={selectValue}
+                onValueChange={async (value) => {
+                  if (value === SYSTEM_VALUE) {
+                    router.push("/dashboard");
+                  } else {
+                    const business = businesses.find((b) => b.businessId === value);
+                    if (business?._id) {
+                      try {
+                        await fetchApiV1({ query: queries.setCurrentBusiness, type: "json", variables: { id: business._id } });
+                      } catch {
+                        // ignorar error; la navegación sigue siendo válida
+                      }
+                    }
+                    router.push(`/${value}`);
+                  }
+                }}
+                disabled={loadingBusinesses}
+              >
+                <SelectTrigger className="w-[180px] h-8 text-xs border-border/50 bg-muted/30">
+                  <Building2 className="h-3.5 w-3.5 opacity-70 mr-1.5 shrink-0" />
+                  <SelectValue placeholder="Negocio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SYSTEM_VALUE}>Sistema / Dashboard</SelectItem>
+                  {businesses.map((b) => (
+                    <SelectItem key={b._id} value={b.businessId}>
+                      {b.name || b.businessId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {authUser &&
               <div className="flex items-center gap-3 md:translate-y-[2px]">
                 <div onClick={() => router.push("/profile")} className="flex items-center gap-2 cursor-pointer">
