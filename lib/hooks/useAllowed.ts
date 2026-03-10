@@ -74,7 +74,16 @@ const DEFAULT_PERMISSIONS: PermissionConfig = {
       role: ['system_admin', 'system_operator'],
       businessRole: ['business_admin']
     }
-  }
+  },
+  // Ver negocio (cualquier miembro del negocio)
+  'negocio:ver': {
+    action: 'ver',
+    resource: 'negocio',
+    conditions: {
+      role: ['system_admin', 'system_operator', 'system_viewer'],
+      businessRole: ['business_admin', 'business_editor', 'business_viewer']
+    }
+  },
 };
 
 export type UseAllowedOptions = {
@@ -100,14 +109,14 @@ export const useAllowed = (options: UseAllowedOptions = {}) => {
         const userRole: Role = (authUser.customClaims?.role as Role) || 'system_viewer';
         if (!conditions.role.includes(userRole)) {
           // Para permisos de negocio (editar, usuarios), si no tiene rol sistema permitido, comprobar rol en negocio
-          if ((permission === 'negocio:editar' || permission === 'negocio:usuarios') && conditions.businessRole && businessRole) {
+          if ((permission === 'negocio:editar' || permission === 'negocio:usuarios' || permission === 'negocio:ver') && conditions.businessRole && businessRole) {
             return conditions.businessRole.includes(businessRole);
           }
           return false;
         }
       }
 
-      if ((permission === 'negocio:editar' || permission === 'negocio:usuarios') && conditions?.businessRole && businessRole) {
+      if ((permission === 'negocio:editar' || permission === 'negocio:usuarios' || permission === 'negocio:ver') && conditions?.businessRole && businessRole) {
         return conditions.businessRole.includes(businessRole);
       }
 
@@ -203,6 +212,7 @@ export const useBusinessPermissions = (businessRole: BusinessRole | null = null)
     canEditBusinesses: () => can('negocios:editar'),
     canDeleteBusinesses: () => can('negocios:eliminar'),
     canEditCurrentBusiness: () => can('negocio:editar'),
+    canViewCurrentBusiness: () => can('negocio:ver'),
     canManageBusinessUsers: () => can('negocio:usuarios'),
     canManageSystem: () => hasAnyRole(['system_admin', 'system_operator'])
   };

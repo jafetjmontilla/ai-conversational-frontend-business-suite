@@ -616,8 +616,8 @@ export const queries = {
     removeBusinessMember(userId: $userId, id: $id)
   }`,
   // Facturación (id = business _id)
-  getInvoices: `query getInvoices($id: ID!, $skip: Int, $limit: Int, $sort: sortCriteriaInvoice) {
-    getInvoices(id: $id, skip: $skip, limit: $limit, sort: $sort) {
+  getInvoices: `query getInvoices($id: ID!, $filters: InvoiceFiltersInput, $skip: Int, $limit: Int, $sort: sortCriteriaInvoice) {
+    getInvoices(id: $id, filters: $filters, skip: $skip, limit: $limit, sort: $sort) {
       total
       results {
         _id
@@ -681,6 +681,21 @@ export const queries = {
   }`,
   deleteInvoice: `mutation deleteInvoice($_id: ID!, $id: ID!) {
     deleteInvoice(_id: $_id, id: $id)
+  }`,
+  cancelInvoice: `mutation cancelInvoice($_id: ID!, $id: ID!) {
+    cancelInvoice(_id: $_id, id: $id) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items { _id id quantity description unitPrice total inventoryId invoiceId }
+      totalBs
+      totalUsd
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
   }`,
   processPayment: `mutation processPayment($id: ID!, $args: ProcessPaymentInput!) {
     processPayment(id: $id, args: $args) {

@@ -8,61 +8,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { InputSearch } from "@/components/InputSearch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Payment, PaymentResponse } from "@/lib/interfases";
+import type { Payment, PaymentResponse } from "@/lib/interfases";
 import { toast } from "sonner";
 import { CreditCard, RefreshCw } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusiness } from "@/lib/hooks/useBusiness";
 
 export default function ReportPaymentsPage() {
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
-  const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
+  const { canViewCurrentBusiness } = useBusinessPermissions(businessRole);
 
-  const [business, setBusiness] = useState<Business | null>(null);
+  const { businessIdDoc } = useBusiness(businessId);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [dateFilter, setDateFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  const businessIdDoc = business?._id;
-
-  useEffect(() => {
-    if (!businessId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
-      } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const fetchPayments = useCallback(() => {
     if (!businessIdDoc) return;
     setLoading(true);
     const filters: any = {};
-    if (dateFilter) filters.dateFilter = dateFilter;
+    if (dateFilter && dateFilter !== "custom") {
+      filters.dateFilter = dateFilter;
+      filters.offsetMinutes = new Date().getTimezoneOffset();
+    }
+    if (dateFilter === "custom") {
+      if (dateFrom) filters.dateFrom = dateFrom;
+      if (dateTo) filters.dateTo = dateTo;
+    }
     if (statusFilter) filters.status = statusFilter;
     if (searchQuery.trim()) filters.search = searchQuery.trim();
     fetchApiV1({
@@ -80,7 +60,7 @@ export default function ReportPaymentsPage() {
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [businessIdDoc, dateFilter, statusFilter, searchQuery]);
+  }, [businessIdDoc, dateFilter, statusFilter, searchQuery, dateFrom, dateTo]);
 
   useEffect(() => {
     if (!businessIdDoc) return;
@@ -94,7 +74,7 @@ export default function ReportPaymentsPage() {
   }, 0);
 
   if (!businessId) return null;
-  if (!canEditCurrentBusiness?.()) {
+  if (!canViewCurrentBusiness?.()) {
     return (
       <div className="p-4 md:p-6 lg:p-8">
         <Card>
@@ -131,8 +111,25 @@ export default function ReportPaymentsPage() {
                 <SelectItem value="week">Esta semana</SelectItem>
                 <SelectItem value="month">Este mes</SelectItem>
                 <SelectItem value="year">Este año</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
               </SelectContent>
             </Select>
+            {dateFilter === "custom" && (
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="border rounded px-2 py-1 text-sm bg-background"
+                />
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="border rounded px-2 py-1 text-sm bg-background"
+                />
+              </div>
+            )}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Estado" />

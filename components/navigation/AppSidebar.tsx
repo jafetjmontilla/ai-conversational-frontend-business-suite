@@ -44,6 +44,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   const canViewBusinesses = can('negocios:ver');
   const canViewUsers = can('usuarios:ver');
   const canEditCurrentBusiness = can('negocio:editar');
+  const canViewCurrentBusiness = can('negocio:ver');
   const canManageBusinessUsers = can('negocio:usuarios');
 
   const handleNavigation = async (href: string, label: string) => {
@@ -69,10 +70,10 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         { href: `/${businessId}/channels`, label: 'Canales', icon: MessageSquare, condition: canEditCurrentBusiness },
         { href: `/${businessId}/users`, label: 'Usuarios del negocio', icon: UserPlus, condition: canManageBusinessUsers },
         { href: `/${businessId}/knowledge`, label: 'Generar conocimiento', icon: BookOpen, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/invoice`, label: 'Facturación', icon: FileText, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/inventory`, label: 'Inventario', icon: Package, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/reportPayments`, label: 'Reporte de pagos', icon: CreditCard, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/reportInvoices`, label: 'Reporte de facturas', icon: FileBarChart, condition: canEditCurrentBusiness },
+        { href: `/${businessId}/invoice`, label: 'Facturación', icon: FileText, condition: canViewCurrentBusiness },
+        { href: `/${businessId}/inventory`, label: 'Inventario', icon: Package, condition: canViewCurrentBusiness },
+        { href: `/${businessId}/reportPayments`, label: 'Reporte de pagos', icon: CreditCard, condition: canViewCurrentBusiness },
+        { href: `/${businessId}/reportInvoices`, label: 'Reporte de facturas', icon: FileBarChart, condition: canViewCurrentBusiness },
       ].filter((item) => item.condition !== false);
     }
     return [
@@ -94,7 +95,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
       ...buildPersonalItems().map((item) => ({ name: item.label, href: item.href })),
       ...buildAccountItems().map((item) => ({ name: item.label, href: item.href })),
     ]);
-  }, [businessId, canEditCurrentBusiness, canManageBusinessUsers, canViewBusinesses, canViewUsers]);
+  }, [businessId, canEditCurrentBusiness, canViewCurrentBusiness, canManageBusinessUsers, canViewBusinesses, canViewUsers]);
 
   const personalItems = buildPersonalItems();
   const accountItems = buildAccountItems();

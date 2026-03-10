@@ -4,60 +4,36 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Invoice, InvoiceResponse } from "@/lib/interfases";
+import type { Invoice, InvoiceResponse } from "@/lib/interfases";
 import { toast } from "sonner";
-import { Plus, Receipt, CreditCard, Trash2 } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import { PaymentDialog } from "@/components/invoice/PaymentDialog";
+import { useBusiness } from "@/lib/hooks/useBusiness";
+import { InvoiceCard, formatNumber } from "@/components/invoice/InvoiceCard";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function InvoicePage() {
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
-  const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
+  const { canEditCurrentBusiness, canViewCurrentBusiness } = useBusinessPermissions(businessRole);
 
-  const [business, setBusiness] = useState<Business | null>(null);
+  const { business, businessIdDoc } = useBusiness(businessId);
+  const { state } = useSidebar();
+  const isMobile = useIsMobile();
+
+  const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
-  const businessIdDoc = business?._id;
   const exchangeRate =
     business?.billingExchangeRateSource === "custom" && business?.billingCustomExchangeRate
       ? business.billingCustomExchangeRate
       : 1;
-
-  useEffect(() => {
-    if (!businessId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
-      } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId]);
 
   const fetchInvoices = () => {
     if (!businessIdDoc) return;
@@ -68,7 +44,7 @@ export default function InvoicePage() {
       variables: {
         id: businessIdDoc,
         skip: 0,
-        limit: 100,
+        limit: 50,
         sort: { createdAt: -1 },
       },
     })
@@ -84,61 +60,39 @@ export default function InvoicePage() {
     fetchInvoices();
   }, [businessIdDoc]);
 
-  const handleNewInvoice = async () => {
-    if (!businessIdDoc) return;
-    try {
-      await fetchApiV1({
-        query: queries.createInvoice,
-        type: "json",
-        variables: {
-          id: businessIdDoc,
-          args: {
-            clientName: "",
-            clientId: "",
-            clientPhone: "",
-            items: [
-              {
-                id: "item-0",
-                quantity: 0,
-                description: "",
-                unitPrice: 0,
-                total: 0,
-                inventoryId: "",
-              },
-            ],
-          },
-        },
-      });
-      toast.success("Factura creada");
-      fetchInvoices();
-    } catch (e: any) {
-      toast.error(e?.message || "Error al crear factura");
-    }
+  const addNewInvoice = () => {
+    const newInvoice: Invoice = {
+      _id: `local-${Date.now()}`,
+      clientName: "",
+      clientId: "",
+      clientPhone: "",
+      items: [],
+      totalBs: 0,
+      totalUsd: 0,
+      status: "draft",
+      createdBy: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalInvoices(prev => [...prev, newInvoice]);
   };
 
-  const handleDelete = async (inv: Invoice) => {
-    if (!confirm("¿Eliminar esta factura?")) return;
-    if (!businessIdDoc) return;
-    try {
-      await fetchApiV1({
-        query: queries.deleteInvoice,
-        type: "json",
-        variables: { id: businessIdDoc, _id: inv._id },
-      });
-      toast.success("Factura eliminada");
-      fetchInvoices();
-    } catch (e: any) {
-      toast.error(e?.message || "Error al eliminar");
-    }
+  const updateLocalInvoice = (id: string, updatedInvoice: Partial<Invoice>) => {
+    setLocalInvoices(prev =>
+      prev.map(invoice =>
+        invoice._id === id ? { ...invoice, ...updatedInvoice } : invoice
+      )
+    );
   };
 
-  const openPayment = (inv: Invoice) => {
-    setPaymentInvoice(inv);
-    setPaymentDialogOpen(true);
+  const removeInvoice = (id: string) => {
+    if (window.confirm("¿Estás seguro de que quieres cerrar esta factura sin guardar?")) {
+      setLocalInvoices(prev => prev.filter(invoice => invoice._id !== id));
+    }
   };
 
   if (!businessId) return null;
-  if (!canEditCurrentBusiness?.()) {
+  if (!canViewCurrentBusiness?.()) {
     return (
       <div className="p-4 md:p-6 lg:p-8">
         <Card>
@@ -154,113 +108,102 @@ export default function InvoicePage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full">
-      <Card className="flex flex-col w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Facturación
-          </CardTitle>
-          <CardDescription>Crear y gestionar facturas del negocio</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0 md:p-2 flex-1">
-          <div className="flex justify-end p-2">
-            <Button onClick={handleNewInvoice} disabled={!businessIdDoc || loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva factura
-            </Button>
+    <div className="p-4 md:p-6 lg:p-8 w-full h-full">
+      <Card className="flex flex-col w-full h-full overflow-hidden">
+        <CardHeader className="h-[72px]">
+          <div className="flex flex-col">
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Facturación
+            </CardTitle>
+            <CardDescription>Crear facturas</CardDescription>
           </div>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </CardHeader>
+        <CardContent className="p-2 md:px-6 w-full flex-1 flex flex-col">
+          <div className="flex items-center justify-between gap-4 pb-2">
+            <div className="flex items-center gap-2 flex-1" />
+            {canEditCurrentBusiness?.() && (
+              <Button onClick={addNewInvoice} className="flex items-center gap-2" disabled={!businessIdDoc}>
+                <Plus className="h-4 w-4" />
+                Nueva Factura
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="w-full h-[410px] flex relative flex-shrink-0">
+              {localInvoices.length > 0 ? (
+                <Carousel
+                  opts={{
+                    align: (isMobile ? "center" : "start") as "center" | "start",
+                    skipSnaps: false,
+                    dragFree: false,
+                  }}
+                  className="w-full max-w-full flex-1 flex overflow-hidden absolute"
+                >
+                  <CarouselContent className="w-full h-full -ml-0 md:-ml-4">
+                    {localInvoices.map((invoice) => (
+                      <CarouselItem key={invoice._id} className="pl-0 md:pl-4 basis-full md:basis-[340px] h-full">
+                        <InvoiceCard
+                          setLocalInvoices={setLocalInvoices}
+                          invoice={invoice}
+                          onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
+                          onRemove={() => removeInvoice(invoice._id)}
+                          exchangeRate={exchangeRate}
+                          businessId={businessIdDoc!}
+                          onPaymentSuccess={fetchInvoices}
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className={`${state === "collapsed" ? "md:translate-x-[90px]" : "md:translate-x-[266px]"} fixed -left-1.5 md:left-0 md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md`} />
+                  <CarouselNext className="fixed -right-1.5 md:right-0 md:-translate-x-[10px] md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
+                </Carousel>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-500 w-full">
+                  <div className="text-center">
+                    <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg mb-2">No hay facturas en edición</p>
+                    <p className="text-sm text-gray-400">Haz clic en &quot;Nueva Factura&quot; para crear una nueva factura</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha / Hora</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Total Bs</TableHead>
-                  <TableHead>Total USD</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No hay facturas. Crea una con &quot;Nueva factura&quot;.
-                    </TableCell>
-                  </TableRow>
+
+            {/* Lista de facturas del día */}
+            <div className="flex justify-end items-end w-full mt-2 md:mt-0">
+              <div className="flex flex-col w-full md:w-[320px] md:max-h-[125px] overflow-y-auto">
+                {loading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                  </div>
                 ) : (
-                  invoices.map((inv) => (
-                    <TableRow key={inv._id}>
-                      <TableCell>
-                        {inv.createdAt
-                          ? new Date(inv.createdAt).toLocaleString("es", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })
-                          : "—"}
-                      </TableCell>
-                      <TableCell>{inv.clientName || inv.clientId || "—"}</TableCell>
-                      <TableCell>{inv.totalBs?.toFixed(2) ?? "0.00"}</TableCell>
-                      <TableCell>{inv.totalUsd?.toFixed(2) ?? "0.00"}</TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            inv.status === "paid"
-                              ? "text-green-600"
-                              : inv.status === "cancelled"
-                                ? "text-red-600"
-                                : "text-muted-foreground"
-                          }
-                        >
-                          {inv.status === "paid" ? "Pagada" : inv.status === "cancelled" ? "Anulada" : "Borrador"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {inv.status === "draft" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="mr-2"
-                              onClick={() => openPayment(inv)}
-                            >
-                              <CreditCard className="h-4 w-4 mr-1" />
-                              Pagar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => handleDelete(inv)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                  invoices.map((invoice, index) => (
+                    <li
+                      key={invoice._id}
+                      className="w-full flex items-center text-xs text-primary hover:bg-accent flex-shrink-0 cursor-pointer"
+                      onClick={() => router.push(`/${businessId}/invoice/${invoice._id}`)}
+                    >
+                      <span className={`flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
+                        {new Date(invoice.createdAt).toLocaleString("es-VE", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                      </span>
+                      <span className={`flex items-center flex-1 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
+                        {formatNumber(invoice.totalBs)}
+                      </span>
+                      <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
+                        {formatNumber(invoice.totalUsd)}
+                      </span>
+                      <span className={`flex items-center w-16 h-6 px-2 justify-center border-r border-b border-primary text-[10px] ${index === 0 ? "border-t" : ""} ${invoice.status === "paid" ? "text-green-600" : invoice.status === "cancelled" ? "text-red-600" : "text-muted-foreground"}`}>
+                        {invoice.status === "paid" ? "Pagada" : invoice.status === "cancelled" ? "Anulada" : "Borrador"}
+                      </span>
+                    </li>
                   ))
                 )}
-              </TableBody>
-            </Table>
-          )}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
-      {businessIdDoc && (
-        <PaymentDialog
-          isOpen={paymentDialogOpen}
-          onClose={() => (setPaymentDialogOpen(false), setPaymentInvoice(null))}
-          invoice={paymentInvoice}
-          businessId={businessIdDoc}
-          exchangeRate={exchangeRate}
-          onSuccess={fetchInvoices}
-        />
-      )}
     </div>
   );
 }
