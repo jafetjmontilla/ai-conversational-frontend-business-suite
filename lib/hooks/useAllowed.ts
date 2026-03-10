@@ -99,15 +99,15 @@ export const useAllowed = (options: UseAllowedOptions = {}) => {
       if (conditions?.role) {
         const userRole: Role = (authUser.customClaims?.role as Role) || 'system_viewer';
         if (!conditions.role.includes(userRole)) {
-          // Para permiso negocio:editar, si no tiene rol sistema permitido, comprobar rol en negocio
-          if (permission === 'negocio:editar' && conditions.businessRole && businessRole) {
+          // Para permisos de negocio (editar, usuarios), si no tiene rol sistema permitido, comprobar rol en negocio
+          if ((permission === 'negocio:editar' || permission === 'negocio:usuarios') && conditions.businessRole && businessRole) {
             return conditions.businessRole.includes(businessRole);
           }
           return false;
         }
       }
 
-      if (permission === 'negocio:editar' && conditions?.businessRole && businessRole) {
+      if ((permission === 'negocio:editar' || permission === 'negocio:usuarios') && conditions?.businessRole && businessRole) {
         return conditions.businessRole.includes(businessRole);
       }
 

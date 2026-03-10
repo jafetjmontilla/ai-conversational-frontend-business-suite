@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,6 +54,10 @@ const formSchema = z.object({
   taxRegime: z.string().optional(),
   digitalSignatureOrStamp: z.string().optional(),
   invoiceNumbering: invoiceNumberingSchema.optional(),
+  billingBaseCurrency: z.union([z.enum(["USD", "EUR", "VES"]), z.literal("")]).optional(),
+  billingDisplayCurrency: z.union([z.enum(["USD", "EUR", "VES"]), z.literal("")]).optional(),
+  billingExchangeRateSource: z.union([z.enum(["bcv_dolar", "bcv_euro", "binance", "custom"]), z.literal("")]).optional(),
+  billingCustomExchangeRate: z.number().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -90,6 +95,10 @@ function businessToFormValues(b: Business | null): FormValues {
       taxRegime: "",
       digitalSignatureOrStamp: "",
       invoiceNumbering: emptyInvoiceNumbering(),
+      billingBaseCurrency: undefined,
+      billingDisplayCurrency: undefined,
+      billingExchangeRateSource: undefined,
+      billingCustomExchangeRate: undefined,
     };
   }
   return {
@@ -115,6 +124,10 @@ function businessToFormValues(b: Business | null): FormValues {
     invoiceNumbering: b.invoiceNumbering
       ? { ...emptyInvoiceNumbering(), ...b.invoiceNumbering }
       : emptyInvoiceNumbering(),
+    billingBaseCurrency: (b.billingBaseCurrency as FormValues["billingBaseCurrency"]) ?? undefined,
+    billingDisplayCurrency: (b.billingDisplayCurrency as FormValues["billingDisplayCurrency"]) ?? undefined,
+    billingExchangeRateSource: (b.billingExchangeRateSource as FormValues["billingExchangeRateSource"]) ?? undefined,
+    billingCustomExchangeRate: b.billingCustomExchangeRate ?? undefined,
   };
 }
 
@@ -225,11 +238,28 @@ export default function BusinessEditPage() {
             taxRegime: values.taxRegime || undefined,
             digitalSignatureOrStamp: values.digitalSignatureOrStamp || undefined,
             invoiceNumbering: Object.keys(invoiceNumbering || {}).length ? invoiceNumbering : undefined,
+            billingBaseCurrency: values.billingBaseCurrency || undefined,
+            billingDisplayCurrency: values.billingDisplayCurrency || undefined,
+            billingExchangeRateSource: values.billingExchangeRateSource || undefined,
+            billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? toOptionalNumber(values.billingCustomExchangeRate) : undefined,
           },
         },
       });
       toast.success("Cambios guardados");
-      setBusiness((prev) => (prev ? { ...prev, ...values, address, invoiceNumbering } : null));
+      setBusiness((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...values,
+              address,
+              invoiceNumbering,
+              billingBaseCurrency: values.billingBaseCurrency ?? undefined,
+              billingDisplayCurrency: values.billingDisplayCurrency ?? undefined,
+              billingExchangeRateSource: values.billingExchangeRateSource ?? undefined,
+              billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? values.billingCustomExchangeRate ?? undefined : undefined,
+            }
+          : null
+      );
     } catch (e: any) {
       toast.error(e?.message || "Error al guardar");
     } finally {
@@ -360,7 +390,93 @@ export default function BusinessEditPage() {
                   )} />
                 </TabsContent>
                 <TabsContent value="billing" className="space-y-4 pt-4">
-                  <p className="text-sm text-muted-foreground">Impuestos, régimen contributivo y numeración de factura.</p>
+                  <p className="text-sm text-muted-foreground">Monedas, tasa de cambio, impuestos y numeración de factura.</p>
+                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                    <p className="text-sm font-medium">Monedas y tasa de cambio</p>
+                    <FormField
+                      control={form.control}
+                      name="billingBaseCurrency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Moneda base para los precios</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="VES">VES</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingDisplayCurrency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mostrar precios en otra moneda</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="VES">VES</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingExchangeRateSource"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tasa para calcular el cambio</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Seleccionar fuente" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="bcv_dolar">BCV Dólar</SelectItem>
+                              <SelectItem value="bcv_euro">BCV Euro</SelectItem>
+                              <SelectItem value="binance">Binance</SelectItem>
+                              <SelectItem value="custom">Custom (manual)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {form.watch("billingExchangeRateSource") === "custom" && (
+                      <FormField
+                        control={form.control}
+                        name="billingCustomExchangeRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tasa manual (ej. 1 {form.watch("billingBaseCurrency") || "USD"} = X {form.watch("billingDisplayCurrency") || "VES"})</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step={0.0001}
+                                placeholder="Ej. 36.5"
+                                {...field}
+                                value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
                   <FormField control={form.control} name="defaultTaxPercent" render={({ field }) => (
                     <FormItem><FormLabel>Porcentaje de impuesto predeterminado (%)</FormLabel><FormControl><Input type="number" step={0.01} placeholder="IVA, Tax" {...field} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
                   )} />

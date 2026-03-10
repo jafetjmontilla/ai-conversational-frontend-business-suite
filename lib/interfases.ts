@@ -163,6 +163,14 @@ export interface Business {
   taxRegime?: string;
   digitalSignatureOrStamp?: string;
   invoiceNumbering?: InvoiceNumbering;
+  /** Moneda base para los precios: USD, EUR, VES. */
+  billingBaseCurrency?: "USD" | "EUR" | "VES";
+  /** Moneda en la que mostrar precios: USD, EUR, VES. */
+  billingDisplayCurrency?: "USD" | "EUR" | "VES";
+  /** Fuente de tasa para el cambio: bcv_dolar, bcv_euro, binance, custom. */
+  billingExchangeRateSource?: "bcv_dolar" | "bcv_euro" | "binance" | "custom";
+  /** Tasa manual cuando la fuente es custom. */
+  billingCustomExchangeRate?: number;
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
   whatsapps?: WhatsappsConfig;

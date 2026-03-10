@@ -7,16 +7,22 @@ import * as z from "zod";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { FormFieldInput, OptionSelect, Role, roles, User } from "@/lib/interfases";
+import { FormFieldInput, OptionSelect, Role, roles, User, businessRoles } from "@/lib/interfases";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
 import { User as UserIcon, Mail, Phone, Image, Shield } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
 
-const roleOptions: OptionSelect[] = [
+const systemRoleOptions: OptionSelect[] = [
   { value: 'system_admin' as Role, title: 'Administrador del sistema', description: '', icon: '⚙️', features: [] },
   { value: 'system_operator' as Role, title: 'Operador del sistema', description: '', icon: '👤', features: [] },
   { value: 'system_viewer' as Role, title: 'Solo lectura (sistema)', description: '', icon: '👤', features: [] },
+].sort((a, b) => a.title.localeCompare(b.title));
+
+const businessRoleOptions: OptionSelect[] = [
+  { value: 'business_admin' as unknown as Role, title: 'Administrador del negocio', description: '', icon: '⚙️', features: [] },
+  { value: 'business_editor' as unknown as Role, title: 'Editor', description: '', icon: '✏️', features: [] },
+  { value: 'business_viewer' as unknown as Role, title: 'Solo lectura', description: '', icon: '👤', features: [] },
 ].sort((a, b) => a.title.localeCompare(b.title));
 
 interface UserFormModalProps {
@@ -24,78 +30,41 @@ interface UserFormModalProps {
   onClose: () => void;
   user?: User | null;
   onSuccess: () => void;
+  /** Alcance: sistema (usuarios globales) o negocio (invitaciones al negocio). */
+  scope?: 'system' | 'business';
+  /** ObjectId del negocio cuando scope === 'business'. */
+  businessId?: string;
 }
 
 const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  role: z.enum(roles, {
-    message: "El rol es requerido",
-  }),
+  role: z.string().min(1, "El rol es requerido"),
   active: z.boolean(),
   photoURL: z.string().url("URL de foto inválida").optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+function getFormFields(scope: 'system' | 'business'): FormFieldInput[] {
+  const roleOptions = scope === 'business' ? businessRoleOptions : systemRoleOptions;
+  return [
+    { name: 'name', label: 'Nombre', placeholder: 'Nombre del usuario', icon: UserIcon, type: 'text', required: true },
+    { name: 'email', label: 'Email', placeholder: 'usuario@ejemplo.com', icon: Mail, type: 'text', required: true },
+    { name: 'phone', label: 'Teléfono', placeholder: '+584124567890', icon: Phone, type: 'text', required: true },
+    { name: 'photoURL', label: 'URL de Foto', placeholder: 'https://ejemplo.com/foto.jpg', icon: Image, type: 'text', required: false },
+    { name: 'role', label: 'Rol', placeholder: 'Selecciona un rol', icon: <Shield className="h-4 w-4" />, type: 'select', options: roleOptions, required: true },
+    { name: 'active', label: 'Usuario activo', placeholder: 'Selecciona un rol', type: 'switch', required: true },
+  ];
+}
 
-const formFields: FormFieldInput[] = [
-  {
-    name: 'name',
-    label: 'Nombre',
-    placeholder: 'Nombre del usuario',
-    icon: UserIcon,
-    type: 'text',
-    required: true,
-  },
-  {
-    name: 'email',
-    label: 'Email',
-    placeholder: 'usuario@ejemplo.com',
-    icon: Mail,
-    type: 'text',
-    required: true,
-  },
-  {
-    name: 'phone',
-    label: 'Teléfono',
-    placeholder: '+584124567890',
-    icon: Phone,
-    type: 'text',
-    required: true,
-  },
-  {
-    name: 'photoURL',
-    label: 'URL de Foto',
-    placeholder: 'https://ejemplo.com/foto.jpg',
-    icon: Image,
-    type: 'text',
-    required: false,
-  },
-  {
-    name: 'role',
-    label: 'Rol',
-    placeholder: 'Selecciona un rol',
-    icon: <Shield className="h-4 w-4" />,
-    type: 'select',
-    options: roleOptions,
-    required: true,
-  },
-  {
-    name: 'active',
-    label: 'Usuario activo',
-    placeholder: 'Selecciona un rol',
-    type: 'switch',
-    required: true,
-  },
-];
-
-export default function UserFormModal({ isOpen, onClose, user, onSuccess }: UserFormModalProps) {
+export default function UserFormModal({ isOpen, onClose, user, onSuccess, scope = 'system', businessId }: UserFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const isInvitation = !user?.uid;
   const isEditing = !!user;
+  const defaultRole = scope === 'business' ? 'business_viewer' : 'system_viewer';
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -103,7 +72,7 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      role: (user?.role as Role) || "system_viewer",
+      role: user?.role || defaultRole,
       active: user?.active ?? true,
       photoURL: user?.photoURL || "",
     },
@@ -164,17 +133,17 @@ export default function UserFormModal({ isOpen, onClose, user, onSuccess }: User
         }
       } else {
         // Crear invitación de usuario
+        const args: { name: string; email: string; phone: string; role: string; business_id?: string } = {
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          role: values.role,
+        };
+        if (scope === 'business' && businessId) args.business_id = businessId;
         const invitationResponse = await fetchApiV1({
           query: queries.createUserInvitation,
           type: "json",
-          variables: {
-            args: {
-              name: values.name,
-              email: values.email,
-              phone: values.phone,
-              role: values.role,
-            },
-          },
+          variables: { args },
         });
 
         if (invitationResponse.success) {
@@ -231,41 +200,44 @@ Este enlace expira en 7 días.
       <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Editar Usuario" : "Invitar Usuario por WhatsApp"}
+            {isEditing
+              ? "Editar Usuario"
+              : scope === 'business'
+                ? "Invitar usuario al negocio"
+                : "Invitar Usuario por WhatsApp"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Modifica la información del usuario seleccionado."
-              : "Completa la información para enviar una invitación por WhatsApp."}
+              : scope === 'business'
+                ? "Completa los datos para enviar una invitación por WhatsApp. El usuario se unirá a este negocio al registrarse."
+                : "Completa la información para enviar una invitación por WhatsApp."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
-            {formFields
+            {getFormFields(scope)
               .filter((field) => {
-                // En modo edición, no mostrar el campo 'active' ya que no se puede modificar
-                if (isEditing && field.name === 'active') {
-                  return false;
-                }
+                if (isEditing && field.name === 'active') return false;
+                if (scope === 'business' && field.name === 'photoURL') return false;
                 return true;
               })
               .map((field) => {
-                if (field.name === 'email') {
-                  field.disabled = isInvitation ? false : isEditing;
+                const fieldCopy = { ...field };
+                if (fieldCopy.name === 'email') {
+                  fieldCopy.disabled = isInvitation ? false : isEditing;
                 }
-                if (field.name === 'photoURL' && isInvitation) {
-                  return null;
-                }
+                if (fieldCopy.name === 'photoURL' && isInvitation) return null;
                 return (
                   <FormFieldInputs
                     key={field.name}
-                    field={field}
+                    field={fieldCopy}
                     control={form.control}
                     name={field.name as 'name' | 'email' | 'phone' | 'photoURL' | 'role' | 'active'}
                     isSubmitting={form.formState.isSubmitting}
-                    disabled={field.disabled}
+                    disabled={fieldCopy.disabled}
                   />
-                )
+                );
               })}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>

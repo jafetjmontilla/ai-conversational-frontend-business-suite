@@ -349,6 +349,21 @@ export const queries = {
       message
     }
   }`,
+  getBusinessInvitations: `query getBusinessInvitations($id: ID!) {
+    getBusinessInvitations(id: $id) {
+      _id
+      name
+      email
+      phone
+      role
+      code
+      used
+      expiresAt
+      createdBy
+      whatsappSent
+      createdAt
+    }
+  }`,
   updateProfile: `mutation updateProfile($args: UpdateProfileInput!) {
     updateProfile(args: $args) {
       name
@@ -430,6 +445,10 @@ export const queries = {
         rangeFrom
         rangeTo
       }
+      billingBaseCurrency
+      billingDisplayCurrency
+      billingExchangeRateSource
+      billingCustomExchangeRate
       config {
         conversationTimeout
         messageLimit
@@ -533,6 +552,10 @@ export const queries = {
       taxRegime
       digitalSignatureOrStamp
       invoiceNumbering { prefix rangeFrom rangeTo }
+      billingBaseCurrency
+      billingDisplayCurrency
+      billingExchangeRateSource
+      billingCustomExchangeRate
       whatsapps {
         metaCloudApiNumbers { phoneNumberId phoneNumber accessToken verifyToken }
         baileysApiNumbers { sessionId phoneNumber }
