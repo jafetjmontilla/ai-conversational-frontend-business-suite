@@ -241,25 +241,27 @@ export default function BusinessEditPage() {
             billingBaseCurrency: values.billingBaseCurrency || undefined,
             billingDisplayCurrency: values.billingDisplayCurrency || undefined,
             billingExchangeRateSource: values.billingExchangeRateSource || undefined,
-            billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? toOptionalNumber(values.billingCustomExchangeRate) : undefined,
+            billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? toOptionalNumber(values.billingCustomExchangeRate ?? undefined) : undefined,
           },
         },
       });
       toast.success("Cambios guardados");
-      setBusiness((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...values,
-              address,
-              invoiceNumbering,
-              billingBaseCurrency: values.billingBaseCurrency ?? undefined,
-              billingDisplayCurrency: values.billingDisplayCurrency ?? undefined,
-              billingExchangeRateSource: values.billingExchangeRateSource ?? undefined,
-              billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? values.billingCustomExchangeRate ?? undefined : undefined,
-            }
-          : null
-      );
+      setBusiness((prev) => {
+        if (!prev) return null;
+        const baseCurrency = values.billingBaseCurrency || undefined;
+        const displayCurrency = values.billingDisplayCurrency || undefined;
+        const rateSource = values.billingExchangeRateSource || undefined;
+        return {
+          ...prev,
+          ...values,
+          address,
+          invoiceNumbering,
+          billingBaseCurrency: baseCurrency as "USD" | "EUR" | "VES" | undefined,
+          billingDisplayCurrency: displayCurrency as "USD" | "EUR" | "VES" | undefined,
+          billingExchangeRateSource: rateSource as "bcv_dolar" | "bcv_euro" | "binance" | "custom" | undefined,
+          billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? (values.billingCustomExchangeRate ?? undefined) : undefined,
+        };
+      });
     } catch (e: any) {
       toast.error(e?.message || "Error al guardar");
     } finally {

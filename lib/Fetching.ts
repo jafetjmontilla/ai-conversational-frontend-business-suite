@@ -615,6 +615,221 @@ export const queries = {
   removeBusinessMember: `mutation removeBusinessMember($userId: String!, $id: ID!) {
     removeBusinessMember(userId: $userId, id: $id)
   }`,
+  // Facturación (id = business _id)
+  getInvoices: `query getInvoices($id: ID!, $skip: Int, $limit: Int, $sort: sortCriteriaInvoice) {
+    getInvoices(id: $id, skip: $skip, limit: $limit, sort: $sort) {
+      total
+      results {
+        _id
+        clientName
+        clientId
+        clientPhone
+        items { _id id quantity description unitPrice total inventoryId invoiceId createdAt updatedAt }
+        totalBs
+        totalUsd
+        status
+        createdBy
+        createdAt
+        updatedAt
+      }
+    }
+  }`,
+  getInvoice: `query getInvoice($_id: ID!, $id: ID!) {
+    getInvoice(_id: $_id, id: $id) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items { _id id quantity description unitPrice total inventoryId invoiceId createdAt updatedAt }
+      totalBs
+      totalUsd
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  createInvoice: `mutation createInvoice($id: ID!, $args: CreateInvoiceInput!) {
+    createInvoice(id: $id, args: $args) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items { _id id quantity description unitPrice total inventoryId invoiceId }
+      totalBs
+      totalUsd
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateInvoice: `mutation updateInvoice($_id: ID!, $id: ID!, $args: UpdateInvoiceInput!) {
+    updateInvoice(_id: $_id, id: $id, args: $args) {
+      _id
+      clientName
+      clientId
+      clientPhone
+      items { _id id quantity description unitPrice total inventoryId invoiceId }
+      totalBs
+      totalUsd
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteInvoice: `mutation deleteInvoice($_id: ID!, $id: ID!) {
+    deleteInvoice(_id: $_id, id: $id)
+  }`,
+  processPayment: `mutation processPayment($id: ID!, $args: ProcessPaymentInput!) {
+    processPayment(id: $id, args: $args) {
+      success
+      message
+      data {
+        _id
+        invoiceId
+        paymentMethods { _id id name amountBs amountUsd urlSuport createdAt updatedAt }
+        totalPaid
+        exchangeRate
+        status
+        createdAt
+      }
+    }
+  }`,
+  getPayments: `query getPayments($id: ID!, $filters: PaymentFiltersInput) {
+    getPayments(id: $id, filters: $filters) {
+      total
+      results {
+        _id
+        invoiceId
+        paymentMethods { _id id name amountBs amountUsd urlSuport }
+        totalPaid
+        exchangeRate
+        status
+        createdAt
+      }
+    }
+  }`,
+  // Inventario (id = business _id)
+  getInventoryItems: `query getInventoryItems($id: ID!, $description: String, $skip: Int, $limit: Int) {
+    getInventoryItems(id: $id, description: $description, skip: $skip, limit: $limit) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      unitCostUsd
+      salesPriceUsd
+      profitPercentage
+      status
+      costHistory { value valorUsd updatedAt userId }
+      priceHistory { value valorUsd updatedAt userId }
+      quantityHistory { quantity concept updatedAt userId }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  getInventoryItem: `query getInventoryItem($_id: ID!, $id: ID!) {
+    getInventoryItem(_id: $_id, id: $id) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      unitCostUsd
+      salesPriceUsd
+      profitPercentage
+      status
+      costHistory { value valorUsd updatedAt userId }
+      priceHistory { value valorUsd updatedAt userId }
+      quantityHistory { quantity concept updatedAt userId }
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  getInventoryItemByCode: `query getInventoryItemByCode($id: ID!, $code: String!) {
+    getInventoryItemByCode(id: $id, code: $code) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      unitCostUsd
+      salesPriceUsd
+      profitPercentage
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  createInventoryItem: `mutation createInventoryItem($id: ID!, $args: InventoryItemInput!) {
+    createInventoryItem(id: $id, args: $args) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      unitCostUsd
+      salesPriceUsd
+      profitPercentage
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateInventoryItem: `mutation updateInventoryItem($_id: ID!, $id: ID!, $args: UpdateInventoryItemInput!) {
+    updateInventoryItem(_id: $_id, id: $id, args: $args) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      unitCostUsd
+      salesPriceUsd
+      profitPercentage
+      status
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteInventoryItem: `mutation deleteInventoryItem($_id: ID!, $id: ID!) {
+    deleteInventoryItem(_id: $_id, id: $id)
+  }`,
+  updateItemQuantity: `mutation updateItemQuantity($id: ID!, $_id: ID!, $newQuantity: Float!, $concept: String!) {
+    updateItemQuantity(id: $id, _id: $_id, newQuantity: $newQuantity, concept: $concept) {
+      _id
+      quantity
+      quantityHistory { quantity concept updatedAt userId }
+    }
+  }`,
+  bulkCreateInventoryItems: `mutation bulkCreateInventoryItems($id: ID!, $items: [BulkInventoryItemInput!]!, $exchangeRate: Float!) {
+    bulkCreateInventoryItems(id: $id, items: $items, exchangeRate: $exchangeRate) {
+      _id
+      code
+      description
+      type
+      quantity
+      unitCost
+      salesPrice
+      createdAt
+    }
+  }`,
   // Protocol drafts (De Charla a Protocolo)
   listProtocolDrafts: `query listProtocolDrafts($businessId: String!, $status: String) {
     listProtocolDrafts(businessId: $businessId, status: $status) {

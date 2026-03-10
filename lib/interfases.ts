@@ -218,3 +218,92 @@ export interface QuantityHistory {
   updatedAt: string;
   userId: string;
 }
+
+// Facturación e inventario (multi-tenant por business_id)
+export interface InvoiceItem {
+  _id: string;
+  id: string;
+  quantity: number;
+  description: string;
+  unitPrice: number;
+  total: number;
+  inventoryId: string;
+  invoiceId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Invoice {
+  _id: string;
+  clientName?: string;
+  clientId?: string;
+  clientPhone?: string;
+  items: InvoiceItem[];
+  totalBs: number;
+  totalUsd: number;
+  status: "draft" | "paid" | "cancelled";
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceResponse {
+  total: number;
+  results: Invoice[];
+}
+
+export interface PaymentMethod {
+  _id: string;
+  id: string;
+  name: string;
+  amountBs: number;
+  amountUsd: number;
+  paymentId?: string;
+  urlSuport?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Payment {
+  _id: string;
+  invoiceId: string;
+  paymentMethods: PaymentMethod[];
+  totalPaid: number;
+  exchangeRate: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface PaymentResponse {
+  total: number;
+  results: Payment[];
+}
+
+export interface InventoryItem {
+  _id: string;
+  code: string;
+  description: string;
+  type: "mercancia" | "servicio";
+  quantity: number;
+  unitCost: number;
+  salesPrice: number;
+  unitCostUsd: number;
+  salesPriceUsd: number;
+  profitPercentage: number;
+  status: boolean;
+  costHistory: PriceHistory[];
+  priceHistory: PriceHistory[];
+  quantityHistory: QuantityHistory[];
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PaymentFiltersInput {
+  status?: string;
+  dateFilter?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  offsetMinutes?: number;
+}
