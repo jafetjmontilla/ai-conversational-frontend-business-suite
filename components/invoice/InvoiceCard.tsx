@@ -4,7 +4,7 @@ import { useState, useEffect, SetStateAction, Dispatch } from 'react';
 import { XIcon, X, Loader2 } from 'lucide-react';
 import type { Invoice, InvoiceItem } from '@/lib/interfases';
 import { Button } from '@/components/ui/button';
-import { InventorySearch } from './InventorySearch';
+import { InventorySearch, type InvoiceVariantSelection } from './InventorySearch';
 import { PaymentDialog } from './PaymentDialog';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { toast } from 'sonner';
@@ -52,6 +52,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
       unitPrice: 0,
       total: 0,
       inventoryId: '',
+      itemType: 'product_variant' as const,
+      productVariantId: '',
       invoiceId: '',
     }));
   }
@@ -72,6 +74,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
             unitPrice: item.unitPrice || 0,
             total: item.total || 0,
             inventoryId: item.inventoryId || '',
+            itemType: item.itemType || 'product_variant',
+            productVariantId: item.productVariantId || '',
           };
         }
       });
@@ -96,6 +100,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
             updatedItem.unitPrice = 0;
             updatedItem.total = 0;
             updatedItem.inventoryId = '';
+            updatedItem.productVariantId = '';
           }
           if (field === 'quantity' || field === 'unitPrice') {
             const quantity = updatedItem.quantity || 0;
@@ -122,6 +127,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
         unitPrice: roundToTwoDecimals(item.unitPrice || 0),
         total: roundToTwoDecimals(item.total || 0),
         inventoryId: item.inventoryId || '',
+        itemType: item.productVariantId ? 'product_variant' : (item.itemType || 'inventory'),
+        productVariantId: item.productVariantId || undefined,
         invoiceId: item.invoiceId || '',
       }));
     const updatedInvoice = {
@@ -134,20 +141,21 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
     onUpdate(updatedInvoice);
   }, [tableItems, exchangeRate]);
 
-  const handleInventoryItemSelect = (itemId: string, inventoryItem: any) => {
+  const handleInventoryItemSelect = (itemId: string, selection: InvoiceVariantSelection) => {
     setTableItems(prevItems => {
       return prevItems.map(item => {
         if (item.id === itemId) {
-          const unitPrice = inventoryItem.salesPrice;
           const updatedItem = {
             ...item,
-            description: inventoryItem.description,
-            unitPrice: roundToTwoDecimals(unitPrice),
-            inventoryId: inventoryItem._id,
-            id: inventoryItem.code || item.id,
+            description: selection.description,
+            unitPrice: roundToTwoDecimals(selection.unitPrice),
+            inventoryId: '',
+            itemType: 'product_variant' as const,
+            productVariantId: selection.productVariantId,
+            id: selection.sku || item.id,
           };
           const quantity = updatedItem.quantity || 0;
-          updatedItem.total = roundToTwoDecimals(quantity * unitPrice);
+          updatedItem.total = roundToTwoDecimals(quantity * selection.unitPrice);
           return updatedItem;
         }
         return item;
@@ -178,6 +186,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
         .map(item => ({
           id: item.id,
           inventoryId: item.inventoryId || '',
+          itemType: item.productVariantId ? 'product_variant' : (item.itemType || 'inventory'),
+          productVariantId: item.productVariantId || undefined,
           description: item.description || '',
           quantity: roundToTwoDecimals(item.quantity || 0),
           unitPrice: roundToTwoDecimals(item.unitPrice || 0),

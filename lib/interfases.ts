@@ -220,6 +220,8 @@ export interface QuantityHistory {
 }
 
 // Facturación e inventario (multi-tenant por business_id)
+export type InvoiceItemType = 'product_variant' | 'service_option' | 'inventory';
+
 export interface InvoiceItem {
   _id: string;
   id: string;
@@ -228,6 +230,9 @@ export interface InvoiceItem {
   unitPrice: number;
   total: number;
   inventoryId: string;
+  itemType?: InvoiceItemType;
+  productVariantId?: string;
+  serviceOptionId?: string;
   invoiceId: string;
   createdAt?: string;
   updatedAt?: string;
@@ -351,6 +356,8 @@ export interface ProductVariant {
   product_id: string;
   sku: string;
   price_override: number | null;
+  cost_price?: number | null;
+  unit_of_measure?: string;
   stock_quantity: number;
   image_url: string | null;
   attribute_values: VariantAttributeMapEntry[];
@@ -454,4 +461,18 @@ export interface Service {
 export interface ProductionCostResult {
   totalProductionCost: number;
   breakdown: Array<{ variantId: string; sku: string; quantity: number; costPrice: number; subtotal: number }>;
+}
+
+/** Registro del kardex (auditoría de movimientos de stock). */
+export interface InventoryLog {
+  _id: string;
+  variant_id: string;
+  business_id: string;
+  sku: string;
+  type: 'VENTA' | 'SALIDA' | 'EDICION_MANUAL' | 'RESTAURACIÓN' | 'SOFT_DELETE' | 'INGRESO' | 'AJUSTE';
+  quantity_change: number;
+  balance_after: number;
+  concept: string;
+  userId: string;
+  createdAt: string;
 }

@@ -3,20 +3,36 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { fetchApiV1, queries } from '@/lib/Fetching';
-import type { InventoryItem } from '@/lib/interfases';
+
+/** Item seleccionable para una línea de factura (variante de producto vendible). */
+export interface InvoiceVariantSelection {
+  productVariantId: string;
+  description: string;
+  unitPrice: number;
+  sku?: string;
+}
 
 interface InventorySearchProps {
   value: string;
   onChange: (value: string) => void;
-  onSelectItem: (item: InventoryItem) => void;
+  onSelectItem: (item: InvoiceVariantSelection) => void;
   className?: string;
   /** _id del negocio (Business document). */
   businessId: string;
   exchangeRate: number;
 }
 
-export function InventorySearch({ value, onChange, onSelectItem, className = "", businessId, exchangeRate }: InventorySearchProps) {
-  const [searchResults, setSearchResults] = useState<InventoryItem[]>([]);
+type SellableVariantRow = {
+  _id: string;
+  product_id: string;
+  sku: string;
+  price_override: number | null;
+  stock_quantity: number;
+  product?: { _id: string; name: string; base_price?: number } | null;
+};
+
+export function InventorySearch({ value, onChange, onSelectItem, className = "", businessId }: InventorySearchProps) {
+  const [searchResults, setSearchResults] = useState<SellableVariantRow[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,18 +42,18 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
 
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      if (value.length > 0 && businessId) {
+      if (businessId) {
         setIsLoading(true);
         try {
           const results = await fetchApiV1({
-            query: queries.getInventoryItems,
+            query: queries.getSellableVariants,
             type: "json",
             variables: {
               id: businessId,
-              description: value,
-              limit: 10
-            }
-          });
+              search: value.trim() || undefined,
+              limit: 15,
+            },
+          }) as SellableVariantRow[] | null;
           setSearchResults(results || []);
           setSelectedIndex(-1);
         } catch {
@@ -61,11 +77,24 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
     setIsOpen(true);
   }, [onChange]);
 
-  const handleItemSelect = useCallback((item: InventoryItem) => {
-    onSelectItem(item);
+  const toSelection = useCallback((row: SellableVariantRow): InvoiceVariantSelection => {
+    const productName = row.product?.name ?? '';
+    const desc = row.sku ? `${productName} - ${row.sku}`.trim() : productName || row.sku || 'Sin nombre';
+    const unitPrice = row.price_override ?? row.product?.base_price ?? 0;
+    return {
+      productVariantId: row._id,
+      description: desc,
+      unitPrice: Number(unitPrice),
+      sku: row.sku,
+    };
+  }, []);
+
+  const handleItemSelect = useCallback((row: SellableVariantRow) => {
+    onSelectItem(toSelection(row));
+    onChange('');
     setIsOpen(false);
     setSelectedIndex(-1);
-  }, [onSelectItem]);
+  }, [onSelectItem, toSelection, onChange]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen || searchResults.length === 0) return;
@@ -124,7 +153,6 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
     }
   }, [selectedIndex]);
 
-
   return (
     <div className="relative">
       <div className="relative">
@@ -135,15 +163,16 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            setIsOpen(true)
-            setIsFocus(true)
+            setIsOpen(true);
+            setIsFocus(true);
           }}
           onBlur={() => {
             setTimeout(() => {
-              setIsFocus(false)
-            }, 200)
+              setIsFocus(false);
+            }, 200);
           }}
-          autoComplete='off'
+          autoComplete="off"
+          placeholder="Buscar producto o SKU..."
           className={`w-full bg-white dark:bg-gray-100 text-left border-0 px-1 ${className}`}
         />
         <div
@@ -151,11 +180,10 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
             onChange('');
             setIsOpen(false);
           }}
-          className="absolute -top-6 -right-2 flex md:hidden items-center space-x-1 z-10">
+          className="absolute -top-6 -right-2 flex md:hidden items-center space-x-1 z-10"
+        >
           {value && isFocus && (
-            <div
-              className="bg-white rounded-full border-[1px] border-ring text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center"
-            >
+            <div className="bg-white rounded-full border-[1px] border-ring text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center">
               <X className="w-4 h-4" />
             </div>
           )}
@@ -172,28 +200,29 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
               Buscando...
             </div>
           ) : (
-            searchResults.map((item, index) => (
-              <div
-                key={item._id}
-                onClick={() => handleItemSelect(item)}
-                className={`px-2.5 py-2.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedIndex === index ? 'bg-blue-100 hover:bg-blue-200' : ''
-                  }`}
-              >
-                <div className="flex justify-between items-start text-xs gap-2">
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {item.description}
+            searchResults.map((row, index) => {
+              const price = row.price_override ?? row.product?.base_price ?? 0;
+              const label = row.product?.name ? `${row.product.name} - ${row.sku}` : row.sku;
+              return (
+                <div
+                  key={row._id}
+                  onClick={() => handleItemSelect(row)}
+                  className={`px-2.5 py-2.5 md:py-0.5 hover:bg-gray-300 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedIndex === index ? 'bg-blue-100 hover:bg-blue-200' : ''}`}
+                >
+                  <div className="flex justify-between items-start text-xs gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium">{label}</div>
+                    </div>
+                    <div className="font-semibold w-[55px] text-right">
+                      {Number(price).toFixed(2)}
+                    </div>
+                    <div className="w-5 flex justify-center text-green-600">
+                      ({(row.stock_quantity ?? 0).toFixed(0)})
                     </div>
                   </div>
-                  <div className="font-semibold w-[55px] text-right">
-                    {item.salesPrice.toFixed(2)}
-                  </div>
-                  <div className="w-5 flex justify-center text-green-600">
-                    {"(" + item.quantity + ")"}
-                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

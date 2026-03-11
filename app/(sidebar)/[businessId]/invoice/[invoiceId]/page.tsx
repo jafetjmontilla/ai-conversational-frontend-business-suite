@@ -8,21 +8,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Invoice, InventoryItem } from "@/lib/interfases";
+import type { Business, Invoice } from "@/lib/interfases";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Save, CreditCard } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { PaymentDialog } from "@/components/invoice/PaymentDialog";
 
+type SellableVariantRow = {
+  _id: string;
+  sku: string;
+  price_override: number | null;
+  stock_quantity: number;
+  product?: { name: string; base_price?: number } | null;
+};
+
 interface InvoiceItemRow {
   id: string;
   inventoryId: string;
+  productVariantId?: string;
+  itemType?: 'product_variant' | 'inventory';
   description: string;
   quantity: number;
   unitPrice: number;
   total: number;
   searchTerm?: string;
-  searchResults?: InventoryItem[];
+  searchResults?: SellableVariantRow[];
 }
 
 export default function InvoiceEditorPage() {
@@ -99,6 +109,8 @@ export default function InvoiceEditorPage() {
         (inv.items || []).map((it, idx) => ({
           id: it.id || `item-${idx}`,
           inventoryId: it.inventoryId || "",
+          productVariantId: it.productVariantId || undefined,
+          itemType: it.itemType || "product_variant",
           description: it.description || "",
           quantity: it.quantity || 0,
           unitPrice: it.unitPrice || 0,
@@ -122,6 +134,8 @@ export default function InvoiceEditorPage() {
     setItems(prev => [...prev, {
       id: `item-${Date.now()}`,
       inventoryId: "",
+      productVariantId: undefined,
+      itemType: "product_variant",
       description: "",
       quantity: 0,
       unitPrice: 0,
@@ -148,37 +162,50 @@ export default function InvoiceEditorPage() {
     updateItem(idx, "searchTerm", term);
     updateItem(idx, "description", term);
     if (!businessIdDoc || term.trim().length < 2) {
-      updateItem(idx, "searchResults", []);
+      setItems(prev => {
+        const u = [...prev];
+        u[idx] = { ...u[idx], searchResults: [] };
+        return u;
+      });
       return;
     }
     try {
       const results = await fetchApiV1({
-        query: queries.getInventoryItems,
+        query: queries.getSellableVariants,
         type: "json",
-        variables: { id: businessIdDoc, description: term.trim(), limit: 10 },
-      }) as InventoryItem[];
+        variables: { id: businessIdDoc, search: term.trim() || undefined, limit: 15 },
+      }) as SellableVariantRow[] | null;
       setItems(prev => {
         const updated = [...prev];
         updated[idx] = { ...updated[idx], searchResults: results || [] };
         return updated;
       });
     } catch {
-      // ignore search errors
+      setItems(prev => {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], searchResults: [] };
+        return updated;
+      });
     }
   };
 
-  const selectInventoryItem = (idx: number, invItem: InventoryItem) => {
+  const selectInventoryItem = (idx: number, row: SellableVariantRow) => {
+    const productName = row.product?.name ?? "";
+    const description = row.sku ? `${productName} - ${row.sku}`.trim() : productName || row.sku || "Sin nombre";
+    const unitPrice = row.price_override ?? row.product?.base_price ?? 0;
     setItems(prev => {
       const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
-        inventoryId: invItem._id,
-        description: invItem.description,
-        unitPrice: invItem.salesPrice,
-        total: Math.round((updated[idx].quantity * invItem.salesPrice + Number.EPSILON) * 100) / 100,
+        inventoryId: "",
+        productVariantId: row._id,
+        itemType: "product_variant",
+        description,
+        unitPrice: Number(unitPrice),
+        total: Math.round((updated[idx].quantity * Number(unitPrice) + Number.EPSILON) * 100) / 100,
         searchResults: [],
         searchTerm: "",
-        id: invItem.code || updated[idx].id,
+        id: row.sku || updated[idx].id,
       };
       return updated;
     });
@@ -200,7 +227,9 @@ export default function InvoiceEditorPage() {
             clientPhone: clientPhone.trim(),
             items: items.map(it => ({
               id: it.id,
-              inventoryId: it.inventoryId,
+              inventoryId: it.inventoryId || "",
+              itemType: it.productVariantId ? "product_variant" : (it.itemType || "inventory"),
+              productVariantId: it.productVariantId || undefined,
               description: it.description,
               quantity: it.quantity,
               unitPrice: it.unitPrice,
@@ -328,15 +357,19 @@ export default function InvoiceEditorPage() {
                             />
                             {(item.searchResults?.length ?? 0) > 0 && (
                               <div className="absolute z-10 bg-popover border rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto w-[90%]">
-                                {item.searchResults!.map(inv => (
-                                  <div
-                                    key={inv._id}
-                                    className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
-                                    onClick={() => selectInventoryItem(idx, inv)}
-                                  >
-                                    <span className="font-medium">{inv.code}</span> — {inv.description} (Disp: {inv.quantity}, Precio: {inv.salesPrice.toFixed(2)})
-                                  </div>
-                                ))}
+                                {item.searchResults!.map(row => {
+                                  const price = row.price_override ?? row.product?.base_price ?? 0;
+                                  const label = row.product?.name ? `${row.product.name} - ${row.sku}` : row.sku;
+                                  return (
+                                    <div
+                                      key={row._id}
+                                      className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                                      onClick={() => selectInventoryItem(idx, row)}
+                                    >
+                                      <span className="font-medium">{label}</span> (Disp: {(row.stock_quantity ?? 0).toFixed(0)}, Precio: {Number(price).toFixed(2)})
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

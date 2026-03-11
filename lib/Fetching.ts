@@ -630,7 +630,7 @@ export const queries = {
         clientName
         clientId
         clientPhone
-        items { _id id quantity description unitPrice total inventoryId invoiceId createdAt updatedAt }
+        items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId createdAt updatedAt }
         totalBs
         totalUsd
         status
@@ -646,7 +646,7 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId createdAt updatedAt }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId createdAt updatedAt }
       totalBs
       totalUsd
       status
@@ -661,7 +661,7 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId }
       totalBs
       totalUsd
       status
@@ -676,7 +676,7 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId }
       totalBs
       totalUsd
       status
@@ -906,7 +906,7 @@ export const queries = {
     getProduct(_id: $_id, id: $id) {
       _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
       category { _id name }
-      variants { _id product_id sku price_override stock_quantity image_url status
+      variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
         attribute_values { attribute_value_id }
       }
     }
@@ -928,6 +928,12 @@ export const queries = {
       attribute_values { attribute_value_id }
       product { _id name }
       createdBy createdAt updatedAt
+    }
+  }`,
+  getSellableVariants: `query getSellableVariants($id: ID!, $search: String, $limit: Int) {
+    getSellableVariants(id: $id, search: $search, limit: $limit) {
+      _id product_id sku price_override stock_quantity
+      product { _id name base_price }
     }
   }`,
   getProductVariantBySku: `query getProductVariantBySku($id: ID!, $sku: String!) {
@@ -982,7 +988,7 @@ export const queries = {
   }`,
   bulkUpdateVariants: `mutation bulkUpdateVariants($id: ID!, $items: [BulkUpdateVariantItem!]!) {
     bulkUpdateVariants(id: $id, items: $items) {
-      _id sku price_override stock_quantity
+      _id sku price_override cost_price unit_of_measure stock_quantity
     }
   }`,
   createProductWithVariants: `mutation createProductWithVariants($id: ID!, $product: CreateProductInput!, $variantsPreview: [VariantPreviewItemInput!]!) {
@@ -1009,6 +1015,11 @@ export const queries = {
   deductStock: `mutation deductStock($input: DeductStockInput!) {
     deductStock(input: $input) {
       success variantId sku previousQuantity newQuantity error
+    }
+  }`,
+  getInventoryLogs: `query getInventoryLogs($id: ID!, $sku: String, $variantId: ID, $fromDate: Date, $toDate: Date, $limit: Int) {
+    getInventoryLogs(id: $id, sku: $sku, variantId: $variantId, fromDate: $fromDate, toDate: $toDate, limit: $limit) {
+      _id variant_id business_id sku type quantity_change balance_after concept userId createdAt
     }
   }`,
   // Servicios (catálogo independiente de productos)

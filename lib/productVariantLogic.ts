@@ -123,11 +123,17 @@ export async function createProductWithVariants(
 }
 
 /**
- * Actualización masiva de variantes (precio/stock).
+ * Actualización masiva de variantes (precio, stock, costo, unidad de medida).
  */
 export async function bulkUpdateVariants(
   businessId: string,
-  items: { variant_id: string; price_override?: number | null; stock_quantity?: number }[]
+  items: {
+    variant_id: string;
+    price_override?: number | null;
+    stock_quantity?: number;
+    cost_price?: number | null;
+    unit_of_measure?: string;
+  }[]
 ) {
   return fetchApiV1({
     query: queries.bulkUpdateVariants,

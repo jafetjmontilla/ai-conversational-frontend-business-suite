@@ -35,9 +35,9 @@ import {
   restoreProductVariant,
   type VariantPreviewRow,
 } from "@/lib/productVariantLogic";
-import type { Business, Product, ProductCategory, ProductVariant } from "@/lib/interfases";
+import type { Business, Product, ProductCategory, ProductVariant, InventoryLog } from "@/lib/interfases";
 import { toast } from "sonner";
-import { ArrowLeft, Package, Sparkles, Trash2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Package, Sparkles, Trash2, RotateCcw, History } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 
 type AttributeWithValues = { _id: string; name: string; values?: { _id: string; attribute_id: string; value: string }[] };
@@ -71,11 +71,17 @@ export default function ProductDetailPage() {
   const [editingVariant, setEditingVariant] = useState<string | null>(null);
   const [editStock, setEditStock] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editCost, setEditCost] = useState("");
+  const [editUnitOfMeasure, setEditUnitOfMeasure] = useState("");
   const [deletingVariant, setDeletingVariant] = useState<string | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [restoreVariantId, setRestoreVariantId] = useState<string | null>(null);
   const [restoreStock, setRestoreStock] = useState("0");
   const [restoreSaving, setRestoreSaving] = useState(false);
+  const [kardexOpen, setKardexOpen] = useState(false);
+  const [kardexVariant, setKardexVariant] = useState<ProductVariant | null>(null);
+  const [kardexLogs, setKardexLogs] = useState<InventoryLog[]>([]);
+  const [kardexLoading, setKardexLoading] = useState(false);
 
   const businessIdDoc = business?._id;
 
@@ -289,6 +295,26 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleOpenKardex = async (variant: ProductVariant) => {
+    if (!businessIdDoc) return;
+    setKardexVariant(variant);
+    setKardexOpen(true);
+    setKardexLoading(true);
+    try {
+      const logs = (await fetchApiV1({
+        query: queries.getInventoryLogs,
+        type: "json",
+        variables: { id: businessIdDoc, sku: variant.sku, limit: 100 },
+      })) as InventoryLog[] | null;
+      setKardexLogs(Array.isArray(logs) ? logs : []);
+    } catch {
+      toast.error("Error al cargar el historial");
+      setKardexLogs([]);
+    } finally {
+      setKardexLoading(false);
+    }
+  };
+
   const updatePreviewRow = (index: number, field: "price_override" | "stock_quantity", value: number | null) => {
     setPreviewRows((prev) =>
       prev.map((r, i) =>
@@ -299,22 +325,43 @@ export default function ProductDetailPage() {
     );
   };
 
+  const openEditVariant = (v: ProductVariant) => {
+    setEditingVariant(v._id);
+    setEditPrice(String(v.price_override ?? ""));
+    setEditStock(String(v.stock_quantity));
+    setEditCost(String(v.cost_price ?? ""));
+    setEditUnitOfMeasure(v.unit_of_measure ?? "unidad");
+  };
+
   const handleSaveVariant = async (variant: ProductVariant) => {
     if (!businessIdDoc || editingVariant !== variant._id) return;
     const stock = editStock === "" ? undefined : roundToTwo(parseFloat(editStock));
     const price = editPrice === "" ? undefined : parseFloat(editPrice);
-    if (stock === undefined && price === undefined) {
+    const cost = editCost === "" ? undefined : roundToTwo(parseFloat(editCost));
+    const unit = editUnitOfMeasure.trim() || undefined;
+    const currentUnit = (variant.unit_of_measure ?? "unidad").toLowerCase();
+    const priceChanged = price !== undefined && price !== (variant.price_override ?? basePrice);
+    const stockChanged = stock !== undefined && stock !== variant.stock_quantity;
+    const costChanged = cost !== undefined && cost !== (variant.cost_price ?? null);
+    const unitChanged = unit !== undefined && unit.toLowerCase() !== currentUnit;
+    const hasChange = priceChanged || stockChanged || costChanged || unitChanged;
+    if (!hasChange) {
       setEditingVariant(null);
       return;
     }
     try {
-      await bulkUpdateVariants(businessIdDoc, [
-        {
-          variant_id: variant._id,
-          stock_quantity: stock,
-          price_override: price !== undefined ? price : variant.price_override ?? undefined,
-        },
-      ]);
+      const item: {
+        variant_id: string;
+        stock_quantity?: number;
+        price_override?: number | null;
+        cost_price?: number | null;
+        unit_of_measure?: string;
+      } = { variant_id: variant._id };
+      if (stockChanged) item.stock_quantity = stock;
+      if (priceChanged) item.price_override = price;
+      if (costChanged) item.cost_price = cost;
+      if (unitChanged) item.unit_of_measure = unit;
+      await bulkUpdateVariants(businessIdDoc, [item]);
       setProduct((prev) => {
         if (!prev?.variants) return prev;
         return {
@@ -323,8 +370,10 @@ export default function ProductDetailPage() {
             v._id === variant._id
               ? {
                   ...v,
-                  stock_quantity: stock ?? v.stock_quantity,
-                  price_override: price !== undefined ? price : v.price_override,
+                  stock_quantity: stockChanged && stock !== undefined ? stock : v.stock_quantity,
+                  price_override: priceChanged && price !== undefined ? price : v.price_override,
+                  cost_price: costChanged && cost !== undefined ? cost : v.cost_price,
+                  unit_of_measure: unitChanged && unit !== undefined ? unit : v.unit_of_measure,
                 }
               : v
           ),
@@ -467,6 +516,8 @@ export default function ProductDetailPage() {
               <TableRow>
                 <TableHead>SKU</TableHead>
                 <TableHead>Precio</TableHead>
+                <TableHead>Costo</TableHead>
+                <TableHead>Unidad</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
@@ -474,7 +525,7 @@ export default function ProductDetailPage() {
             <TableBody>
               {(product.variants || []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                     No hay variantes. Usa "Generar variantes" o el producto debería tener al menos una variante por defecto.
                   </TableCell>
                 </TableRow>
@@ -482,6 +533,8 @@ export default function ProductDetailPage() {
                 (product.variants || []).map((v) => {
                   const isEditing = editingVariant === v._id;
                   const effectivePrice = v.price_override ?? basePrice;
+                  const displayCost = v.cost_price ?? "";
+                  const displayUnit = v.unit_of_measure ?? "unidad";
                   return (
                     <TableRow key={v._id}>
                       <TableCell className="font-mono text-sm">{v.sku}</TableCell>
@@ -497,8 +550,39 @@ export default function ProductDetailPage() {
                             placeholder={String(effectivePrice)}
                           />
                         ) : (
-                          <span onClick={() => { setEditingVariant(v._id); setEditPrice(String(v.price_override ?? "")); setEditStock(String(v.stock_quantity)); }}>
+                          <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
                             ${effectivePrice.toFixed(2)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editCost}
+                            onChange={(e) => setEditCost(e.target.value)}
+                            className="h-8 w-24"
+                            placeholder="Costo"
+                          />
+                        ) : (
+                          <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
+                            {displayCost !== "" ? `$${Number(displayCost).toFixed(2)}` : "—"}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            value={editUnitOfMeasure}
+                            onChange={(e) => setEditUnitOfMeasure(e.target.value)}
+                            className="h-8 w-24"
+                            placeholder="unidad"
+                          />
+                        ) : (
+                          <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
+                            {displayUnit}
                           </span>
                         )}
                       </TableCell>
@@ -513,7 +597,7 @@ export default function ProductDetailPage() {
                             className="h-8 w-24"
                           />
                         ) : (
-                          <span onClick={() => { setEditingVariant(v._id); setEditPrice(String(v.price_override ?? "")); setEditStock(String(v.stock_quantity)); }}>
+                          <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
                             {v.stock_quantity}
                           </span>
                         )}
@@ -523,7 +607,15 @@ export default function ProductDetailPage() {
                           <Button size="sm" onClick={() => handleSaveVariant(v)}>Guardar</Button>
                         ) : (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => { setEditingVariant(v._id); setEditPrice(String(v.price_override ?? "")); setEditStock(String(v.stock_quantity)); }}>Editar</Button>
+                            <Button size="sm" variant="ghost" onClick={() => openEditVariant(v)}>Editar</Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenKardex(v)}
+                              title="Ver historial de movimientos (kardex)"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -688,6 +780,71 @@ export default function ProductDetailPage() {
             <Button onClick={handleRestoreVariant} disabled={restoreSaving}>
               {restoreSaving ? "Restaurando…" : "Restaurar variante"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={kardexOpen} onOpenChange={(open) => { setKardexOpen(open); if (!open) { setKardexVariant(null); setKardexLogs([]); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Kardex — {kardexVariant?.sku}
+            </DialogTitle>
+            <DialogDescription>
+              Historial de movimientos de stock de esta variante (últimos 100 registros).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {kardexLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+              </div>
+            ) : kardexLogs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Sin movimientos registrados.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Cambio</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead>Concepto</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {kardexLogs.map((log) => (
+                    <TableRow key={log._id}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                          log.type === "VENTA" || log.type === "SALIDA"
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : log.type === "INGRESO" || log.type === "RESTAURACIÓN"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        }`}>
+                          {log.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className={`text-right font-mono text-sm ${log.quantity_change > 0 ? "text-green-600 dark:text-green-400" : log.quantity_change < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
+                        {log.quantity_change > 0 ? "+" : ""}{log.quantity_change}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">{log.balance_after}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={log.concept}>
+                        {log.concept}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setKardexOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
