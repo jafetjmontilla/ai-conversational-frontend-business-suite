@@ -17,7 +17,8 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import type { Business, BusinessAddress } from "@/lib/interfases";
+import type { Business, BusinessAddress, ProductCategory } from "@/lib/interfases";
+import { Pencil, Trash2, Tag } from "lucide-react";
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -129,6 +130,213 @@ function businessToFormValues(b: Business | null): FormValues {
     billingExchangeRateSource: (b.billingExchangeRateSource as FormValues["billingExchangeRateSource"]) ?? undefined,
     billingCustomExchangeRate: b.billingCustomExchangeRate ?? undefined,
   };
+}
+
+const categoryTypes = [
+  { value: "producto", label: "Producto" },
+  { value: "servicio", label: "Servicio" },
+  { value: "ambos", label: "Ambos" },
+] as const;
+
+function CategoriesTab({ businessId }: { businessId: string }) {
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [savingCat, setSavingCat] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [catName, setCatName] = useState("");
+  const [catDescription, setCatDescription] = useState("");
+  const [catType, setCatType] = useState<"producto" | "servicio" | "ambos">("producto");
+
+  const fetchCategories = async () => {
+    setLoadingCats(true);
+    try {
+      const res = await fetchApiV1({
+        query: queries.getProductCategories,
+        type: "json",
+        variables: { id: businessId, includeInactive: true },
+      });
+      setCategories(res || []);
+    } catch {
+      toast.error("Error al cargar categorías");
+    } finally {
+      setLoadingCats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (businessId) fetchCategories();
+  }, [businessId]);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setCatName("");
+    setCatDescription("");
+    setCatType("producto");
+  };
+
+  const startEdit = (cat: ProductCategory) => {
+    setEditingId(cat._id);
+    setCatName(cat.name);
+    setCatDescription(cat.description || "");
+    setCatType(cat.type);
+  };
+
+  const handleSave = async () => {
+    if (!catName.trim()) {
+      toast.error("El nombre es requerido");
+      return;
+    }
+    setSavingCat(true);
+    try {
+      if (editingId) {
+        await fetchApiV1({
+          query: queries.updateProductCategory,
+          type: "json",
+          variables: {
+            _id: editingId,
+            id: businessId,
+            args: {
+              name: catName.trim(),
+              description: catDescription.trim() || undefined,
+              type: catType,
+            },
+          },
+        });
+        toast.success("Categoría actualizada");
+      } else {
+        await fetchApiV1({
+          query: queries.createProductCategory,
+          type: "json",
+          variables: {
+            id: businessId,
+            args: {
+              name: catName.trim(),
+              description: catDescription.trim() || undefined,
+              type: catType,
+            },
+          },
+        });
+        toast.success("Categoría creada");
+      }
+      resetForm();
+      fetchCategories();
+    } catch (err: any) {
+      toast.error(err?.message || "Error al guardar categoría");
+    } finally {
+      setSavingCat(false);
+    }
+  };
+
+  const handleDelete = async (catId: string) => {
+    if (!window.confirm("¿Desactivar esta categoría?")) return;
+    try {
+      await fetchApiV1({
+        query: queries.deleteProductCategory,
+        type: "json",
+        variables: { _id: catId, id: businessId },
+      });
+      toast.success("Categoría desactivada");
+      fetchCategories();
+    } catch (err: any) {
+      toast.error(err?.message || "Error al desactivar categoría");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Categorías para clasificar productos y servicios del inventario.</p>
+
+      {/* Form */}
+      <div className="rounded-lg border p-4 bg-muted/30 space-y-3">
+        <p className="text-sm font-medium">{editingId ? "Editar categoría" : "Nueva categoría"}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Nombre</label>
+            <Input
+              placeholder="Ej. Electrónica, Consultoría"
+              value={catName}
+              onChange={(e) => setCatName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Descripción</label>
+            <Input
+              placeholder="Opcional"
+              value={catDescription}
+              onChange={(e) => setCatDescription(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Tipo</label>
+            <Select value={catType} onValueChange={(v) => setCatType(v as typeof catType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {categoryTypes.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" onClick={handleSave} disabled={savingCat} size="sm">
+            {savingCat ? "Guardando..." : editingId ? "Actualizar" : "Agregar"}
+          </Button>
+          {editingId && (
+            <Button type="button" variant="outline" size="sm" onClick={resetForm}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* List */}
+      {loadingCats ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        </div>
+      ) : categories.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Tag className="h-10 w-10 mx-auto mb-2 opacity-40" />
+          <p>No hay categorías creadas</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {categories.map((cat) => (
+            <div
+              key={cat._id}
+              className={`flex items-center justify-between rounded-lg border p-3 ${!cat.active ? "opacity-50" : ""}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{cat.name}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                    {categoryTypes.find((t) => t.value === cat.type)?.label || cat.type}
+                  </span>
+                  {!cat.active && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-600">Inactiva</span>
+                  )}
+                </div>
+                {cat.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{cat.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 ml-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(cat)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                {cat.active && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => handleDelete(cat._id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function BusinessEditPage() {
@@ -307,11 +515,12 @@ export default function BusinessEditPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Tabs defaultValue="identity" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="identity">Identidad</TabsTrigger>
                   <TabsTrigger value="contact">Contacto</TabsTrigger>
                   <TabsTrigger value="regional">Regional</TabsTrigger>
                   <TabsTrigger value="billing">Facturación</TabsTrigger>
+                  <TabsTrigger value="categories">Categorías</TabsTrigger>
                 </TabsList>
                 <TabsContent value="identity" className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">Datos que identifican al negocio en la interfaz y documentos.</p>
@@ -500,6 +709,9 @@ export default function BusinessEditPage() {
                       <FormItem><FormLabel>Rango hasta</FormLabel><FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
                     )} />
                   </div>
+                </TabsContent>
+                <TabsContent value="categories" className="pt-4">
+                  <CategoriesTab businessId={business._id} />
                 </TabsContent>
               </Tabs>
               <Button type="submit" disabled={saving} className="mt-4">

@@ -22,10 +22,16 @@ export const fetchApiImgbbV1: CallableFunction = async (imageFile: File | string
 const conector: CallableFunction = async ({ api, query = ``, variables = {}, type = "json", }: conector): Promise<any> => {
   try {
     if (type === "json") {
-      const {
-        data: { data },
-      } = await api.graphql({ query, variables });
-      return Object.values(data)[0];
+      const res = await api.graphql({ query, variables });
+      const body = res?.data ?? {};
+      if (body.errors?.length) {
+        const first = body.errors[0];
+        const err = new Error(first.message || "Error GraphQL") as Error & { extensions?: Record<string, unknown> };
+        err.extensions = first.extensions;
+        throw err;
+      }
+      const data = body.data;
+      return data ? Object.values(data)[0] : undefined;
     } else if (type === "formData") {
       const formData = new FormData();
       const values = Object?.entries(variables);
@@ -733,6 +739,7 @@ export const queries = {
       code
       description
       type
+      category
       quantity
       unitCost
       salesPrice
@@ -793,6 +800,7 @@ export const queries = {
       code
       description
       type
+      category
       quantity
       unitCost
       salesPrice
@@ -811,6 +819,7 @@ export const queries = {
       code
       description
       type
+      category
       quantity
       unitCost
       salesPrice
@@ -843,6 +852,162 @@ export const queries = {
       unitCost
       salesPrice
       createdAt
+    }
+  }`,
+  // Categorías de productos y servicios (id = business _id)
+  getProductCategories: `query getProductCategories($id: ID!, $includeInactive: Boolean) {
+    getProductCategories(id: $id, includeInactive: $includeInactive) {
+      _id
+      name
+      description
+      type
+      active
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  createProductCategory: `mutation createProductCategory($id: ID!, $args: CreateProductCategoryInput!) {
+    createProductCategory(id: $id, args: $args) {
+      _id
+      name
+      description
+      type
+      active
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  updateProductCategory: `mutation updateProductCategory($_id: ID!, $id: ID!, $args: UpdateProductCategoryInput!) {
+    updateProductCategory(_id: $_id, id: $id, args: $args) {
+      _id
+      name
+      description
+      type
+      active
+      createdBy
+      createdAt
+      updatedAt
+    }
+  }`,
+  deleteProductCategory: `mutation deleteProductCategory($_id: ID!, $id: ID!) {
+    deleteProductCategory(_id: $_id, id: $id)
+  }`,
+  // Product (maestro) + Variants (SKUs)
+  getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean) {
+    getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive) {
+      _id name description category_id base_price brand status createdBy createdAt updatedAt
+      category { _id name }
+      variants { _id sku stock_quantity price_override }
+    }
+  }`,
+  getProduct: `query getProduct($_id: ID!, $id: ID!) {
+    getProduct(_id: $_id, id: $id) {
+      _id name description category_id base_price brand status createdBy createdAt updatedAt
+      category { _id name }
+      variants { _id product_id sku price_override stock_quantity image_url status
+        attribute_values { attribute_value_id }
+      }
+    }
+  }`,
+  getAttributes: `query getAttributes($id: ID!) {
+    getAttributes(id: $id) {
+      _id name createdAt updatedAt
+      values { _id attribute_id value }
+    }
+  }`,
+  getAttributeValues: `query getAttributeValues($id: ID!, $attribute_id: ID) {
+    getAttributeValues(id: $id, attribute_id: $attribute_id) {
+      _id attribute_id value createdAt updatedAt
+    }
+  }`,
+  getProductVariants: `query getProductVariants($id: ID!, $product_id: ID, $includeDeleted: Boolean) {
+    getProductVariants(id: $id, product_id: $product_id, includeDeleted: $includeDeleted) {
+      _id product_id sku price_override stock_quantity image_url status deleted_at
+      attribute_values { attribute_value_id }
+      createdBy createdAt updatedAt
+    }
+  }`,
+  getProductVariantBySku: `query getProductVariantBySku($id: ID!, $sku: String!) {
+    getProductVariantBySku(id: $id, sku: $sku) {
+      _id product_id sku price_override stock_quantity image_url status
+      attribute_values { attribute_value_id }
+    }
+  }`,
+  getStock: `query getStock($id: ID!, $sku: String, $variantId: ID) {
+    getStock(id: $id, sku: $sku, variantId: $variantId) {
+      found sku variantId stock_quantity
+    }
+  }`,
+  generateVariantsPreview: `query generateVariantsPreview($id: ID!, $input: GenerateVariantsPreviewInput!) {
+    generateVariantsPreview(id: $id, input: $input) {
+      combinations { sku attributeValues { attributeName value attributeValueId } attribute_value_ids price_override stock_quantity }
+    }
+  }`,
+  createProduct: `mutation createProduct($id: ID!, $args: CreateProductInput!) {
+    createProduct(id: $id, args: $args) {
+      _id name description category_id base_price brand status createdBy createdAt updatedAt
+    }
+  }`,
+  updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
+    updateProduct(_id: $_id, id: $id, args: $args) {
+      _id name description category_id base_price brand status createdBy createdAt updatedAt
+    }
+  }`,
+  deleteProduct: `mutation deleteProduct($_id: ID!, $id: ID!) {
+    deleteProduct(_id: $_id, id: $id)
+  }`,
+  createAttribute: `mutation createAttribute($id: ID!, $args: CreateAttributeInput!) {
+    createAttribute(id: $id, args: $args) {
+      _id name createdAt updatedAt
+    }
+  }`,
+  createAttributeValue: `mutation createAttributeValue($id: ID!, $args: CreateAttributeValueInput!) {
+    createAttributeValue(id: $id, args: $args) {
+      _id attribute_id value createdAt updatedAt
+    }
+  }`,
+  createProductVariant: `mutation createProductVariant($id: ID!, $args: CreateProductVariantInput!) {
+    createProductVariant(id: $id, args: $args) {
+      _id product_id sku price_override stock_quantity image_url status
+      attribute_values { attribute_value_id }
+    }
+  }`,
+  updateProductVariant: `mutation updateProductVariant($_id: ID!, $id: ID!, $args: UpdateProductVariantInput!) {
+    updateProductVariant(_id: $_id, id: $id, args: $args) {
+      _id product_id sku price_override stock_quantity image_url status
+    }
+  }`,
+  bulkUpdateVariants: `mutation bulkUpdateVariants($id: ID!, $items: [BulkUpdateVariantItem!]!) {
+    bulkUpdateVariants(id: $id, items: $items) {
+      _id sku price_override stock_quantity
+    }
+  }`,
+  createProductWithVariants: `mutation createProductWithVariants($id: ID!, $product: CreateProductInput!, $variantsPreview: [VariantPreviewItemInput!]!) {
+    createProductWithVariants(id: $id, product: $product, variantsPreview: $variantsPreview) {
+      _id name description category_id base_price brand status
+      variants { _id sku price_override stock_quantity }
+    }
+  }`,
+  addVariantsToProduct: `mutation addVariantsToProduct($id: ID!, $product_id: ID!, $variants: [VariantPreviewItemInput!]!) {
+    addVariantsToProduct(id: $id, product_id: $product_id, variants: $variants) {
+      _id product_id sku price_override stock_quantity status
+    }
+  }`,
+  softDeleteProductVariant: `mutation softDeleteProductVariant($id: ID!, $variant_id: ID!) {
+    softDeleteProductVariant(id: $id, variant_id: $variant_id) {
+      _id sku status deleted_at
+    }
+  }`,
+  restoreProductVariant: `mutation restoreProductVariant($id: ID!, $variant_id: ID!, $initialStock: Float!) {
+    restoreProductVariant(id: $id, variant_id: $variant_id, initialStock: $initialStock) {
+      _id sku stock_quantity status deleted_at
+    }
+  }`,
+  deductStock: `mutation deductStock($input: DeductStockInput!) {
+    deductStock(input: $input) {
+      success variantId sku previousQuantity newQuantity error
     }
   }`,
   // Protocol drafts (De Charla a Protocolo)

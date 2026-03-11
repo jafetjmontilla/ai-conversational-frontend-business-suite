@@ -284,6 +284,7 @@ export interface InventoryItem {
   code: string;
   description: string;
   type: "mercancia" | "servicio";
+  category?: string;
   quantity: number;
   unitCost: number;
   salesPrice: number;
@@ -298,6 +299,102 @@ export interface InventoryItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface ProductCategory {
+  _id: string;
+  name: string;
+  description?: string;
+  type: "producto" | "servicio" | "ambos";
+  active: boolean;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ——— Product (maestro) + Variants (SKUs) ———
+export interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  category_id: string | null;
+  base_price: number;
+  brand: string;
+  status: boolean;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Attribute {
+  _id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AttributeValue {
+  _id: string;
+  attribute_id: string;
+  value: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VariantAttributeMapEntry {
+  attribute_value_id: string;
+}
+
+export interface ProductVariant {
+  _id: string;
+  product_id: string;
+  sku: string;
+  price_override: number | null;
+  stock_quantity: number;
+  image_url: string | null;
+  attribute_values: VariantAttributeMapEntry[];
+  status: boolean;
+  /** Soft delete: si está definido, la variante está desactivada (no en ventas; sí en reportes). */
+  deleted_at?: string | null;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Previsualización de variante (generación cartesiana). */
+export interface VariantPreviewItem {
+  sku: string;
+  attributeValues: { attributeName: string; value: string; attributeValueId?: string }[];
+  attribute_value_ids?: string[];
+  price_override: number | null;
+  stock_quantity: number;
+}
+
+export interface GenerateVariantsPreviewPayload {
+  combinations: VariantPreviewItem[];
+}
+
+export interface StockDeductResult {
+  success: boolean;
+  variantId?: string;
+  sku?: string;
+  previousQuantity: number;
+  newQuantity: number;
+  error?: string;
+}
+
+export interface StockInfo {
+  found: boolean;
+  sku?: string | null;
+  variantId?: string | null;
+  stock_quantity: number;
+}
+
+/** Input para generación: atributo con valores (producto cartesiano). */
+export type AttributeValuesForPreview = {
+  attributeId: string;
+  attributeName: string;
+  values: { id: string; value: string }[];
+};
 
 export interface PaymentFiltersInput {
   status?: string;
