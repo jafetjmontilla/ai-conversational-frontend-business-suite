@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart } from 'lucide-react';
+import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart, Briefcase } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
 import { useAuth } from "@/contexts/AuthContext"
@@ -72,6 +72,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         { href: `/${businessId}/knowledge`, label: 'Generar conocimiento', icon: BookOpen, condition: canEditCurrentBusiness },
         { href: `/${businessId}/invoice`, label: 'Facturación', icon: FileText, condition: canViewCurrentBusiness },
         { href: `/${businessId}/inventory`, label: 'Inventario', icon: Package, condition: canViewCurrentBusiness },
+        { href: `/${businessId}/services`, label: 'Servicios', icon: Briefcase, condition: canViewCurrentBusiness },
         { href: `/${businessId}/reportPayments`, label: 'Reporte de pagos', icon: CreditCard, condition: canViewCurrentBusiness },
         { href: `/${businessId}/reportInvoices`, label: 'Reporte de facturas', icon: FileBarChart, condition: canViewCurrentBusiness },
       ].filter((item) => item.condition !== false);

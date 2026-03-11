@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Business, Product, ProductCategory } from "@/lib/interfases";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ export default function InventoryNuevoPage() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [basePrice, setBasePrice] = useState("");
   const [brand, setBrand] = useState("");
+  const [isSellable, setIsSellable] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const businessIdDoc = business?._id;
@@ -96,6 +98,7 @@ export default function InventoryNuevoPage() {
             category_id: categoryId || undefined,
             base_price: basePrice ? roundToTwo(parseFloat(basePrice)) : 0,
             brand: brand.trim() || undefined,
+            is_sellable: isSellable,
           },
         },
       })) as Product;
@@ -197,6 +200,16 @@ export default function InventoryNuevoPage() {
                 onChange={(e) => setBrand(e.target.value)}
                 placeholder="Opcional"
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_sellable"
+                checked={isSellable}
+                onCheckedChange={setIsSellable}
+              />
+              <Label htmlFor="is_sellable" className="cursor-pointer">
+                Vendible (aparece en catálogo de ventas). Si está desactivado puede ser usado como insumos/materia prima.
+              </Label>
             </div>
             <div className="flex gap-2 pt-4">
               <Button type="submit" disabled={saving}>

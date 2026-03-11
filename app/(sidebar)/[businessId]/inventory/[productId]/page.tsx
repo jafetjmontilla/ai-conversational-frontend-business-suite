@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import {
   buildPreviewInput,
@@ -172,6 +173,7 @@ export default function ProductDetailPage() {
             category_id: product.category_id ?? null,
             base_price: product.base_price,
             brand: product.brand,
+            is_sellable: product.is_sellable !== false,
           },
         },
       });
@@ -430,6 +432,16 @@ export default function ProductDetailPage() {
                 onChange={(e) => setProduct((p) => (p ? { ...p, brand: e.target.value } : null))}
                 className="mt-1"
               />
+            </div>
+            <div className="flex items-center space-x-2 md:col-span-2">
+              <Switch
+                id="is_sellable"
+                checked={product.is_sellable !== false}
+                onCheckedChange={(checked) => setProduct((p) => (p ? { ...p, is_sellable: checked } : null))}
+              />
+              <Label htmlFor="is_sellable" className="cursor-pointer">
+                Vendible (catálogo de ventas). Desactivar = insumo (solo recetas).
+              </Label>
             </div>
           </div>
           <Button onClick={handleSaveProduct} disabled={saving}>{saving ? "Guardando…" : "Guardar producto"}</Button>

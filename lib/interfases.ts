@@ -319,6 +319,8 @@ export interface Product {
   category_id: string | null;
   base_price: number;
   brand: string;
+  /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas (Service_Materials). Default true. */
+  is_sellable?: boolean;
   status: boolean;
   createdBy: string;
   createdAt?: string;
@@ -403,4 +405,53 @@ export interface PaymentFiltersInput {
   dateTo?: string;
   search?: string;
   offsetMinutes?: number;
+}
+
+/** Opción de un servicio (ej. "1 hora", "4 horas") con precio. */
+export interface ServiceOption {
+  _id: string;
+  name: string;
+  price: number;
+  durationMinutes?: number | null;
+  status: boolean;
+}
+
+/** Insumo asociado a un servicio (variante + cantidad por unidad). */
+export interface ServiceMaterial {
+  _id: string;
+  service_id: string;
+  business_id: string;
+  product_variant_id: string;
+  quantity_required: number;
+  productVariant?: { _id: string; sku: string; cost_price?: number | null; unit_of_measure?: string } | null;
+}
+
+/** Variante para selector de insumos (con nombre de producto para búsqueda). */
+export interface ProductVariantForMaterial {
+  _id: string;
+  product_id: string;
+  sku: string;
+  cost_price?: number | null;
+  unit_of_measure?: string;
+  product?: { _id: string; name: string } | null;
+}
+
+/** Servicio padre (catálogo independiente de productos). */
+export interface Service {
+  _id: string;
+  business_id: string;
+  name: string;
+  description: string;
+  is_available?: boolean;
+  unit_of_measure?: string;
+  cost_review_pending?: boolean;
+  status: boolean;
+  options?: ServiceOption[];
+  materials?: ServiceMaterial[];
+}
+
+/** Resultado del costo de producción dinámico de un servicio. */
+export interface ProductionCostResult {
+  totalProductionCost: number;
+  breakdown: Array<{ variantId: string; sku: string; quantity: number; costPrice: number; subtotal: number }>;
 }

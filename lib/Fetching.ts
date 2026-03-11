@@ -895,16 +895,16 @@ export const queries = {
     deleteProductCategory(_id: $_id, id: $id)
   }`,
   // Product (maestro) + Variants (SKUs)
-  getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean) {
-    getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive) {
-      _id name description category_id base_price brand status createdBy createdAt updatedAt
+  getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean, $includeNonSellable: Boolean) {
+    getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive, includeNonSellable: $includeNonSellable) {
+      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
       category { _id name }
       variants { _id sku stock_quantity price_override }
     }
   }`,
   getProduct: `query getProduct($_id: ID!, $id: ID!) {
     getProduct(_id: $_id, id: $id) {
-      _id name description category_id base_price brand status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
       category { _id name }
       variants { _id product_id sku price_override stock_quantity image_url status
         attribute_values { attribute_value_id }
@@ -924,8 +924,9 @@ export const queries = {
   }`,
   getProductVariants: `query getProductVariants($id: ID!, $product_id: ID, $includeDeleted: Boolean) {
     getProductVariants(id: $id, product_id: $product_id, includeDeleted: $includeDeleted) {
-      _id product_id sku price_override stock_quantity image_url status deleted_at
+      _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status deleted_at
       attribute_values { attribute_value_id }
+      product { _id name }
       createdBy createdAt updatedAt
     }
   }`,
@@ -947,12 +948,12 @@ export const queries = {
   }`,
   createProduct: `mutation createProduct($id: ID!, $args: CreateProductInput!) {
     createProduct(id: $id, args: $args) {
-      _id name description category_id base_price brand status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
     }
   }`,
   updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
     updateProduct(_id: $_id, id: $id, args: $args) {
-      _id name description category_id base_price brand status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
     }
   }`,
   deleteProduct: `mutation deleteProduct($_id: ID!, $id: ID!) {
@@ -986,7 +987,7 @@ export const queries = {
   }`,
   createProductWithVariants: `mutation createProductWithVariants($id: ID!, $product: CreateProductInput!, $variantsPreview: [VariantPreviewItemInput!]!) {
     createProductWithVariants(id: $id, product: $product, variantsPreview: $variantsPreview) {
-      _id name description category_id base_price brand status
+      _id name description category_id base_price brand is_sellable status
       variants { _id sku price_override stock_quantity }
     }
   }`,
@@ -1009,6 +1010,84 @@ export const queries = {
     deductStock(input: $input) {
       success variantId sku previousQuantity newQuantity error
     }
+  }`,
+  // Servicios (catálogo independiente de productos)
+  getServices: `query getServices($id: ID!, $includeInactive: Boolean) {
+    getServices(id: $id, includeInactive: $includeInactive) {
+      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      options { _id name price durationMinutes status }
+    }
+  }`,
+  getService: `query getService($id: ID!, $_id: ID!) {
+    getService(id: $id, _id: $_id) {
+      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      options { _id service_id name price durationMinutes status }
+      materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure } }
+    }
+  }`,
+  getServiceOptions: `query getServiceOptions($id: ID!, $service_id: ID) {
+    getServiceOptions(id: $id, service_id: $service_id) {
+      _id service_id business_id name price durationMinutes status createdBy createdAt updatedAt
+    }
+  }`,
+  createService: `mutation createService($id: ID!, $args: CreateServiceInput!) {
+    createService(id: $id, args: $args) {
+      _id name description is_available unit_of_measure status
+    }
+  }`,
+  updateService: `mutation updateService($id: ID!, $_id: ID!, $args: UpdateServiceInput!) {
+    updateService(id: $id, _id: $_id, args: $args) {
+      _id name description is_available unit_of_measure cost_review_pending status
+    }
+  }`,
+  deleteService: `mutation deleteService($id: ID!, $_id: ID!) {
+    deleteService(id: $id, _id: $_id)
+  }`,
+  getServiceMaterials: `query getServiceMaterials($id: ID!, $service_id: ID) {
+    getServiceMaterials(id: $id, service_id: $service_id) {
+      _id service_id business_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure }
+    }
+  }`,
+  getProductionCost: `query getProductionCost($id: ID!, $service_id: ID!) {
+    getProductionCost(id: $id, service_id: $service_id) {
+      totalProductionCost breakdown { variantId sku quantity costPrice subtotal }
+    }
+  }`,
+  getServiceProfitabilityReport: `query getServiceProfitabilityReport($id: ID!, $fromDate: Date!, $toDate: Date!) {
+    getServiceProfitabilityReport(id: $id, fromDate: $fromDate, toDate: $toDate) {
+      fromDate toDate items { service_id serviceName totalRevenue totalProductionCost grossProfit unitsSold }
+    }
+  }`,
+  createServiceMaterial: `mutation createServiceMaterial($id: ID!, $args: CreateServiceMaterialInput!) {
+    createServiceMaterial(id: $id, args: $args) {
+      _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure }
+    }
+  }`,
+  updateServiceMaterial: `mutation updateServiceMaterial($id: ID!, $_id: ID!, $args: UpdateServiceMaterialInput!) {
+    updateServiceMaterial(id: $id, _id: $_id, args: $args) {
+      _id quantity_required productVariant { _id sku cost_price unit_of_measure }
+    }
+  }`,
+  deleteServiceMaterial: `mutation deleteServiceMaterial($id: ID!, $_id: ID!) {
+    deleteServiceMaterial(id: $id, _id: $_id)
+  }`,
+  clearServiceCostReview: `mutation clearServiceCostReview($id: ID!, $_id: ID!) {
+    clearServiceCostReview(id: $id, _id: $_id) {
+      _id cost_review_pending
+    }
+  }`,
+  createServiceOption: `mutation createServiceOption($id: ID!, $args: CreateServiceOptionInput!) {
+    createServiceOption(id: $id, args: $args) {
+      _id service_id name price durationMinutes status
+    }
+  }`,
+  updateServiceOption: `mutation updateServiceOption($id: ID!, $_id: ID!, $args: UpdateServiceOptionInput!) {
+    updateServiceOption(id: $id, _id: $_id, args: $args) {
+      _id name price durationMinutes status
+    }
+  }`,
+  deleteServiceOption: `mutation deleteServiceOption($id: ID!, $_id: ID!) {
+    deleteServiceOption(id: $id, _id: $_id)
   }`,
   // Protocol drafts (De Charla a Protocolo)
   listProtocolDrafts: `query listProtocolDrafts($businessId: String!, $status: String) {

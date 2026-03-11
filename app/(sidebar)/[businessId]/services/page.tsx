@@ -8,17 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InputSearch } from "@/components/InputSearch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Product } from "@/lib/interfases";
+import type { Business, Service, ServiceOption } from "@/lib/interfases";
 import { toast } from "sonner";
-import { Plus, Package, Trash2, Layers, Settings2 } from "lucide-react";
+import { Plus, Briefcase, Trash2, Settings2 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 
-type ProductWithVariants = Product & {
-  category?: { _id: string; name: string } | null;
-  variants?: { _id: string; sku: string; stock_quantity: number; price_override: number | null }[];
-};
-
-export default function InventoryPage() {
+export default function ServicesCatalogPage() {
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
@@ -26,7 +21,7 @@ export default function InventoryPage() {
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
 
   const [business, setBusiness] = useState<Business | null>(null);
-  const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -49,8 +44,7 @@ export default function InventoryPage() {
             variables: { businessId },
           })) as Business | null;
         }
-        if (cancelled) return;
-        setBusiness(b || null);
+        if (!cancelled) setBusiness(b || null);
       } catch {
         if (!cancelled) toast.error("Error al cargar el negocio");
       }
@@ -60,23 +54,22 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (!businessIdDoc) {
-      setProducts([]);
+      setServices([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
     fetchApiV1({
-      query: queries.getProducts,
+      query: queries.getServices,
       type: "json",
-      variables: { id: businessIdDoc, limit: 500, includeNonSellable: true },
+      variables: { id: businessIdDoc, includeInactive: true },
     })
-      .then((res: ProductWithVariants[] | null) => {
-        if (cancelled) return;
-        setProducts(Array.isArray(res) ? res : []);
+      .then((res: Service[] | null) => {
+        if (!cancelled) setServices(Array.isArray(res) ? res : []);
       })
       .catch(() => {
-        if (!cancelled) toast.error("Error al cargar productos");
+        if (!cancelled) toast.error("Error al cargar servicios");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -86,27 +79,26 @@ export default function InventoryPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.brand && p.brand.toLowerCase().includes(q)) ||
-        (p.variants?.some((v) => v.sku.toLowerCase().includes(q)))
+    if (!q) return services;
+    return services.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.description && s.description.toLowerCase().includes(q)) ||
+        s.options?.some((o) => o.name.toLowerCase().includes(q))
     );
-  }, [products, query]);
+  }, [services, query]);
 
-  const handleDelete = async (product: ProductWithVariants) => {
-    if (!confirm(`¿Desactivar producto "${product.name}"?`)) return;
+  const handleDelete = async (service: Service) => {
+    if (!confirm(`¿Desactivar servicio "${service.name}"?`)) return;
     if (!businessIdDoc) return;
     try {
       await fetchApiV1({
-        query: queries.deleteProduct,
+        query: queries.deleteService,
         type: "json",
-        variables: { id: businessIdDoc, _id: product._id },
+        variables: { id: businessIdDoc, _id: service._id },
       });
-      setProducts((prev) => prev.filter((p) => p._id !== product._id));
-      toast.success("Producto desactivado");
+      setServices((prev) => prev.filter((s) => s._id !== service._id));
+      toast.success("Servicio desactivado");
     } catch (e: unknown) {
       toast.error((e as { message?: string })?.message || "Error al desactivar");
     }
@@ -118,7 +110,7 @@ export default function InventoryPage() {
       <div className="p-4 md:p-6 lg:p-8">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground">No tienes permiso para gestionar el inventario de este negocio.</p>
+            <p className="text-muted-foreground">No tienes permiso para gestionar los servicios de este negocio.</p>
             <Button variant="outline" className="mt-4" onClick={() => router.push("/businesses")}>
               Volver
             </Button>
@@ -133,35 +125,29 @@ export default function InventoryPage() {
       <Card className="flex flex-col w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Inventario
+            <Briefcase className="h-5 w-5" />
+            Catálogo de servicios
           </CardTitle>
-          <CardDescription>Productos (maestro) y variantes (SKU). Cada producto tiene al menos una variante.</CardDescription>
+          <CardDescription>
+            Servicios independientes del inventario de productos. Cada servicio puede tener opciones (ej. &quot;1 hora&quot;, &quot;4 horas&quot;) con su precio.
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0 md:p-2 flex-1 flex flex-col">
           <div className="flex flex-col md:flex-row gap-2 p-2">
             <div className="flex-1">
               <InputSearch
-                placeholder="Buscar por nombre, descripción, marca o SKU"
+                placeholder="Buscar por nombre, descripción u opción"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full"
               />
             </div>
-            <div className="flex gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/${businessId}/inventory/atributos`}>
-                  <Layers className="h-4 w-4 mr-2" />
-                  Atributos
-                </Link>
-              </Button>
-              <Button asChild size="sm" disabled={!businessIdDoc || loading}>
-                <Link href={`/${businessId}/inventory/nuevo`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar producto
-                </Link>
-              </Button>
-            </div>
+            <Button asChild size="sm" disabled={!businessIdDoc || loading}>
+              <Link href={`/${businessId}/services/nuevo`}>
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar servicio
+              </Link>
+            </Button>
           </div>
           {loading ? (
             <div className="flex justify-center py-12">
@@ -171,51 +157,60 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[180px]">Producto</TableHead>
-                  <TableHead className="min-w-[120px]">Categoría</TableHead>
-                  <TableHead className="min-w-[90px]">Precio base</TableHead>
-                  <TableHead className="min-w-[80px]">Variantes</TableHead>
+                  <TableHead className="min-w-[180px]">Servicio</TableHead>
+                  <TableHead className="min-w-[80px]">Opciones</TableHead>
                   <TableHead className="min-w-[80px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      {query ? "Sin resultados con el filtro." : "No hay productos. Agrega uno."}
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      {query ? "Sin resultados con el filtro." : "No hay servicios. Agrega uno."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((product) => (
-                    <TableRow key={product._id}>
+                  filtered.map((service) => (
+                    <TableRow key={service._id}>
                       <TableCell>
                         <Link
-                          href={`/${businessId}/inventory/${product._id}`}
+                          href={`/${businessId}/services/${service._id}`}
                           className="font-medium text-primary hover:underline"
                         >
-                          {product.name}
+                          {service.name}
                         </Link>
-                        {product.description && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{product.description}</p>
+                        {service.description && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{service.description}</p>
                         )}
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {!service.status && (
+                            <span className="text-xs text-amber-600">Inactivo</span>
+                          )}
+                          {service.is_available === false && (
+                            <span className="text-xs text-muted-foreground">No disponible</span>
+                          )}
+                          {service.cost_review_pending && (
+                            <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded">Revisar precios</span>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{product.category?.name ?? "—"}</TableCell>
-                      <TableCell>${(product.base_price ?? 0).toFixed(2)}</TableCell>
-                      <TableCell>{product.variants?.length ?? 0}</TableCell>
+                      <TableCell>{service.options?.length ?? 0}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/${businessId}/inventory/${product._id}`}>
+                          <Link href={`/${businessId}/services/${service._id}`}>
                             <Settings2 className="h-3 w-3" />
                           </Link>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(product)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {service.status && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(service)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -225,7 +220,7 @@ export default function InventoryPage() {
           )}
           {filtered.length > 0 && (
             <div className="p-4 mt-2 bg-muted/50 rounded-lg text-sm">
-              Mostrando {filtered.length} productos
+              Mostrando {filtered.length} servicios
             </div>
           )}
         </CardContent>
