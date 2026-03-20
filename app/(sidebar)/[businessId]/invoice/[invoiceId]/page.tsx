@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Invoice } from "@/lib/interfases";
+import type { Business, Invoice, InvoiceItemType } from "@/lib/interfases";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Save, CreditCard } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
@@ -26,7 +26,8 @@ interface InvoiceItemRow {
   id: string;
   inventoryId: string;
   productVariantId?: string;
-  itemType?: 'product_variant' | 'inventory';
+  serviceOptionId?: string;
+  itemType?: InvoiceItemType;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -110,7 +111,8 @@ export default function InvoiceEditorPage() {
           id: it.id || `item-${idx}`,
           inventoryId: it.inventoryId || "",
           productVariantId: it.productVariantId || undefined,
-          itemType: it.itemType || "product_variant",
+          serviceOptionId: it.serviceOptionId || undefined,
+          itemType: it.itemType ?? "product_variant",
           description: it.description || "",
           quantity: it.quantity || 0,
           unitPrice: it.unitPrice || 0,
@@ -135,6 +137,7 @@ export default function InvoiceEditorPage() {
       id: `item-${Date.now()}`,
       inventoryId: "",
       productVariantId: undefined,
+      serviceOptionId: undefined,
       itemType: "product_variant",
       description: "",
       quantity: 0,
@@ -228,8 +231,9 @@ export default function InvoiceEditorPage() {
             items: items.map(it => ({
               id: it.id,
               inventoryId: it.inventoryId || "",
-              itemType: it.productVariantId ? "product_variant" : (it.itemType || "inventory"),
+              itemType: it.productVariantId ? "product_variant" : (it.itemType ?? "inventory"),
               productVariantId: it.productVariantId || undefined,
+              serviceOptionId: it.serviceOptionId || undefined,
               description: it.description,
               quantity: it.quantity,
               unitPrice: it.unitPrice,
