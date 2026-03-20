@@ -1,17 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import type { Business, BaileysApiNumber } from "@/lib/interfases";
-import { Plus, Trash2, Loader2, Smartphone } from "lucide-react";
+import { Plus, Trash2, Loader2, Smartphone, Wifi, WifiOff } from "lucide-react";
+
+/** Respuesta de getBaileysSessionStatus (api-business-suite → api-whatsapp-v1). */
+type BaileysSessionStatusRow = {
+  isConnected?: boolean | null;
+  qrCode?: string | null;
+  phoneNumber?: string | null;
+};
+
+type BaileysStatusEntry = BaileysSessionStatusRow | null | "loading";
+
+function BaileysConnectionBadge({ entry }: { entry: BaileysStatusEntry | undefined }) {
+  if (entry === undefined || entry === "loading") {
+    return (
+      <Badge variant="secondary" className="shrink-0 gap-1 font-normal">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Comprobando…
+      </Badge>
+    );
+  }
+  if (entry === null) {
+    return (
+      <Badge variant="outline" className="shrink-0 font-normal text-muted-foreground">
+        Sin datos
+      </Badge>
+    );
+  }
+  if (entry.isConnected) {
+    return (
+      <Badge className="shrink-0 gap-1 border-transparent bg-emerald-600 font-normal text-primary-foreground hover:bg-emerald-600">
+        <Wifi className="h-3 w-3" />
+        Conectado
+      </Badge>
+    );
+  }
+  if (entry.qrCode) {
+    return (
+      <Badge className="shrink-0 border-transparent bg-amber-500 font-normal text-amber-950 hover:bg-amber-500">
+        Esperando QR
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="destructive" className="shrink-0 gap-1 font-normal">
+      <WifiOff className="h-3 w-3" />
+      Desconectado
+    </Badge>
+  );
+}
 
 export default function ChannelsPage() {
   const params = useParams();
@@ -27,8 +76,61 @@ export default function ChannelsPage() {
   const [creating, setCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [baileysStatusBySession, setBaileysStatusBySession] = useState<Record<string, BaileysStatusEntry>>({});
 
   const baileysList = business?.whatsapps?.baileysApiNumbers ?? [];
+  const baileysSessionIdsKey = useMemo(() => baileysList.map((b) => b.sessionId).join("\0"), [baileysList]);
+
+  const businessRef = useRef(business);
+  businessRef.current = business;
+
+  useEffect(() => {
+    if (!business?._id) return;
+    let cancelled = false;
+    const load = async () => {
+      if (cancelled) return;
+      const list = businessRef.current?.whatsapps?.baileysApiNumbers ?? [];
+      if (list.length === 0) {
+        setBaileysStatusBySession({});
+        return;
+      }
+      setBaileysStatusBySession((prev) => {
+        const next = { ...prev };
+        for (const s of list) {
+          next[s.sessionId] = "loading";
+        }
+        return next;
+      });
+      const results = await Promise.all(
+        list.map(async (s) => {
+          try {
+            const st = (await fetchApiV1({
+              query: queries.getBaileysSessionStatus,
+              type: "json",
+              variables: { sessionId: s.sessionId },
+            })) as BaileysSessionStatusRow | undefined;
+            return { sessionId: s.sessionId, status: (st ?? null) as BaileysSessionStatusRow | null };
+          } catch {
+            return { sessionId: s.sessionId, status: null };
+          }
+        })
+      );
+      if (cancelled) return;
+      setBaileysStatusBySession((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          next[r.sessionId] = r.status;
+        }
+        return next;
+      });
+    };
+    void load();
+    const interval = setInterval(() => void load(), 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [business?._id, baileysSessionIdsKey]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -259,16 +361,24 @@ export default function ChannelsPage() {
                   <p className="text-sm text-muted-foreground">Aún no hay números conectados.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {baileysList.map((item) => (
+                    {baileysList.map((item) => {
+                      const st = baileysStatusBySession[item.sessionId];
+                      const phoneFromApi =
+                        st && st !== "loading" && st?.phoneNumber ? st.phoneNumber : null;
+                      const phoneLabel = item.phoneNumber ?? phoneFromApi;
+                      return (
                       <li
                         key={item.sessionId}
-                        className="flex items-center justify-between gap-2 rounded-md border bg-card px-3 py-2"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card px-3 py-2"
                       >
-                        <div>
-                          <span className="font-mono text-sm">{item.sessionId}</span>
-                          {item.phoneNumber && (
-                            <span className="text-muted-foreground text-sm ml-2">— {item.phoneNumber}</span>
-                          )}
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+                          <div className="min-w-0">
+                            <span className="font-mono text-sm">{item.sessionId}</span>
+                            {phoneLabel && (
+                              <span className="text-muted-foreground text-sm ml-2">— {phoneLabel}</span>
+                            )}
+                          </div>
+                          <BaileysConnectionBadge entry={st} />
                         </div>
                         <Button
                           variant="ghost"
@@ -284,7 +394,8 @@ export default function ChannelsPage() {
                           )}
                         </Button>
                       </li>
-                    ))}
+                    );
+                    })}
                   </ul>
                 )}
               </div>
