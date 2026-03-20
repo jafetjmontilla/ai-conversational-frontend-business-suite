@@ -9,9 +9,18 @@ import { useAuth } from "@/contexts/AuthContext"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Building2 } from "lucide-react"
+import { Shield, Building2, LogOut, User } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 import packageJson from "@/package.json"
 import { getBusinessIdFromPathname, useMyBusinesses } from "@/lib/hooks/useAllowed"
+import { getProfileHref } from "@/lib/profileRoutes"
 import { fetchApiV1, queries } from "@/lib/Fetching"
 import {
   Select,
@@ -34,7 +43,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
   const [currentDate, setCurrentDate] = useState(new Date())
   const pathname = usePathname()
   const { theme } = useThemeContext();
-  const { authUser } = useAuth();
+  const { authUser, logout } = useAuth();
   const router = useRouter();
   const { businesses, loading: loadingBusinesses } = useMyBusinesses();
   const currentBusinessId = getBusinessIdFromPathname(pathname || "");
@@ -96,22 +105,55 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             )}
             {authUser &&
               <div className="flex items-center gap-3 md:translate-y-[2px]">
-                <div onClick={() => router.push("/profile")} className="flex items-center gap-2 cursor-pointer">
-                  <div className="flex flex-col items-end leading-[15px]">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {authUser.displayName}
-                    </span>
-                    <span className="text-xs font-medium text-foreground truncate">
-                      {authUser.email}
-                    </span>
-                  </div>
-                  <Avatar className="h-8 w-8 hidden md:block">
-                    <AvatarImage src={authUser.photoURL || ""} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                      {authUser.displayName?.charAt(0)?.toUpperCase() || authUser.email?.charAt(0)?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 cursor-pointer rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <div className="flex flex-col items-end leading-[15px]">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {authUser.displayName}
+                        </span>
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {authUser.email}
+                        </span>
+                      </div>
+                      <Avatar className="h-8 w-8 hidden md:block">
+                        <AvatarImage src={authUser.photoURL || ""} />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                          {authUser.displayName?.charAt(0)?.toUpperCase() || authUser.email?.charAt(0)?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => router.push(getProfileHref(currentBusinessId))}>
+                      <User className="h-4 w-4 mr-2" />
+                      Mi perfil
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                      onClick={async () => {
+                        try {
+                          const response = await logout();
+                          if (response.success) {
+                            toast.success("Sesión cerrada");
+                            router.push("/login");
+                          } else {
+                            toast.error("Error al cerrar sesión");
+                          }
+                        } catch {
+                          toast.error("Error al cerrar sesión");
+                        }
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Cerrar sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="hidden md:flex flex-col min-w-0">
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className="h-5 px-1.5 text-xs flex items-center gap-1 border border-border/50">

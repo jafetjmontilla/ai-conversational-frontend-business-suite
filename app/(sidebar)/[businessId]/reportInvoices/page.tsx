@@ -118,7 +118,7 @@ export default function ReportInvoicesPage() {
           <CardDescription>Totales por método de pago (pagos completados)</CardDescription>
         </CardHeader>
         <CardContent className="p-0 md:p-2 flex-1">
-          <div className="flex flex-wrap gap-2 p-2">
+          {/* <div className="flex flex-wrap gap-2 p-2">
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Período" />
@@ -152,7 +152,7 @@ export default function ReportInvoicesPage() {
               <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
               Actualizar
             </Button>
-          </div>
+          </div> */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

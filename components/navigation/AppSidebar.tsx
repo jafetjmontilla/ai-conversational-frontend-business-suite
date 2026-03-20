@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart, Briefcase } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
+import { getProfileHref, isProfilePath } from "@/lib/profileRoutes"
 import { useAuth } from "@/contexts/AuthContext"
 import { useIsMobile } from "@/hooks/use-mobile"
 import packageJson from '../../package.json' assert { type: 'json' };
@@ -173,8 +174,8 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
               );
             })}
             <Separator className="my-2" />
-            <SidebarMenuItem onClick={() => !loading && handleNavigation("/profile", "Perfil")}>
-              <SidebarMenuButton className={`h-14 ${pathname === "/profile" ? "bg-accent text-accent-foreground" : ""}`}>
+            <SidebarMenuItem onClick={() => !loading && handleNavigation(getProfileHref(businessId), "Perfil")}>
+              <SidebarMenuButton className={`h-14 ${isProfilePath(pathname) ? "bg-accent text-accent-foreground" : ""}`}>
                 <Avatar className="scale-[80%] -translate-x-[12px]">
                   <AvatarImage src={user?.photoURL || ""} />
                   <AvatarFallback>NE</AvatarFallback>

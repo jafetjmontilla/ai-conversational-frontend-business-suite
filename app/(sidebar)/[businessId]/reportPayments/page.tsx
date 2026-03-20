@@ -100,13 +100,13 @@ export default function ReportPaymentsPage() {
           <CardDescription>Historial de pagos del negocio</CardDescription>
         </CardHeader>
         <CardContent className="p-0 md:p-2 flex-1">
-          <div className="flex flex-wrap gap-2 p-2">
+          {/* <div className="flex flex-wrap gap-2 p-2">
             <Select value={dateFilter} onValueChange={setDateFilter}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="today">Hoy</SelectItem>
                 <SelectItem value="week">Esta semana</SelectItem>
                 <SelectItem value="month">Este mes</SelectItem>
@@ -150,7 +150,7 @@ export default function ReportPaymentsPage() {
               <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
               Actualizar
             </Button>
-          </div>
+          </div> */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -182,9 +182,9 @@ export default function ReportPaymentsPage() {
                         <TableCell>
                           {p.createdAt
                             ? new Date(p.createdAt).toLocaleString("es", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
                             : "—"}
                         </TableCell>
                         <TableCell className="font-mono text-xs">{p._id.slice(-8)}</TableCell>
