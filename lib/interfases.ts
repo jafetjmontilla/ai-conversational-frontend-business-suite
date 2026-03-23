@@ -89,6 +89,14 @@ export interface DataProvider {
   tools: string[];
 }
 
+export interface UserMemoryConfig {
+  enabled: boolean;
+  maxFacts?: number;
+  maxFactLength?: number;
+  maxTotalCharsInjected?: number;
+  extractOnMessage?: boolean;
+}
+
 export interface BusinessConfig {
   conversationTimeout: number;
   messageLimit?: number;
@@ -97,6 +105,7 @@ export interface BusinessConfig {
   globalResponses: GlobalResponses;
   tools?: ToolConfig[];
   dataProviders?: DataProvider[];
+  userMemory?: UserMemoryConfig;
 }
 
 export interface MetaCloudApiNumber {
