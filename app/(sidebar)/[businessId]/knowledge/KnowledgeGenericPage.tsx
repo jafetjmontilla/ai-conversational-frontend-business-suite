@@ -45,39 +45,49 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
   const [narrative, setNarrative] = useState("");
   const [sending, setSending] = useState(false);
   const [drafts, setDrafts] = useState<KnowledgeDraft[]>([]);
-  const [loadingDrafts, setLoadingDrafts] = useState(true);
+  const [indexed, setIndexed] = useState<KnowledgeDraft[]>([]);
+  const [loadingLists, setLoadingLists] = useState(true);
   const [selectedDraft, setSelectedDraft] = useState<KnowledgeDraft | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const loadDrafts = useCallback(async () => {
+  const loadLists = useCallback(async () => {
     if (!businessId) return;
     try {
-      const list = (await fetchApiV1({
-        query: queries.listKnowledgeDrafts,
-        type: "json",
-        variables: { businessId, sourceId, status: "draft" },
-      })) as KnowledgeDraft[] | undefined;
-      setDrafts(Array.isArray(list) ? list : []);
-    } catch (e) {
-      toast.error("Error al cargar borradores");
+      const [draftList, indexedList] = await Promise.all([
+        fetchApiV1({
+          query: queries.listKnowledgeDrafts,
+          type: "json",
+          variables: { businessId, sourceId, status: "draft" },
+        }) as Promise<KnowledgeDraft[] | undefined>,
+        fetchApiV1({
+          query: queries.listKnowledgeDrafts,
+          type: "json",
+          variables: { businessId, sourceId, status: "approved" },
+        }) as Promise<KnowledgeDraft[] | undefined>,
+      ]);
+      setDrafts(Array.isArray(draftList) ? draftList : []);
+      setIndexed(Array.isArray(indexedList) ? indexedList : []);
+    } catch {
+      toast.error("Error al cargar conocimiento");
       setDrafts([]);
+      setIndexed([]);
     } finally {
-      setLoadingDrafts(false);
+      setLoadingLists(false);
     }
   }, [businessId, sourceId]);
 
   useEffect(() => {
     if (!businessId) return;
-    loadDrafts();
+    loadLists();
     subscribeToKnowledge(businessId);
     const unsubscribe = onProtocolDraftUpdated((payload: { businessId: string }) => {
-      if (payload.businessId === businessId) loadDrafts();
+      if (payload.businessId === businessId) loadLists();
     });
     return () => {
       unsubscribe();
       unsubscribeFromKnowledge(businessId);
     };
-  }, [businessId, loadDrafts, subscribeToKnowledge, unsubscribeFromKnowledge, onProtocolDraftUpdated]);
+  }, [businessId, loadLists, subscribeToKnowledge, unsubscribeFromKnowledge, onProtocolDraftUpdated]);
 
   const handleSendNarrative = async () => {
     if (!businessId || !narrative.trim()) {
@@ -110,7 +120,7 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
       });
       toast.success("Borrador aprobado e indexado en la base de conocimiento.");
       setSelectedDraft(null);
-      loadDrafts();
+      loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al aprobar");
     } finally {
@@ -128,9 +138,32 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
       });
       toast.success("Borrador rechazado.");
       setSelectedDraft(null);
-      loadDrafts();
+      loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al rechazar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (d: KnowledgeDraft) => {
+    const msg =
+      d.status === "approved"
+        ? `¿Eliminar "${d.draftId}" del índice y de la base de datos? Esta acción no se puede deshacer.`
+        : `¿Eliminar el borrador "${d.draftId}"?`;
+    if (!confirm(msg)) return;
+    setSaving(true);
+    try {
+      await fetchApiV1({
+        query: queries.deleteKnowledgeDraft,
+        type: "json",
+        variables: { id: d._id, sourceId },
+      });
+      toast.success(d.status === "approved" ? "Entrada eliminada del índice y del registro." : "Borrador eliminado.");
+      setSelectedDraft(null);
+      loadLists();
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || "Error al eliminar");
     } finally {
       setSaving(false);
     }
@@ -144,16 +177,21 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{title} — {description}</CardTitle>
+          <CardTitle>
+            {title} — {description}
+          </CardTitle>
           <CardDescription>
-            Escribe un texto o narrativa y la IA extraerá un borrador estructurado. Revisa, edita si hace falta y aprueba para indexarlo en Knowledge-RAG.
+            Escribe un texto o narrativa y la IA extraerá un borrador estructurado. Revisa, edita si hace falta y aprueba para
+            indexarlo en Knowledge-RAG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <Label className="text-base">Modo: Generar Conocimiento</Label>
-              <p className="text-sm text-muted-foreground">Al activar, el mensaje se enviará a la IA para extraer un borrador de tipo &quot;{title}&quot;.</p>
+              <p className="text-sm text-muted-foreground">
+                Al activar, el mensaje se enviará a la IA para extraer un borrador de tipo &quot;{title}&quot;.
+              </p>
             </div>
             <Switch checked={generateMode} onCheckedChange={setGenerateMode} />
           </div>
@@ -181,10 +219,10 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
       <Card>
         <CardHeader>
           <CardTitle>Borradores de {title}</CardTitle>
-          <CardDescription>Revisa, edita el JSON si hace falta y aprueba para indexar en Knowledge-RAG.</CardDescription>
+          <CardDescription>Pendientes de aprobación. Edita el JSON si hace falta y aprueba para indexar.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loadingDrafts && drafts.length === 0 ? (
+          {loadingLists && drafts.length === 0 ? (
             <p className="text-muted-foreground">Cargando…</p>
           ) : drafts.length === 0 ? (
             <p className="text-muted-foreground">No hay borradores. Activa el modo y envía un texto.</p>
@@ -196,7 +234,7 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
                     <p className="font-medium">{d.draftId}</p>
                     <p className="text-sm text-muted-foreground">{new Date(d.updatedAt).toLocaleString()}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 justify-end">
                     <Button variant="outline" size="sm" onClick={() => setSelectedDraft(selectedDraft?._id === d._id ? null : d)}>
                       {selectedDraft?._id === d._id ? "Cerrar" : "Editar"}
                     </Button>
@@ -208,7 +246,50 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
                         <Button variant="destructive" size="sm" onClick={() => handleReject(d)} disabled={saving}>
                           Rechazar
                         </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(d)} disabled={saving}>
+                          Eliminar
+                        </Button>
                       </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Conocimiento indexado — {title}</CardTitle>
+          <CardDescription>
+            Entradas ya aprobadas y disponibles para el RAG. Puedes editar el JSON y guardar para reindexar, o eliminar por completo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingLists && indexed.length === 0 ? (
+            <p className="text-muted-foreground">Cargando…</p>
+          ) : indexed.length === 0 ? (
+            <p className="text-muted-foreground">Aún no hay entradas indexadas para esta fuente.</p>
+          ) : (
+            <div className="space-y-2">
+              {indexed.map((d) => (
+                <div key={d._id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <p className="font-medium">{d.draftId}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Aprobado: {d.approvedAt ? new Date(d.approvedAt).toLocaleString() : "—"} · Actualizado:{" "}
+                      {new Date(d.updatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedDraft(selectedDraft?._id === d._id ? null : d)}>
+                      {selectedDraft?._id === d._id ? "Cerrar" : "Editar"}
+                    </Button>
+                    {canEdit && (
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(d)} disabled={saving}>
+                        Eliminar
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -220,8 +301,8 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
 
       {selectedDraft && canEdit && (
         <KnowledgeDraftForm
+          key={selectedDraft._id}
           draft={selectedDraft}
-          sourceId={sourceId}
           onSave={async (payloadStr) => {
             setSaving(true);
             try {
@@ -230,8 +311,8 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
                 type: "json",
                 variables: { id: selectedDraft._id, sourceId, payload: payloadStr },
               });
-              toast.success("Borrador actualizado.");
-              loadDrafts();
+              toast.success(selectedDraft.status === "approved" ? "Actualizado y reindexado." : "Borrador actualizado.");
+              loadLists();
             } catch (e: unknown) {
               toast.error((e as Error)?.message || "Error al guardar");
             } finally {
@@ -239,6 +320,7 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
             }
           }}
           onApprove={() => handleApprove(selectedDraft)}
+          onDelete={() => handleDelete(selectedDraft)}
           onCancel={() => setSelectedDraft(null)}
           saving={saving}
         />
@@ -249,16 +331,16 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
 
 function KnowledgeDraftForm({
   draft,
-  sourceId,
   onSave,
   onApprove,
+  onDelete,
   onCancel,
   saving,
 }: {
   draft: KnowledgeDraft;
-  sourceId: string;
   onSave: (payloadStr: string) => Promise<void>;
   onApprove: () => void;
+  onDelete: () => void;
   onCancel: () => void;
   saving: boolean;
 }) {
@@ -269,6 +351,8 @@ function KnowledgeDraftForm({
       return draft.payload;
     }
   });
+
+  const isIndexed = draft.status === "approved";
 
   const handleSave = async () => {
     try {
@@ -283,8 +367,14 @@ function KnowledgeDraftForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Editar borrador: {draft.draftId}</CardTitle>
-        <CardDescription>Modifica el JSON y guarda. Luego puedes aprobar para indexar.</CardDescription>
+        <CardTitle>
+          {isIndexed ? "Editar conocimiento indexado" : "Editar borrador"}: {draft.draftId}
+        </CardTitle>
+        <CardDescription>
+          {isIndexed
+            ? "Modifica el JSON y guarda para volver a indexar en Knowledge-RAG."
+            : "Modifica el JSON y guarda. Luego puedes aprobar para indexar."}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -296,12 +386,17 @@ function KnowledgeDraftForm({
             className="mt-1 font-mono text-sm"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Guardando…" : "Guardar"}
           </Button>
-          <Button onClick={onApprove} disabled={saving}>
-            Aprobar e indexar
+          {!isIndexed && (
+            <Button onClick={onApprove} disabled={saving}>
+              Aprobar e indexar
+            </Button>
+          )}
+          <Button variant="destructive" onClick={onDelete} disabled={saving}>
+            Eliminar
           </Button>
           <Button variant="outline" onClick={onCancel} disabled={saving}>
             Cancelar

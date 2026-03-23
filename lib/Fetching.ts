@@ -1204,6 +1204,9 @@ export const queries = {
       updatedAt
     }
   }`,
+  deleteKnowledgeDraft: `mutation deleteKnowledgeDraft($id: ID!, $sourceId: String!) {
+    deleteKnowledgeDraft(id: $id, sourceId: $sourceId)
+  }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {
     getChannels(status: $status) {
