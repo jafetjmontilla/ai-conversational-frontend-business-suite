@@ -17,6 +17,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import type { Business, BusinessConfig } from "@/lib/interfases";
 import { Plus, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+
+const defaultUserMemory = {
+  enabled: false,
+  maxFacts: 10,
+  maxFactLength: 200,
+  maxTotalCharsInjected: 1500,
+  extractOnMessage: false,
+};
+
+const defaultRagSearch = {
+  rerank: "none" as const,
+  mmrLambda: 0.5,
+  candidateMultiplier: 10,
+};
 
 const defaultConfig: BusinessConfig = {
   conversationTimeout: 30,
@@ -26,6 +42,8 @@ const defaultConfig: BusinessConfig = {
   globalResponses: {},
   tools: [],
   dataProviders: [],
+  userMemory: { ...defaultUserMemory },
+  ragSearch: { ...defaultRagSearch },
 };
 
 const dataProviderAuthSchema = z.object({
@@ -92,12 +110,31 @@ const formSchema = z.object({
   knowledgeSources: z.array(knowledgeSourceSchema),
   tools: z.array(toolSchema),
   dataProviders: z.array(dataProviderSchema),
+  userMemory: z.object({
+    enabled: z.boolean(),
+    maxFacts: z.coerce.number().min(1).max(50),
+    maxFactLength: z.coerce.number().min(20).max(2000),
+    maxTotalCharsInjected: z.coerce.number().min(200).max(8000),
+    extractOnMessage: z.boolean(),
+  }),
+  ragSearch: z.object({
+    rerank: z.enum(["none", "mmr"]),
+    mmrLambda: z.coerce.number().min(0).max(1),
+    candidateMultiplier: z.coerce.number().min(1).max(20),
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+function normalizeRerank(v: string | null | undefined): "none" | "mmr" {
+  if (v === "mmr") return "mmr";
+  return "none";
+}
+
 function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): BusinessConfig {
   if (!config) return defaultConfig;
+  const um = config.userMemory;
+  const rs = config.ragSearch;
   return {
     conversationTimeout: config.conversationTimeout ?? defaultConfig.conversationTimeout,
     messageLimit: config.messageLimit ?? defaultConfig.messageLimit,
@@ -109,6 +146,18 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
     globalResponses: config.globalResponses ?? {},
     tools: config.tools ?? [],
     dataProviders: config.dataProviders ?? [],
+    userMemory: {
+      enabled: um?.enabled ?? defaultUserMemory.enabled,
+      maxFacts: um?.maxFacts ?? defaultUserMemory.maxFacts,
+      maxFactLength: um?.maxFactLength ?? defaultUserMemory.maxFactLength,
+      maxTotalCharsInjected: um?.maxTotalCharsInjected ?? defaultUserMemory.maxTotalCharsInjected,
+      extractOnMessage: um?.extractOnMessage ?? defaultUserMemory.extractOnMessage,
+    },
+    ragSearch: {
+      rerank: normalizeRerank(rs?.rerank),
+      mmrLambda: rs?.mmrLambda ?? defaultRagSearch.mmrLambda,
+      candidateMultiplier: rs?.candidateMultiplier ?? defaultRagSearch.candidateMultiplier,
+    },
   };
 }
 
@@ -133,6 +182,8 @@ export default function BusinessConfigPage() {
       knowledgeSources: [],
       tools: [],
       dataProviders: [],
+      userMemory: { ...defaultUserMemory },
+      ragSearch: { ...defaultRagSearch },
     },
   });
 
@@ -177,6 +228,8 @@ export default function BusinessConfigPage() {
               auth: { type: p.auth?.type ?? "bearer", headerName: p.auth?.headerName ?? "", apiKey: "" },
               tools: p.tools ?? [],
             })),
+            userMemory: { ...defaultUserMemory, ...cfg.userMemory },
+            ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
           });
         } else {
           toast.error("Negocio no encontrado");
@@ -211,6 +264,18 @@ export default function BusinessConfigPage() {
           auth: p.auth?.type ? { type: p.auth.type, headerName: p.auth.headerName || undefined, apiKey: p.auth.apiKey?.trim() || undefined } : undefined,
           tools: p.tools ?? [],
         })),
+        userMemory: {
+          enabled: values.userMemory.enabled,
+          maxFacts: values.userMemory.maxFacts,
+          maxFactLength: values.userMemory.maxFactLength,
+          maxTotalCharsInjected: values.userMemory.maxTotalCharsInjected,
+          extractOnMessage: values.userMemory.extractOnMessage,
+        },
+        ragSearch: {
+          rerank: values.ragSearch.rerank,
+          mmrLambda: values.ragSearch.mmrLambda,
+          candidateMultiplier: values.ragSearch.candidateMultiplier,
+        },
       };
       await fetchApiV1({
         query: queries.updateBusiness,
@@ -268,13 +333,28 @@ export default function BusinessConfigPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="personality">Personalidad</TabsTrigger>
-                  <TabsTrigger value="responses">Respuestas</TabsTrigger>
-                  <TabsTrigger value="sources">Fuentes</TabsTrigger>
-                  <TabsTrigger value="tools">Herramientas</TabsTrigger>
-                  <TabsTrigger value="providers">Proveedores</TabsTrigger>
+                <TabsList className="flex w-full flex-wrap gap-1 h-auto min-h-10">
+                  <TabsTrigger value="general" className="flex-1 min-w-[5.5rem]">
+                    General
+                  </TabsTrigger>
+                  <TabsTrigger value="personality" className="flex-1 min-w-[5.5rem]">
+                    Personalidad
+                  </TabsTrigger>
+                  <TabsTrigger value="responses" className="flex-1 min-w-[5.5rem]">
+                    Respuestas
+                  </TabsTrigger>
+                  <TabsTrigger value="sources" className="flex-1 min-w-[5.5rem]">
+                    Fuentes
+                  </TabsTrigger>
+                  <TabsTrigger value="tools" className="flex-1 min-w-[5.5rem]">
+                    Herramientas
+                  </TabsTrigger>
+                  <TabsTrigger value="providers" className="flex-1 min-w-[5.5rem]">
+                    Proveedores
+                  </TabsTrigger>
+                  <TabsTrigger value="memory-rag" className="flex-1 min-w-[6.5rem]">
+                    Memoria / RAG
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-4 pt-4">
@@ -696,6 +776,145 @@ export default function BusinessConfigPage() {
                       </FormItem>
                     )}
                   />
+                </TabsContent>
+
+                <TabsContent value="memory-rag" className="space-y-6 pt-4">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Memoria de usuario (worker)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Hechos y preferencias persistentes por usuario; se inyectan en el prompt. Activar &quot;Extraer con IA&quot; añade una llamada a Gemini por mensaje para guardar hechos automáticamente.
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="userMemory.enabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel>Memoria activa</FormLabel>
+                            <p className="text-xs text-muted-foreground">Si está desactivada, el resto de opciones no tiene efecto.</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <FormField
+                        control={form.control}
+                        name="userMemory.maxFacts"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Máx. hechos</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={1} max={50} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="userMemory.maxFactLength"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Máx. caracteres por hecho</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={20} max={2000} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="userMemory.maxTotalCharsInjected"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tope total en prompt</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={200} max={8000} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="userMemory.extractOnMessage"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel>Extraer hechos con IA</FormLabel>
+                            <p className="text-xs text-muted-foreground">Coste adicional por mensaje (Gemini).</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Búsqueda RAG (Knowledge-RAG)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Re-ranking MMR diversifica los fragmentos devueltos antes de enviarlos al modelo. Solo aplica en el servicio Python de embeddings/FAISS.
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="ragSearch.rerank"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Modo de re-ranking</FormLabel>
+                          <FormControl>
+                            <select
+                              className="flex h-9 w-full max-w-md rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value as "none" | "mmr")}
+                            >
+                              <option value="none">Ninguno (orden FAISS)</option>
+                              <option value="mmr">MMR (diversidad)</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2 max-w-xl">
+                      <FormField
+                        control={form.control}
+                        name="ragSearch.mmrLambda"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Lambda MMR (0–1)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={1} step={0.05} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Más alto = más peso a relevancia; más bajo = más diversidad.</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="ragSearch.candidateMultiplier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Multiplicador de candidatos</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={1} max={20} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Candidatos FAISS ≈ topK × este valor (máx. 100).</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </TabsContent>
               </Tabs>
 

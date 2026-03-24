@@ -490,6 +490,18 @@ export const queries = {
           }
           tools
         }
+        userMemory {
+          enabled
+          maxFacts
+          maxFactLength
+          maxTotalCharsInjected
+          extractOnMessage
+        }
+        ragSearch {
+          rerank
+          mmrLambda
+          candidateMultiplier
+        }
       }
       whatsapps {
         metaCloudApiNumbers {
@@ -506,6 +518,26 @@ export const queries = {
       callbackUrl
       createdAt
       updatedAt
+    }
+  }`,
+  listUserMemories: `query listUserMemories($businessDocId: ID!, $skip: Int, $limit: Int, $userKeyContains: String) {
+    listUserMemories(businessDocId: $businessDocId, skip: $skip, limit: $limit, userKeyContains: $userKeyContains) {
+      totalCount
+      items {
+        id
+        businessId
+        userKey
+        role
+        facts
+        preferences {
+          displayName
+          languagePreference
+          tonePreference
+          doNotSuggest
+        }
+        source
+        updatedAt
+      }
     }
   }`,
   getMyBusinessMemberships: `query getMyBusinessMemberships {
@@ -570,6 +602,19 @@ export const queries = {
       createdAt
       updatedAt
     }
+  }`,
+  updateUserMemoryRecord: `mutation updateUserMemoryRecord($businessDocId: ID!, $userKey: String!, $role: String, $facts: [String!]!, $preferences: UserMemoryPreferencesMutationInput) {
+    updateUserMemoryRecord(businessDocId: $businessDocId, userKey: $userKey, role: $role, facts: $facts, preferences: $preferences) {
+      id
+      userKey
+      role
+      facts
+      source
+      updatedAt
+    }
+  }`,
+  deleteUserMemoryRecord: `mutation deleteUserMemoryRecord($businessDocId: ID!, $userKey: String!, $role: String) {
+    deleteUserMemoryRecord(businessDocId: $businessDocId, userKey: $userKey, role: $role)
   }`,
   getBaileysSessionStatus: `query getBaileysSessionStatus($sessionId: String!) {
     getBaileysSessionStatus(sessionId: $sessionId) {

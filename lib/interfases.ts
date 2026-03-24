@@ -97,6 +97,37 @@ export interface UserMemoryConfig {
   extractOnMessage?: boolean;
 }
 
+export interface RagSearchConfig {
+  rerank?: "none" | "mmr";
+  mmrLambda?: number;
+  candidateMultiplier?: number;
+}
+
+/** Preferencias persistidas en usermemories (lectura desde el panel). */
+export interface UserMemoryPreferencesFields {
+  displayName?: string | null;
+  languagePreference?: string | null;
+  tonePreference?: string | null;
+  doNotSuggest?: string[];
+}
+
+/** Un documento de memoria por usuario/clave (misma colección que el worker). */
+export interface UserMemoryRecordRow {
+  id: string;
+  businessId: string;
+  userKey: string;
+  role: string;
+  facts: string[];
+  preferences?: UserMemoryPreferencesFields | null;
+  source: string;
+  updatedAt: string;
+}
+
+export interface UserMemoryListResult {
+  items: UserMemoryRecordRow[];
+  totalCount: number;
+}
+
 export interface BusinessConfig {
   conversationTimeout: number;
   messageLimit?: number;
@@ -106,6 +137,7 @@ export interface BusinessConfig {
   tools?: ToolConfig[];
   dataProviders?: DataProvider[];
   userMemory?: UserMemoryConfig;
+  ragSearch?: RagSearchConfig;
 }
 
 export interface MetaCloudApiNumber {
