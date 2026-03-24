@@ -502,6 +502,9 @@ export const queries = {
           mmrLambda
           candidateMultiplier
         }
+        commerceFlow {
+          enabled
+        }
       }
       whatsapps {
         metaCloudApiNumbers {

@@ -103,6 +103,11 @@ export interface RagSearchConfig {
   candidateMultiplier?: number;
 }
 
+/** Estado de checkout en conversación (worker). */
+export interface CommerceFlowConfig {
+  enabled?: boolean;
+}
+
 /** Preferencias persistidas en usermemories (lectura desde el panel). */
 export interface UserMemoryPreferencesFields {
   displayName?: string | null;
@@ -138,6 +143,7 @@ export interface BusinessConfig {
   dataProviders?: DataProvider[];
   userMemory?: UserMemoryConfig;
   ragSearch?: RagSearchConfig;
+  commerceFlow?: CommerceFlowConfig;
 }
 
 export interface MetaCloudApiNumber {

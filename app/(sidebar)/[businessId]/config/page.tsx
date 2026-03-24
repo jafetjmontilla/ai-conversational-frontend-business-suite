@@ -34,6 +34,10 @@ const defaultRagSearch = {
   candidateMultiplier: 10,
 };
 
+const defaultCommerceFlow = {
+  enabled: false,
+};
+
 const defaultConfig: BusinessConfig = {
   conversationTimeout: 30,
   messageLimit: 100,
@@ -44,6 +48,7 @@ const defaultConfig: BusinessConfig = {
   dataProviders: [],
   userMemory: { ...defaultUserMemory },
   ragSearch: { ...defaultRagSearch },
+  commerceFlow: { ...defaultCommerceFlow },
 };
 
 const dataProviderAuthSchema = z.object({
@@ -122,6 +127,9 @@ const formSchema = z.object({
     mmrLambda: z.coerce.number().min(0).max(1),
     candidateMultiplier: z.coerce.number().min(1).max(20),
   }),
+  commerceFlow: z.object({
+    enabled: z.boolean(),
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -135,6 +143,7 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
   if (!config) return defaultConfig;
   const um = config.userMemory;
   const rs = config.ragSearch;
+  const cf = config.commerceFlow;
   return {
     conversationTimeout: config.conversationTimeout ?? defaultConfig.conversationTimeout,
     messageLimit: config.messageLimit ?? defaultConfig.messageLimit,
@@ -157,6 +166,9 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
       rerank: normalizeRerank(rs?.rerank),
       mmrLambda: rs?.mmrLambda ?? defaultRagSearch.mmrLambda,
       candidateMultiplier: rs?.candidateMultiplier ?? defaultRagSearch.candidateMultiplier,
+    },
+    commerceFlow: {
+      enabled: cf?.enabled ?? defaultCommerceFlow.enabled,
     },
   };
 }
@@ -184,6 +196,7 @@ export default function BusinessConfigPage() {
       dataProviders: [],
       userMemory: { ...defaultUserMemory },
       ragSearch: { ...defaultRagSearch },
+      commerceFlow: { ...defaultCommerceFlow },
     },
   });
 
@@ -230,6 +243,7 @@ export default function BusinessConfigPage() {
             })),
             userMemory: { ...defaultUserMemory, ...cfg.userMemory },
             ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
+            commerceFlow: { ...defaultCommerceFlow, ...cfg.commerceFlow },
           });
         } else {
           toast.error("Negocio no encontrado");
@@ -275,6 +289,9 @@ export default function BusinessConfigPage() {
           rerank: values.ragSearch.rerank,
           mmrLambda: values.ragSearch.mmrLambda,
           candidateMultiplier: values.ragSearch.candidateMultiplier,
+        },
+        commerceFlow: {
+          enabled: values.commerceFlow.enabled,
         },
       };
       await fetchApiV1({
@@ -540,6 +557,27 @@ export default function BusinessConfigPage() {
                 </TabsContent>
 
                 <TabsContent value="tools" className="space-y-4 pt-4">
+                  <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                    <FormField
+                      control={form.control}
+                      name="commerceFlow.enabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between gap-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Flujo de venta conversacional</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Activa etapas de checkout en el worker (metadata de conversación, filtrado de herramientas por
+                              etapa, sin caché de respuestas con datos en vivo). Requiere herramientas y proveedores
+                              configurados.
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={form.control}
                     name="tools"
