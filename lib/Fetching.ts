@@ -477,6 +477,9 @@ export const queries = {
           name
           description
           params
+          providerId
+          restMethod
+          restPath
         }
         dataProviders {
           id
@@ -488,7 +491,6 @@ export const queries = {
             headerName
             apiKeyMasked
           }
-          tools
         }
         userMemory {
           enabled
@@ -604,6 +606,32 @@ export const queries = {
       callbackUrl
       createdAt
       updatedAt
+    }
+  }`,
+  parseDataProviderConfigFromDocumentation: `mutation parseDataProviderConfigFromDocumentation($rawText: String!) {
+    parseDataProviderConfigFromDocumentation(rawText: $rawText) {
+      kind
+      baseUrl
+      endpoint
+      authType
+      headerName
+      apiKey
+      warnings
+    }
+  }`,
+  parseToolConfigFromDocumentation: `mutation parseToolConfigFromDocumentation($rawText: String!) {
+    parseToolConfigFromDocumentation(rawText: $rawText) {
+      name
+      description
+      params
+      warnings
+    }
+  }`,
+  testBusinessTool: `mutation testBusinessTool($businessDocId: ID!, $toolName: String!, $paramsJson: String) {
+    testBusinessTool(businessDocId: $businessDocId, toolName: $toolName, paramsJson: $paramsJson) {
+      ok
+      resultJson
+      error
     }
   }`,
   updateUserMemoryRecord: `mutation updateUserMemoryRecord($businessDocId: ID!, $userKey: String!, $role: String, $facts: [String!]!, $preferences: UserMemoryPreferencesMutationInput) {

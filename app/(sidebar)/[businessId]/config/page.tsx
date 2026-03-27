@@ -9,16 +9,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import type { Business, BusinessConfig } from "@/lib/interfases";
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2, Play, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const defaultUserMemory = {
   enabled: false,
@@ -59,12 +66,11 @@ const dataProviderAuthSchema = z.object({
 
 const dataProviderSchema = z
   .object({
-    id: z.string().min(1, "Requerido"),
+    id: z.string().min(1, "Indica un Id único (ej. mi-api). Es el que enlazan las herramientas."),
     kind: z.enum(["rest", "graphql"]),
     baseUrl: z.string().optional().or(z.literal("")),
     endpoint: z.string().optional().or(z.literal("")),
     auth: dataProviderAuthSchema.optional(),
-    tools: z.array(z.string()),
   })
   .superRefine((p, ctx) => {
     if (p.kind === "rest" && !(p.baseUrl ?? "").trim()) {
@@ -88,23 +94,29 @@ const dataProviderSchema = z
   });
 
 const toolSchema = z.object({
-  name: z.string().min(1, "Requerido"),
-  description: z.string().min(1, "Requerido"),
+  name: z.string().min(1, "Nombre de herramienta obligatorio"),
+  description: z.string().min(1, "Descripción de herramienta obligatoria"),
   params: z.array(z.string()).optional(),
+  providerId: z.string().optional(),
+  restMethod: z.enum(["POST", "GET", "PUT", "PATCH", "DELETE"]),
+  restPath: z.string().optional(),
 });
 
 const knowledgeSourceSchema = z.object({
-  sourceId: z.string().min(1, "Requerido"),
-  name: z.string().min(1, "Requerido"),
+  sourceId: z.string().min(1, "sourceId de la fuente obligatorio"),
+  name: z.string().min(1, "Nombre de la fuente obligatorio"),
   roles: z.array(z.string()),
 });
 
+const emptyToUndefined = (val: unknown) =>
+  val === "" || val === null || typeof val === "undefined" ? undefined : val;
+
 const formSchema = z.object({
   conversationTimeout: z.coerce.number().min(1).max(1440),
-  messageLimit: z.coerce.number().min(1).max(1000).optional(),
+  messageLimit: z.preprocess(emptyToUndefined, z.coerce.number().min(1).max(1000).optional()),
   personality: z.object({
-    tone: z.string().min(1),
-    language: z.string().min(1),
+    tone: z.string().min(1, "Tono obligatorio"),
+    language: z.string().min(1, "Idioma obligatorio"),
     customInstructions: z.string().optional(),
   }),
   globalResponses: z.object({
@@ -130,9 +142,84 @@ const formSchema = z.object({
   commerceFlow: z.object({
     enabled: z.boolean(),
   }),
-});
+})
+  .superRefine((data, ctx) => {
+    const ids = new Set(data.dataProviders.map((p) => p.id.trim()).filter(Boolean));
+    if (ids.size === 0) return;
+    data.tools.forEach((t, i) => {
+      if (!t.name?.trim()) return;
+      const pid = t.providerId?.trim();
+      if (!pid || !ids.has(pid)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Seleccione un proveedor",
+          path: ["tools", i, "providerId"],
+        });
+      }
+    });
+  });
 
 type FormValues = z.infer<typeof formSchema>;
+
+/** Segmento de ruta legible (Proveedor 1, Herramienta 2, etc.). */
+function humanizeErrorPathSegment(segment: string, parentSegment: string | undefined): string {
+  if (/^\d+$/.test(segment)) {
+    const n = parseInt(segment, 10) + 1;
+    if (parentSegment === "dataProviders") return `Proveedor ${n}`;
+    if (parentSegment === "tools") return `Herramienta ${n}`;
+    if (parentSegment === "knowledgeSources") return `Fuente ${n}`;
+    return `#${n}`;
+  }
+  const map: Record<string, string> = {
+    dataProviders: "Proveedores",
+    tools: "Herramientas",
+    knowledgeSources: "Fuentes",
+    personality: "Personalidad",
+    globalResponses: "Respuestas",
+    conversationTimeout: "Timeout",
+    messageLimit: "Límite de mensajes",
+    id: "Id",
+    name: "Nombre",
+    description: "Descripción",
+    sourceId: "sourceId",
+    providerId: "Proveedor (herramienta)",
+    restMethod: "Método REST",
+    restPath: "Ruta REST",
+    baseUrl: "Base URL",
+    endpoint: "Endpoint",
+    auth: "Autenticación",
+  };
+  return map[segment] ?? segment;
+}
+
+/** Primer error con ruta en español para el toast. */
+function firstFieldErrorMessage(errors: FieldErrors<FormValues>): string | undefined {
+  function walk(node: unknown, path: string[]): string | undefined {
+    if (!node || typeof node !== "object") return undefined;
+    const rec = node as Record<string, unknown>;
+    if (typeof rec.message === "string" && rec.message) {
+      const parts = path.map((seg, i) => humanizeErrorPathSegment(seg, i === 0 ? undefined : path[i - 1]));
+      const prefix = parts.length ? `${parts.join(" › ")}: ` : "";
+      return `${prefix}${rec.message}`;
+    }
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        const found = walk(node[i], [...path, String(i)]);
+        if (found) return found;
+      }
+      return undefined;
+    }
+    for (const key of Object.keys(rec)) {
+      const v = rec[key];
+      if (v != null && typeof v === "object") {
+        const found = walk(v, [...path, key]);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  }
+  return walk(errors, []);
+}
 
 function normalizeRerank(v: string | null | undefined): "none" | "mmr" {
   if (v === "mmr") return "mmr";
@@ -183,6 +270,21 @@ export default function BusinessConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
+  /** Texto pegado por proveedor (solo UI; no se guarda en BD). */
+  const [providerDocSnippets, setProviderDocSnippets] = useState<string[]>([]);
+  const [parsingProviderIndex, setParsingProviderIndex] = useState<number | null>(null);
+  /** Texto pegado por herramienta para extraer con IA (solo UI). */
+  const [toolDocSnippets, setToolDocSnippets] = useState<string[]>([]);
+  const [parsingToolIndex, setParsingToolIndex] = useState<number | null>(null);
+  /** JSON de parámetros por herramienta para la prueba (solo UI). */
+  const [toolTestParamsJson, setToolTestParamsJson] = useState<string[]>([]);
+  const [runningToolTestIndex, setRunningToolTestIndex] = useState<number | null>(null);
+  const [testToolDialog, setTestToolDialog] = useState<{
+    open: boolean;
+    title: string;
+    body: string;
+    isError: boolean;
+  }>({ open: false, title: "", body: "", isError: false });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as Resolver<FormValues>,
@@ -232,19 +334,28 @@ export default function BusinessConfigPage() {
             personality: cfg.personality,
             globalResponses: cfg.globalResponses ?? {},
             knowledgeSources: cfg.knowledgeSources ?? [],
-            tools: cfg.tools ?? [],
+            tools: (cfg.tools ?? []).map((t) => ({
+              name: t.name,
+              description: t.description,
+              params: t.params ?? [],
+              providerId: t.providerId ?? "",
+              restMethod: (t.restMethod ?? "POST") as "POST" | "GET" | "PUT" | "PATCH" | "DELETE",
+              restPath: t.restPath ?? "",
+            })),
             dataProviders: (cfg.dataProviders ?? []).map((p) => ({
               id: p.id,
               kind: p.kind,
               baseUrl: p.baseUrl ?? "",
               endpoint: p.endpoint ?? "",
               auth: { type: p.auth?.type ?? "bearer", headerName: p.auth?.headerName ?? "", apiKey: "" },
-              tools: p.tools ?? [],
             })),
             userMemory: { ...defaultUserMemory, ...cfg.userMemory },
             ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
             commerceFlow: { ...defaultCommerceFlow, ...cfg.commerceFlow },
           });
+          setProviderDocSnippets(Array((cfg.dataProviders ?? []).length).fill(""));
+          setToolDocSnippets(Array((cfg.tools ?? []).length).fill(""));
+          setToolTestParamsJson(Array((cfg.tools ?? []).length).fill("{}"));
         } else {
           toast.error("Negocio no encontrado");
           router.push("/businesses");
@@ -269,14 +380,20 @@ export default function BusinessConfigPage() {
         personality: values.personality,
         knowledgeSources: values.knowledgeSources,
         globalResponses: values.globalResponses,
-        tools: values.tools,
+        tools: values.tools.map((t) => ({
+          name: t.name.trim(),
+          description: t.description.trim(),
+          params: t.params ?? [],
+          ...(t.providerId?.trim() ? { providerId: t.providerId.trim() } : {}),
+          ...(t.restMethod && t.restMethod !== "POST" ? { restMethod: t.restMethod } : {}),
+          ...(t.restPath?.trim() ? { restPath: t.restPath.trim() } : {}),
+        })),
         dataProviders: values.dataProviders.map((p) => ({
           id: p.id,
           kind: p.kind,
           baseUrl: p.kind === "rest" ? (p.baseUrl?.trim() || undefined) : undefined,
           endpoint: p.kind === "graphql" ? (p.endpoint?.trim() || undefined) : undefined,
           auth: p.auth?.type ? { type: p.auth.type, headerName: p.auth.headerName || undefined, apiKey: p.auth.apiKey?.trim() || undefined } : undefined,
-          tools: p.tools ?? [],
         })),
         userMemory: {
           enabled: values.userMemory.enabled,
@@ -310,6 +427,13 @@ export default function BusinessConfigPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const onSubmitInvalid = (errors: FieldErrors<FormValues>) => {
+    const msg =
+      firstFieldErrorMessage(errors) ??
+      "Revisa los campos obligatorios en todas las pestañas (p. ej. Herramientas: cada herramienta debe usar un Id de proveedor existente).";
+    toast.error("No se puede guardar", { description: msg });
   };
 
   if (loading) {
@@ -348,7 +472,7 @@ export default function BusinessConfigPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form noValidate onSubmit={form.handleSubmit(onSubmit, onSubmitInvalid)} className="space-y-6">
               <Tabs defaultValue="general" className="w-full">
                 <TabsList className="flex w-full flex-wrap gap-1 h-auto min-h-10">
                   <TabsTrigger value="general" className="flex-1 min-w-[5.5rem]">
@@ -557,6 +681,10 @@ export default function BusinessConfigPage() {
                 </TabsContent>
 
                 <TabsContent value="tools" className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    En cada herramienta puede pegar un fragmento de documentación, un curl, cabeceras HTTP o una query GraphQL y usar{" "}
+                    <span className="font-medium text-foreground">Extraer con IA</span> para rellenar nombre, descripción y parámetros. Elija el proveedor de datos a mano.
+                  </p>
                   <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
                     <FormField
                       control={form.control}
@@ -611,9 +739,170 @@ export default function BusinessConfigPage() {
                                   </FormItem>
                                 )}
                               />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => form.setValue("tools", field.value.filter((_, j) => j !== i))}>
+                              <FormField
+                                control={form.control}
+                                name={`tools.${i}.providerId`}
+                                render={({ field: f }) => (
+                                  <FormItem className="min-w-[140px] max-w-[200px]">
+                                    <FormLabel className="text-xs">Proveedor</FormLabel>
+                                    <FormControl>
+                                      <select
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm"
+                                        value={f.value ?? ""}
+                                        onChange={(e) => f.onChange(e.target.value)}
+                                      >
+                                        <option value="">—</option>
+                                        {form.watch("dataProviders").map((p) =>
+                                          p.id.trim() ? (
+                                            <option key={`${p.id}-${p.kind}`} value={p.id.trim()}>
+                                              {p.id.trim()}
+                                            </option>
+                                          ) : null
+                                        )}
+                                      </select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  form.setValue(
+                                    "tools",
+                                    field.value.filter((_, j) => j !== i)
+                                  );
+                                  setToolDocSnippets((prev) => prev.filter((_, j) => j !== i));
+                                  setToolTestParamsJson((prev) => prev.filter((_, j) => j !== i));
+                                }}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                            </div>
+                            {(() => {
+                              const dps = form.watch("dataProviders");
+                              const pid = form.watch(`tools.${i}.providerId`)?.trim();
+                              const prov = dps.find((p) => p.id.trim() === pid);
+                              if (prov?.kind !== "rest") return null;
+                              return (
+                                <div className="w-full flex flex-wrap gap-2 items-end rounded-md border border-border/60 bg-muted/10 p-3">
+                                  <FormField
+                                    control={form.control}
+                                    name={`tools.${i}.restMethod`}
+                                    render={({ field: f }) => (
+                                      <FormItem className="min-w-[160px] max-w-[220px]">
+                                        <FormLabel className="text-xs">Método REST</FormLabel>
+                                        <FormControl>
+                                          <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm"
+                                            value={f.value}
+                                            onChange={(e) =>
+                                              f.onChange(e.target.value as "POST" | "GET" | "PUT" | "PATCH" | "DELETE")
+                                            }
+                                          >
+                                            <option value="POST">POST (proxy tool_request)</option>
+                                            <option value="GET">GET directo</option>
+                                            <option value="PUT">PUT</option>
+                                            <option value="PATCH">PATCH</option>
+                                            <option value="DELETE">DELETE</option>
+                                          </select>
+                                        </FormControl>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          POST usa el proxy estándar (event tool_request). Otros métodos: HTTP directo a
+                                          baseUrl + ruta.
+                                        </p>
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`tools.${i}.restPath`}
+                                    render={({ field: f }) => (
+                                      <FormItem className="flex-1 min-w-[200px]">
+                                        <FormLabel className="text-xs">Ruta bajo baseUrl (opcional)</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            placeholder="ej. /api/facturas/{{id}}/"
+                                            className="font-mono text-xs"
+                                            {...f}
+                                            value={f.value ?? ""}
+                                          />
+                                        </FormControl>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          Plantillas tipo {'{{id}}'} con parámetros. GET sin ruta: params como query string.
+                                        </p>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              );
+                            })()}
+                            <div className="space-y-2">
+                              <FormLabel className="text-xs">Documentación o petición (curl, cabeceras, OpenAPI, GraphQL…)</FormLabel>
+                              <Textarea
+                                placeholder="Pegue aquí documentación, un curl, cabeceras desde DevTools o el body de una petición…"
+                                className="min-h-[88px] font-mono text-xs"
+                                value={toolDocSnippets[i] ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setToolDocSnippets((prev) => {
+                                    const next = [...prev];
+                                    next[i] = v;
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <div className="flex flex-wrap gap-2 items-center">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={parsingToolIndex === i}
+                                  onClick={async () => {
+                                    const raw = (toolDocSnippets[i] ?? "").trim();
+                                    if (!raw) {
+                                      toast.error("Pegue documentación o cabeceras primero");
+                                      return;
+                                    }
+                                    setParsingToolIndex(i);
+                                    try {
+                                      const parsed = (await fetchApiV1({
+                                        query: queries.parseToolConfigFromDocumentation,
+                                        type: "json",
+                                        variables: { rawText: raw },
+                                      })) as {
+                                        name: string;
+                                        description: string;
+                                        params: string[];
+                                        warnings: string[];
+                                      };
+                                      form.setValue(`tools.${i}.name`, parsed.name);
+                                      form.setValue(`tools.${i}.description`, parsed.description);
+                                      form.setValue(`tools.${i}.params`, parsed.params ?? []);
+                                      if (parsed.warnings?.length) {
+                                        toast.message("Avisos", { description: parsed.warnings.join(" · ") });
+                                      }
+                                      toast.success("Campos rellenados; revise y elija el proveedor antes de guardar");
+                                    } catch (e: unknown) {
+                                      const msg =
+                                        e && typeof e === "object" && "message" in e
+                                          ? String((e as { message: unknown }).message)
+                                          : "Error al analizar";
+                                      toast.error(msg);
+                                    } finally {
+                                      setParsingToolIndex(null);
+                                    }
+                                  }}
+                                >
+                                  {parsingToolIndex === i ? (
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : null}
+                                  Extraer con IA
+                                </Button>
+                                <span className="text-xs text-muted-foreground">Gemini en el servidor (GEMINI_API_KEY).</span>
+                              </div>
                             </div>
                             <FormField
                               control={form.control}
@@ -632,13 +921,117 @@ export default function BusinessConfigPage() {
                                 </FormItem>
                               )}
                             />
+                            <div className="space-y-2 rounded-md border border-dashed p-3 bg-muted/20">
+                              <FormLabel className="text-xs">Parámetros JSON para la prueba</FormLabel>
+                              <Textarea
+                                className="min-h-[72px] font-mono text-xs"
+                                placeholder='{}'
+                                value={toolTestParamsJson[i] ?? "{}"}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setToolTestParamsJson((prev) => {
+                                    const next = [...prev];
+                                    next[i] = v;
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <div className="flex flex-wrap gap-2 items-center">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={
+                                    runningToolTestIndex === i ||
+                                    !form.watch(`tools.${i}.name`)?.trim() ||
+                                    !form.watch(`tools.${i}.providerId`)?.trim()
+                                  }
+                                  onClick={async () => {
+                                    if (!business?._id) return;
+                                    const tName = form.getValues(`tools.${i}.name`)?.trim();
+                                    if (!tName) {
+                                      toast.error("Indique el nombre de la herramienta");
+                                      return;
+                                    }
+                                    if (!form.getValues(`tools.${i}.providerId`)?.trim()) {
+                                      toast.error("Seleccione un proveedor");
+                                      return;
+                                    }
+                                    const rawJson = (toolTestParamsJson[i] ?? "{}").trim() || "{}";
+                                    setRunningToolTestIndex(i);
+                                    try {
+                                      const res = (await fetchApiV1({
+                                        query: queries.testBusinessTool,
+                                        type: "json",
+                                        variables: {
+                                          businessDocId: business._id,
+                                          toolName: tName,
+                                          paramsJson: rawJson === "{}" ? null : rawJson,
+                                        },
+                                      })) as {
+                                        ok: boolean;
+                                        resultJson?: string | null;
+                                        error?: string | null;
+                                      };
+                                      if (res.ok) {
+                                        setTestToolDialog({
+                                          open: true,
+                                          title: "Respuesta del proveedor",
+                                          body: res.resultJson ?? "",
+                                          isError: false,
+                                        });
+                                      } else {
+                                        setTestToolDialog({
+                                          open: true,
+                                          title: "Error al probar la herramienta",
+                                          body: res.error ?? "Error desconocido",
+                                          isError: true,
+                                        });
+                                      }
+                                    } catch (e: unknown) {
+                                      const msg =
+                                        e && typeof e === "object" && "message" in e
+                                          ? String((e as { message: unknown }).message)
+                                          : "Error de red";
+                                      toast.error(msg);
+                                    } finally {
+                                      setRunningToolTestIndex(null);
+                                    }
+                                  }}
+                                >
+                                  {runningToolTestIndex === i ? (
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <Play className="h-4 w-4 mr-1" />
+                                  )}
+                                  Probar herramienta
+                                </Button>
+                                <span className="text-xs text-muted-foreground max-w-[18rem]">
+                                  Usa la configuración ya guardada en el servidor (guarde antes si cambió proveedor o URL).
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => form.setValue("tools", [...field.value, { name: "", description: "", params: [] }])}
+                          onClick={() => {
+                            form.setValue("tools", [
+                              ...field.value,
+                              {
+                                name: "",
+                                description: "",
+                                params: [],
+                                providerId: "",
+                                restMethod: "POST",
+                                restPath: "",
+                              },
+                            ]);
+                            setToolDocSnippets((prev) => [...prev, ""]);
+                            setToolTestParamsJson((prev) => [...prev, "{}"]);
+                          }}
                         >
                           <Plus className="h-4 w-4 mr-1" /> Añadir herramienta
                         </Button>
@@ -650,7 +1043,7 @@ export default function BusinessConfigPage() {
 
                 <TabsContent value="providers" className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">
-                    Proveedores de datos (REST o GraphQL) que ejecutan las herramientas en tiempo real. Cada uno define qué herramientas implementa. La API Key se guarda cifrada; deje vacío para no cambiar.
+                    Proveedores de datos (REST o GraphQL) a los que el worker llama para ejecutar herramientas. Asocie cada herramienta a un proveedor en la pestaña Herramientas. La API Key se guarda cifrada; deje vacío para no cambiar.
                   </p>
                   <FormField
                     control={form.control}
@@ -693,9 +1086,112 @@ export default function BusinessConfigPage() {
                                   </FormItem>
                                 )}
                               />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => form.setValue("dataProviders", field.value.filter((_, j) => j !== i))}>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  form.setValue(
+                                    "dataProviders",
+                                    field.value.filter((_, j) => j !== i)
+                                  );
+                                  setProviderDocSnippets((prev) => prev.filter((_, j) => j !== i));
+                                }}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                            </div>
+                            <div className="space-y-2">
+                              <FormLabel className="text-xs">Documentación (curl, cabeceras HTTP, etc.)</FormLabel>
+                              <Textarea
+                                placeholder="Pegue aquí un curl de la API o las cabeceras copiadas desde DevTools…"
+                                className="min-h-[100px] font-mono text-xs"
+                                value={providerDocSnippets[i] ?? ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setProviderDocSnippets((prev) => {
+                                    const next = [...prev];
+                                    next[i] = v;
+                                    return next;
+                                  });
+                                }}
+                              />
+                              <div className="flex flex-wrap gap-2 items-center">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={parsingProviderIndex === i}
+                                  onClick={async () => {
+                                    const raw = (providerDocSnippets[i] ?? "").trim();
+                                    if (!raw) {
+                                      toast.error("Pegue documentación o cabeceras primero");
+                                      return;
+                                    }
+                                    setParsingProviderIndex(i);
+                                    try {
+                                      if (!form.getValues(`dataProviders.${i}.auth`)) {
+                                        form.setValue(`dataProviders.${i}.auth`, {
+                                          type: "bearer",
+                                          headerName: "",
+                                          apiKey: "",
+                                        });
+                                      }
+                                      const parsed = (await fetchApiV1({
+                                        query: queries.parseDataProviderConfigFromDocumentation,
+                                        type: "json",
+                                        variables: { rawText: raw },
+                                      })) as {
+                                        kind: string;
+                                        baseUrl?: string | null;
+                                        endpoint?: string | null;
+                                        authType: string;
+                                        headerName?: string | null;
+                                        apiKey?: string | null;
+                                        warnings: string[];
+                                      };
+                                      const kind = parsed.kind === "graphql" ? "graphql" : "rest";
+                                      form.setValue(`dataProviders.${i}.kind`, kind);
+                                      if (kind === "rest" && parsed.baseUrl?.trim()) {
+                                        form.setValue(`dataProviders.${i}.baseUrl`, parsed.baseUrl.trim());
+                                        form.setValue(`dataProviders.${i}.endpoint`, "");
+                                      }
+                                      if (kind === "graphql" && parsed.endpoint?.trim()) {
+                                        form.setValue(`dataProviders.${i}.endpoint`, parsed.endpoint.trim());
+                                        form.setValue(`dataProviders.${i}.baseUrl`, "");
+                                      }
+                                      const authType = parsed.authType === "header" ? "header" : "bearer";
+                                      form.setValue(`dataProviders.${i}.auth.type`, authType);
+                                      if (authType === "header" && parsed.headerName?.trim()) {
+                                        form.setValue(`dataProviders.${i}.auth.headerName`, parsed.headerName.trim());
+                                      }
+                                      if (parsed.apiKey?.trim()) {
+                                        form.setValue(`dataProviders.${i}.auth.apiKey`, parsed.apiKey.trim());
+                                      }
+                                      if (parsed.warnings?.length) {
+                                        toast.message("Avisos", { description: parsed.warnings.join(" · ") });
+                                      }
+                                      toast.success("Campos rellenados; revise URL y credenciales antes de guardar");
+                                    } catch (e: unknown) {
+                                      const msg =
+                                        e && typeof e === "object" && "message" in e
+                                          ? String((e as { message: unknown }).message)
+                                          : "Error al analizar";
+                                      toast.error(msg);
+                                    } finally {
+                                      setParsingProviderIndex(null);
+                                    }
+                                  }}
+                                >
+                                  {parsingProviderIndex === i ? (
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : null}
+                                  Extraer con IA
+                                </Button>
+                                <span className="text-xs text-muted-foreground">
+                                  Usa Gemini en el servidor (GEMINI_API_KEY).
+                                </span>
+                              </div>
                             </div>
                             {form.watch(`dataProviders.${i}.kind`) === "rest" ? (
                               <FormField
@@ -705,7 +1201,14 @@ export default function BusinessConfigPage() {
                                   <FormItem>
                                     <FormLabel className="text-xs">Base URL (REST)</FormLabel>
                                     <FormControl>
-                                      <Input type="url" placeholder="https://api.ejemplo.com" {...f} value={f.value ?? ""} />
+                                      <Input
+                                        type="text"
+                                        inputMode="url"
+                                        autoComplete="url"
+                                        placeholder="https://api.ejemplo.com"
+                                        {...f}
+                                        value={f.value ?? ""}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -719,7 +1222,14 @@ export default function BusinessConfigPage() {
                                   <FormItem>
                                     <FormLabel className="text-xs">Endpoint (GraphQL)</FormLabel>
                                     <FormControl>
-                                      <Input type="url" placeholder="https://api.ejemplo.com/graphql" {...f} value={f.value ?? ""} />
+                                      <Input
+                                        type="text"
+                                        inputMode="url"
+                                        autoComplete="url"
+                                        placeholder="https://api.ejemplo.com/graphql"
+                                        {...f}
+                                        value={f.value ?? ""}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -778,35 +1288,25 @@ export default function BusinessConfigPage() {
                                 )}
                               />
                             </div>
-                            <FormField
-                              control={form.control}
-                              name={`dataProviders.${i}.tools`}
-                              render={({ field: f }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs">Herramientas (nombres, separados por coma)</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="get_saldo, get_movimientos"
-                                      value={Array.isArray(f.value) ? (f.value ?? []).join(", ") : ""}
-                                      onChange={(e) => f.onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
                           </Card>
                         ))}
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() =>
+                          onClick={() => {
                             form.setValue("dataProviders", [
                               ...field.value,
-                              { id: "", kind: "rest" as const, baseUrl: "", endpoint: "", auth: { type: "bearer", headerName: "", apiKey: "" }, tools: [] },
-                            ])
-                          }
+                              {
+                                id: `proveedor-${Date.now()}`,
+                                kind: "rest" as const,
+                                baseUrl: "",
+                                endpoint: "",
+                                auth: { type: "bearer", headerName: "", apiKey: "" },
+                              },
+                            ]);
+                            setProviderDocSnippets((prev) => [...prev, ""]);
+                          }}
                         >
                           <Plus className="h-4 w-4 mr-1" /> Añadir proveedor
                         </Button>
@@ -965,6 +1465,29 @@ export default function BusinessConfigPage() {
           </Form>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={testToolDialog.open}
+        onOpenChange={(open) => setTestToolDialog((d) => ({ ...d, open }))}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{testToolDialog.title}</DialogTitle>
+          </DialogHeader>
+          <pre
+            className={`text-xs overflow-auto rounded-md border p-3 flex-1 min-h-0 max-h-[55vh] whitespace-pre-wrap break-words ${
+              testToolDialog.isError ? "bg-destructive/10 text-destructive" : "bg-muted"
+            }`}
+          >
+            {testToolDialog.body}
+          </pre>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setTestToolDialog((d) => ({ ...d, open: false }))}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -69,6 +69,12 @@ export interface ToolConfig {
   name: string;
   description: string;
   params?: string[];
+  /** Id del proveedor de datos que ejecuta esta herramienta. */
+  providerId?: string;
+  /** Solo proveedor REST: POST = proxy tool_request; otro = HTTP directo. */
+  restMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE";
+  /** Ruta bajo baseUrl con placeholders {{param}}. */
+  restPath?: string;
 }
 
 /** Auth de un data provider (en lectura solo apiKeyMasked; en edición se envía apiKey para cambiar). */
@@ -86,7 +92,6 @@ export interface DataProvider {
   baseUrl?: string | null;
   endpoint?: string | null;
   auth?: DataProviderAuth | null;
-  tools: string[];
 }
 
 export interface UserMemoryConfig {
