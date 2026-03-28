@@ -680,6 +680,13 @@ export const queries = {
   deleteBusiness: `mutation deleteBusiness($id: ID!) {
     deleteBusiness(id: $id)
   }`,
+  flushBusinessCache: `mutation flushBusinessCache($businessDocId: ID!) {
+    flushBusinessCache(businessDocId: $businessDocId) {
+      success
+      keysDeleted
+      message
+    }
+  }`,
   getBusinessMembers: `query getBusinessMembers($id: ID!) {
     getBusinessMembers(id: $id) {
       userId

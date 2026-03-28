@@ -274,6 +274,7 @@ export default function BusinessConfigPage() {
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [flushing, setFlushing] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   /** Texto pegado por proveedor (solo UI; no se guarda en BD). */
   const [providerDocSnippets, setProviderDocSnippets] = useState<string[]>([]);
@@ -442,6 +443,36 @@ export default function BusinessConfigPage() {
       toast.error(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const FLUSH_CACHE_MUTATION = `mutation flushBusinessCache($businessDocId: ID!) {
+    flushBusinessCache(businessDocId: $businessDocId) {
+      success
+      keysDeleted
+      message
+    }
+  }`;
+
+  const handleFlushCache = async () => {
+    if (!business || flushing) return;
+    setFlushing(true);
+    try {
+      const result = await fetchApiV1({
+        query: FLUSH_CACHE_MUTATION,
+        type: "json",
+        variables: { businessDocId: business._id },
+      }) as { success: boolean; keysDeleted: number; message: string } | null;
+      if (result?.success) {
+        toast.success("Caché vaciado", { description: result.message });
+      } else {
+        toast.error("Error al vaciar el caché");
+      }
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al vaciar el caché";
+      toast.error(msg);
+    } finally {
+      setFlushing(false);
     }
   };
 
@@ -1524,7 +1555,22 @@ export default function BusinessConfigPage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex items-center justify-between pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={flushing || saving}
+                  onClick={handleFlushCache}
+                >
+                  {flushing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vaciando caché...
+                    </>
+                  ) : (
+                    "Vaciar caché IA"
+                  )}
+                </Button>
                 <Button type="submit" disabled={saving}>
                   {saving ? "Guardando..." : "Guardar configuración"}
                 </Button>
