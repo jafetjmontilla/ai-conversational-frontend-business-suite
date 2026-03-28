@@ -62,6 +62,8 @@ export interface GlobalResponses {
   greeting?: string;
   goodbye?: string;
   noData?: string;
+  /** Si true, el worker no envía mensaje cuando el RAG no devuelve resultados (ruta business). */
+  noReplyWithoutRag?: boolean;
 }
 
 /** Herramienta disponible para que el modelo decida cuándo llamar (ej. get_saldo). */
@@ -106,6 +108,8 @@ export interface RagSearchConfig {
   rerank?: "none" | "mmr";
   mmrLambda?: number;
   candidateMultiplier?: number;
+  /** Máx. distancia L2; fragmentos más lejanos se ignoran en el worker (opcional). */
+  maxL2Distance?: number;
 }
 
 /** Estado de checkout en conversación (worker). */

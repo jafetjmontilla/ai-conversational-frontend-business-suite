@@ -472,6 +472,7 @@ export const queries = {
           greeting
           goodbye
           noData
+          noReplyWithoutRag
         }
         tools {
           name
@@ -503,6 +504,7 @@ export const queries = {
           rerank
           mmrLambda
           candidateMultiplier
+          maxL2Distance
         }
         commerceFlow {
           enabled

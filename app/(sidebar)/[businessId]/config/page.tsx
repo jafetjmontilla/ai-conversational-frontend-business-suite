@@ -123,6 +123,7 @@ const formSchema = z.object({
     greeting: z.string().optional(),
     goodbye: z.string().optional(),
     noData: z.string().optional(),
+    noReplyWithoutRag: z.boolean().optional(),
   }),
   knowledgeSources: z.array(knowledgeSourceSchema),
   tools: z.array(toolSchema),
@@ -138,6 +139,7 @@ const formSchema = z.object({
     rerank: z.enum(["none", "mmr"]),
     mmrLambda: z.coerce.number().min(0).max(1),
     candidateMultiplier: z.coerce.number().min(1).max(20),
+    maxL2Distance: z.preprocess(emptyToUndefined, z.coerce.number().min(0.01).max(20).optional()),
   }),
   commerceFlow: z.object({
     enabled: z.boolean(),
@@ -188,6 +190,8 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     baseUrl: "Base URL",
     endpoint: "Endpoint",
     auth: "Autenticación",
+    ragSearch: "RAG",
+    maxL2Distance: "Máx. distancia L2",
   };
   return map[segment] ?? segment;
 }
@@ -253,6 +257,7 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
       rerank: normalizeRerank(rs?.rerank),
       mmrLambda: rs?.mmrLambda ?? defaultRagSearch.mmrLambda,
       candidateMultiplier: rs?.candidateMultiplier ?? defaultRagSearch.candidateMultiplier,
+      maxL2Distance: rs?.maxL2Distance,
     },
     commerceFlow: {
       enabled: cf?.enabled ?? defaultCommerceFlow.enabled,
@@ -292,7 +297,7 @@ export default function BusinessConfigPage() {
       conversationTimeout: defaultConfig.conversationTimeout,
       messageLimit: defaultConfig.messageLimit,
       personality: defaultConfig.personality,
-      globalResponses: defaultConfig.globalResponses,
+      globalResponses: { ...defaultConfig.globalResponses, noReplyWithoutRag: false },
       knowledgeSources: [],
       tools: [],
       dataProviders: [],
@@ -332,7 +337,12 @@ export default function BusinessConfigPage() {
             conversationTimeout: cfg.conversationTimeout,
             messageLimit: cfg.messageLimit,
             personality: cfg.personality,
-            globalResponses: cfg.globalResponses ?? {},
+            globalResponses: {
+              greeting: cfg.globalResponses?.greeting,
+              goodbye: cfg.globalResponses?.goodbye,
+              noData: cfg.globalResponses?.noData,
+              noReplyWithoutRag: cfg.globalResponses?.noReplyWithoutRag ?? false,
+            },
             knowledgeSources: cfg.knowledgeSources ?? [],
             tools: (cfg.tools ?? []).map((t) => ({
               name: t.name,
@@ -379,7 +389,10 @@ export default function BusinessConfigPage() {
         messageLimit: values.messageLimit ?? 100,
         personality: values.personality,
         knowledgeSources: values.knowledgeSources,
-        globalResponses: values.globalResponses,
+        globalResponses: {
+          ...values.globalResponses,
+          noReplyWithoutRag: values.globalResponses.noReplyWithoutRag === true,
+        },
         tools: values.tools.map((t) => ({
           name: t.name.trim(),
           description: t.description.trim(),
@@ -406,6 +419,9 @@ export default function BusinessConfigPage() {
           rerank: values.ragSearch.rerank,
           mmrLambda: values.ragSearch.mmrLambda,
           candidateMultiplier: values.ragSearch.candidateMultiplier,
+          ...(typeof values.ragSearch.maxL2Distance === "number" && Number.isFinite(values.ragSearch.maxL2Distance)
+            ? { maxL2Distance: values.ragSearch.maxL2Distance }
+            : {}),
         },
         commerceFlow: {
           enabled: values.commerceFlow.enabled,
@@ -606,6 +622,25 @@ export default function BusinessConfigPage() {
                           <Textarea placeholder="Cuando no hay información disponible" className="resize-none" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="globalResponses.noReplyWithoutRag"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 gap-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>No responder sin RAG</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Si está activo, cuando la búsqueda en la base de conocimiento no devuelve resultados (y la
+                            intención es consulta de negocio), el agente no envía ningún mensaje ni el texto de «Sin datos».
+                            No aplica si hay flujo de venta con herramientas que omiten ese comportamiento.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value === true} onCheckedChange={field.onChange} />
+                        </FormControl>
                       </FormItem>
                     )}
                   />
@@ -1402,6 +1437,39 @@ export default function BusinessConfigPage() {
                     <p className="text-sm text-muted-foreground">
                       Re-ranking MMR diversifica los fragmentos devueltos antes de enviarlos al modelo. Solo aplica en el servicio Python de embeddings/FAISS.
                     </p>
+                    <FormField
+                      control={form.control}
+                      name="ragSearch.maxL2Distance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Máx. distancia L2 (opcional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0.01}
+                              max={20}
+                              step={0.01}
+                              placeholder="Sin filtro"
+                              {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                field.onChange(v === "" ? undefined : Number(v));
+                              }}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            El worker descarta fragmentos con distancia L2 FAISS mayor que este valor (menor = más parecido al
+                            mensaje). Si ninguno cumple, cuenta como RAG vacío (encaja con «No responder sin RAG» y con
+                            preguntas faq/protocolo en ruta social). Si lo deja vacío, puede usar el valor por defecto del
+                            worker <span className="font-mono text-[10px]">RAG_MAX_L2_DISTANCE_DEFAULT</span> en{" "}
+                            <span className="font-mono text-[10px]">.env</span>. Revise{" "}
+                            <span className="font-mono text-[10px]">bestScore</span> en los logs para calibrar.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="ragSearch.rerank"
