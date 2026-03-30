@@ -665,9 +665,9 @@ export default function BusinessConfigPage() {
                         <div className="space-y-0.5">
                           <FormLabel>No responder sin RAG</FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Si está activo, cuando la búsqueda en la base de conocimiento no devuelve resultados (y la
-                            intención es consulta de negocio), el agente no envía ningún mensaje ni el texto de «Sin datos».
-                            No aplica si hay flujo de venta con herramientas que omiten ese comportamiento.
+                            Si está activo, cuando no hay fragmentos de conocimiento suficientemente relevantes para una
+                            consulta de negocio, el agente no envía mensaje ni el texto de «Sin datos», incluso con flujo
+                            de venta o herramientas configuradas.
                           </p>
                         </div>
                         <FormControl>
