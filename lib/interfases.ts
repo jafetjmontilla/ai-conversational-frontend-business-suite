@@ -108,7 +108,9 @@ export interface RagSearchConfig {
   rerank?: "none" | "mmr";
   mmrLambda?: number;
   candidateMultiplier?: number;
-  /** Máx. distancia L2; fragmentos más lejanos se ignoran en el worker (opcional). */
+  /** Similitud coseno mínima (0–1); fragmentos por debajo se descartan en el worker (opcional). */
+  minCosineSimilarity?: number;
+  /** @deprecated Sustituido por minCosineSimilarity. */
   maxL2Distance?: number;
 }
 

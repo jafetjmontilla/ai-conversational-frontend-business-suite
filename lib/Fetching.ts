@@ -504,6 +504,7 @@ export const queries = {
           rerank
           mmrLambda
           candidateMultiplier
+          minCosineSimilarity
           maxL2Distance
         }
         commerceFlow {

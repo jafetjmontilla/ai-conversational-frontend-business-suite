@@ -139,7 +139,7 @@ const formSchema = z.object({
     rerank: z.enum(["none", "mmr"]),
     mmrLambda: z.coerce.number().min(0).max(1),
     candidateMultiplier: z.coerce.number().min(1).max(20),
-    maxL2Distance: z.preprocess(emptyToUndefined, z.coerce.number().min(0.01).max(20).optional()),
+    minCosineSimilarity: z.preprocess(emptyToUndefined, z.coerce.number().min(0.01).max(1).optional()),
   }),
   commerceFlow: z.object({
     enabled: z.boolean(),
@@ -191,7 +191,7 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     endpoint: "Endpoint",
     auth: "Autenticación",
     ragSearch: "RAG",
-    maxL2Distance: "Máx. distancia L2",
+    minCosineSimilarity: "Similitud coseno mín.",
   };
   return map[segment] ?? segment;
 }
@@ -257,7 +257,7 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
       rerank: normalizeRerank(rs?.rerank),
       mmrLambda: rs?.mmrLambda ?? defaultRagSearch.mmrLambda,
       candidateMultiplier: rs?.candidateMultiplier ?? defaultRagSearch.candidateMultiplier,
-      maxL2Distance: rs?.maxL2Distance,
+      minCosineSimilarity: rs?.minCosineSimilarity,
     },
     commerceFlow: {
       enabled: cf?.enabled ?? defaultCommerceFlow.enabled,
@@ -420,8 +420,9 @@ export default function BusinessConfigPage() {
           rerank: values.ragSearch.rerank,
           mmrLambda: values.ragSearch.mmrLambda,
           candidateMultiplier: values.ragSearch.candidateMultiplier,
-          ...(typeof values.ragSearch.maxL2Distance === "number" && Number.isFinite(values.ragSearch.maxL2Distance)
-            ? { maxL2Distance: values.ragSearch.maxL2Distance }
+          ...(typeof values.ragSearch.minCosineSimilarity === "number" &&
+          Number.isFinite(values.ragSearch.minCosineSimilarity)
+            ? { minCosineSimilarity: values.ragSearch.minCosineSimilarity }
             : {}),
         },
         commerceFlow: {
@@ -1470,15 +1471,15 @@ export default function BusinessConfigPage() {
                     </p>
                     <FormField
                       control={form.control}
-                      name="ragSearch.maxL2Distance"
+                      name="ragSearch.minCosineSimilarity"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Máx. distancia L2 (opcional)</FormLabel>
+                          <FormLabel>Similitud coseno mínima (opcional)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               min={0.01}
-                              max={20}
+                              max={1}
                               step={0.01}
                               placeholder="Sin filtro"
                               {...field}
@@ -1490,12 +1491,12 @@ export default function BusinessConfigPage() {
                             />
                           </FormControl>
                           <p className="text-xs text-muted-foreground">
-                            El worker descarta fragmentos con distancia L2 FAISS mayor que este valor (menor = más parecido al
-                            mensaje). Si ninguno cumple, cuenta como RAG vacío (encaja con «No responder sin RAG» y con
-                            preguntas faq/protocolo en ruta social). Si lo deja vacío, puede usar el valor por defecto del
-                            worker <span className="font-mono text-[10px]">RAG_MAX_L2_DISTANCE_DEFAULT</span> en{" "}
+                            El worker descarta fragmentos con similitud coseno menor que este valor (0–1; mayor = más parecido
+                            al mensaje). Si ninguno alcanza el umbral, cuenta como RAG vacío. Si lo deja vacío, puede aplicar
+                            <span className="font-mono text-[10px]"> RAG_MIN_COSINE_SIMILARITY_DEFAULT</span> en{" "}
                             <span className="font-mono text-[10px]">.env</span>. Revise{" "}
-                            <span className="font-mono text-[10px]">bestScore</span> en los logs para calibrar.
+                            <span className="font-mono text-[10px]">bestScore</span> en los logs (ahora es similitud, mayor =
+                            mejor).
                           </p>
                           <FormMessage />
                         </FormItem>
