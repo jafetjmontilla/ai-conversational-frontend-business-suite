@@ -167,11 +167,13 @@ export interface MetaCloudApiNumber {
 export interface BaileysApiNumber {
   sessionId: string;
   phoneNumber?: string | null;
+  active: boolean;
 }
 
 export interface WhatsappsConfig {
   metaCloudApiNumbers: MetaCloudApiNumber[];
   baileysApiNumbers: BaileysApiNumber[];
+  whatsapp_allowed_phone_numbers: string[];
 }
 
 /** @deprecated Usar WhatsappsConfig.metaCloudApiNumbers */

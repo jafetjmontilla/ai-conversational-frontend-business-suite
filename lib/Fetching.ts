@@ -521,7 +521,9 @@ export const queries = {
         baileysApiNumbers {
           sessionId
           phoneNumber
+          active
         }
+        whatsapp_allowed_phone_numbers
       }
       callbackUrl
       createdAt
@@ -604,7 +606,8 @@ export const queries = {
       billingCustomExchangeRate
       whatsapps {
         metaCloudApiNumbers { phoneNumberId phoneNumber accessToken verifyToken }
-        baileysApiNumbers { sessionId phoneNumber }
+        baileysApiNumbers { sessionId phoneNumber active }
+        whatsapp_allowed_phone_numbers
       }
       callbackUrl
       createdAt

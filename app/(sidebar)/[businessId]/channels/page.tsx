@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { fetchApiV1, queries } from "@/lib/Fetching";
@@ -76,6 +77,9 @@ export default function ChannelsPage() {
   const [creating, setCreating] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [allowedPhonesText, setAllowedPhonesText] = useState("");
+  const [savingAllowedPhones, setSavingAllowedPhones] = useState(false);
+  const [togglingSessionId, setTogglingSessionId] = useState<string | null>(null);
   const [baileysStatusBySession, setBaileysStatusBySession] = useState<Record<string, BaileysStatusEntry>>({});
 
   const baileysList = business?.whatsapps?.baileysApiNumbers ?? [];
@@ -155,8 +159,10 @@ export default function ChannelsPage() {
             variables: { businessId },
           })) as Business | null;
         }
-        if (b) setBusiness(b);
-        else {
+        if (b) {
+          setBusiness(b);
+          setAllowedPhonesText((b.whatsapps?.whatsapp_allowed_phone_numbers ?? []).join("\n"));
+        } else {
           toast.error("Negocio no encontrado");
           router.push("/businesses");
         }
@@ -200,13 +206,14 @@ export default function ChannelsPage() {
           if (!prev) return prev;
           const list = [...(prev.whatsapps?.baileysApiNumbers ?? [])];
           if (!list.some((n) => n.sessionId === sessionId.trim())) {
-            list.push({ sessionId: sessionId.trim(), phoneNumber: phoneNumber.trim() || undefined });
+            list.push({ sessionId: sessionId.trim(), phoneNumber: phoneNumber.trim() || undefined, active: true });
           }
           return {
             ...prev,
             whatsapps: {
               metaCloudApiNumbers: prev.whatsapps?.metaCloudApiNumbers ?? [],
               baileysApiNumbers: list,
+              whatsapp_allowed_phone_numbers: prev.whatsapps?.whatsapp_allowed_phone_numbers ?? [],
             },
           };
         });
@@ -218,6 +225,37 @@ export default function ChannelsPage() {
       toast.error(msg);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleToggleSessionActive = async (item: BaileysApiNumber, active: boolean) => {
+    if (!business?._id) return;
+    setTogglingSessionId(item.sessionId);
+    try {
+      const nextBaileys = (business.whatsapps?.baileysApiNumbers ?? []).map((n) =>
+        n.sessionId === item.sessionId ? { ...n, active } : n
+      );
+      const updated = (await fetchApiV1({
+        query: queries.updateBusiness,
+        type: "json",
+        variables: {
+          id: business._id,
+          args: {
+            whatsapps: {
+              metaCloudApiNumbers: business.whatsapps?.metaCloudApiNumbers ?? [],
+              baileysApiNumbers: nextBaileys,
+              whatsapp_allowed_phone_numbers: business.whatsapps?.whatsapp_allowed_phone_numbers ?? [],
+            },
+          },
+        },
+      })) as Business;
+      setBusiness(updated);
+      toast.success(active ? "Sesión activada" : "Sesión desactivada");
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al actualizar estado";
+      toast.error(msg);
+    } finally {
+      setTogglingSessionId(null);
     }
   };
 
@@ -242,6 +280,7 @@ export default function ChannelsPage() {
           whatsapps: {
             metaCloudApiNumbers: prev.whatsapps?.metaCloudApiNumbers ?? [],
             baileysApiNumbers: list,
+            whatsapp_allowed_phone_numbers: prev.whatsapps?.whatsapp_allowed_phone_numbers ?? [],
           },
         };
       });
@@ -250,6 +289,42 @@ export default function ChannelsPage() {
       toast.error("Error al quitar");
     } finally {
       setRemoving(null);
+    }
+  };
+
+  const handleSaveAllowedPhones = async () => {
+    if (!business?._id) return;
+    setSavingAllowedPhones(true);
+    try {
+      const parsed = allowedPhonesText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      const unique = Array.from(new Set(parsed));
+
+      const updated = (await fetchApiV1({
+        query: queries.updateBusiness,
+        type: "json",
+        variables: {
+          id: business._id,
+          args: {
+            whatsapps: {
+              metaCloudApiNumbers: business.whatsapps?.metaCloudApiNumbers ?? [],
+              baileysApiNumbers: business.whatsapps?.baileysApiNumbers ?? [],
+              whatsapp_allowed_phone_numbers: unique,
+            },
+          },
+        },
+      })) as Business;
+
+      setBusiness(updated);
+      setAllowedPhonesText((updated.whatsapps?.whatsapp_allowed_phone_numbers ?? []).join("\n"));
+      toast.success("Números permitidos actualizados");
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al guardar números permitidos";
+      toast.error(msg);
+    } finally {
+      setSavingAllowedPhones(false);
     }
   };
 
@@ -356,6 +431,32 @@ export default function ChannelsPage() {
               </div>
 
               <div className="rounded-lg border p-4">
+                <h4 className="font-medium mb-3">Números permitidos (allowlist)</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Un número por línea. Si dejas esta lista vacía, se permiten mensajes de cualquier número.
+                </p>
+                <div className="space-y-3">
+                  <textarea
+                    className="min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    placeholder={`+58 412 1234567\n584141234567`}
+                    value={allowedPhonesText}
+                    onChange={(e) => setAllowedPhonesText(e.target.value)}
+                    disabled={savingAllowedPhones}
+                  />
+                  <Button onClick={handleSaveAllowedPhones} disabled={savingAllowedPhones}>
+                    {savingAllowedPhones ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Guardando...
+                      </>
+                    ) : (
+                      "Guardar números permitidos"
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
                 <h4 className="font-medium mb-3">Números Baileys vinculados</h4>
                 {baileysList.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Aún no hay números conectados.</p>
@@ -379,6 +480,15 @@ export default function ChannelsPage() {
                             )}
                           </div>
                           <BaileysConnectionBadge entry={st} />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Activo</span>
+                            <Switch
+                              checked={item.active !== false}
+                              onCheckedChange={(checked) => void handleToggleSessionActive(item, checked)}
+                              disabled={togglingSessionId === item.sessionId || removing === item.sessionId}
+                              aria-label={`Activar o desactivar sesión ${item.sessionId}`}
+                            />
+                          </div>
                         </div>
                         <Button
                           variant="ghost"
