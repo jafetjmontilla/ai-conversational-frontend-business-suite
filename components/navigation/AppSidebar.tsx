@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart, Briefcase, Brain } from 'lucide-react';
+import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart, Briefcase, Brain, FileSearch } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
 import { getProfileHref, isProfilePath } from "@/lib/profileRoutes"
@@ -69,6 +69,7 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         { href: `/${businessId}/edit`, label: 'Editar negocio', icon: Pencil, condition: canEditCurrentBusiness },
         { href: `/${businessId}/config`, label: 'Configuración del negocio', icon: Settings, condition: canEditCurrentBusiness },
         { href: `/${businessId}/userMemories`, label: 'Memoria de usuarios', icon: Brain, condition: canViewCurrentBusiness },
+        { href: `/${businessId}/promptLogs`, label: 'Prompt Logs', icon: FileSearch, condition: canViewCurrentBusiness },
         { href: `/${businessId}/channels`, label: 'Canales', icon: MessageSquare, condition: canEditCurrentBusiness },
         { href: `/${businessId}/users`, label: 'Usuarios del negocio', icon: UserPlus, condition: canManageBusinessUsers },
         { href: `/${businessId}/knowledge`, label: 'Generar conocimiento', icon: BookOpen, condition: canEditCurrentBusiness },

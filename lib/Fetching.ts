@@ -550,6 +550,62 @@ export const queries = {
       }
     }
   }`,
+  listPromptLogs: `query listPromptLogs(
+    $businessDocId: ID!,
+    $skip: Int,
+    $limit: Int,
+    $userId: String,
+    $conversationId: String,
+    $modelName: String,
+    $channel: String,
+    $fromDate: String,
+    $toDate: String,
+    $textSearch: String
+  ) {
+    listPromptLogs(
+      businessDocId: $businessDocId,
+      skip: $skip,
+      limit: $limit,
+      userId: $userId,
+      conversationId: $conversationId,
+      modelName: $modelName,
+      channel: $channel,
+      fromDate: $fromDate,
+      toDate: $toDate,
+      textSearch: $textSearch
+    ) {
+      totalCount
+      items {
+        id
+        businessId
+        conversationId
+        userId
+        role
+        channel
+        jobId
+        incomingMessage
+        prompt
+        responseText
+        modelName
+        tokenUsage {
+          inputTokens
+          outputTokens
+          totalTokens
+        }
+        promptChars
+        responseChars
+        socialMode
+        intentType
+        toolUsed
+        metadata {
+          key
+          value
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  }`,
   getMyBusinessMemberships: `query getMyBusinessMemberships {
     getMyBusinessMemberships {
       userId

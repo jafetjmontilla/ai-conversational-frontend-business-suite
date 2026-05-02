@@ -144,6 +144,45 @@ export interface UserMemoryListResult {
   totalCount: number;
 }
 
+export interface PromptLogTokenUsage {
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+}
+
+export interface PromptLogMetadataEntry {
+  key: string;
+  value: string;
+}
+
+export interface PromptLogRecordRow {
+  id: string;
+  businessId: string;
+  conversationId?: string | null;
+  userId?: string | null;
+  role?: string | null;
+  channel?: string | null;
+  jobId?: string | null;
+  incomingMessage: string;
+  prompt: string;
+  responseText: string;
+  modelName: string;
+  tokenUsage?: PromptLogTokenUsage | null;
+  promptChars: number;
+  responseChars: number;
+  socialMode?: boolean | null;
+  intentType?: string | null;
+  toolUsed?: string | null;
+  metadata: PromptLogMetadataEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PromptLogListResult {
+  items: PromptLogRecordRow[];
+  totalCount: number;
+}
+
 export interface BusinessConfig {
   conversationTimeout: number;
   messageLimit?: number;
