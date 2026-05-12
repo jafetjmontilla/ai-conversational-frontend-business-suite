@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,17 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import type { Business, BusinessConfig } from "@/lib/interfases";
+import type { Business, BusinessConfig, LlmConfig } from "@/lib/interfases";
 import { Loader2, Play, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +52,40 @@ const defaultCommerceFlow = {
   enabled: false,
 };
 
+const defaultAgent = {
+  defaultEngine: "cse" as const,
+  useLangGraph: false,
+};
+
+const defaultGrounding = {
+  minConfidence: 0.5,
+  requireSources: false,
+};
+
+const defaultLlmApi: LlmConfig = {
+  provider: "gemini_native",
+  model: "gemini-2.5-flash-lite",
+  temperature: 0.7,
+  maxIterations: 4,
+  openAiCompatibleBaseUrl: null,
+  auth: null,
+  contextCaching: { enabled: false, ttlSeconds: null },
+};
+
+/** Valores de formulario para LLM (apiKey solo al rotar clave). */
+const defaultLlmForm = {
+  provider: "gemini_native" as const,
+  model: "gemini-2.5-flash-lite",
+  temperature: 0.7,
+  maxIterations: 4,
+  openAiCompatibleBaseUrl: "",
+  authType: "bearer" as const,
+  headerName: "",
+  apiKey: "",
+  contextCachingEnabled: false,
+  contextCachingTtlSeconds: undefined as number | undefined,
+};
+
 const defaultConfig: BusinessConfig = {
   conversationTimeout: 30,
   messageLimit: 100,
@@ -56,6 +97,9 @@ const defaultConfig: BusinessConfig = {
   userMemory: { ...defaultUserMemory },
   ragSearch: { ...defaultRagSearch },
   commerceFlow: { ...defaultCommerceFlow },
+  agent: { ...defaultAgent },
+  grounding: { ...defaultGrounding },
+  llm: { ...defaultLlmApi },
 };
 
 const dataProviderAuthSchema = z.object({
@@ -144,6 +188,26 @@ const formSchema = z.object({
   commerceFlow: z.object({
     enabled: z.boolean(),
   }),
+  agent: z.object({
+    defaultEngine: z.enum(["cse", "pae"]),
+    useLangGraph: z.boolean(),
+  }),
+  llm: z.object({
+    provider: z.enum(["gemini_native", "openai_compatible"]),
+    model: z.string().min(1, "Modelo obligatorio"),
+    temperature: z.coerce.number().min(0).max(2),
+    maxIterations: z.coerce.number().min(1).max(50),
+    openAiCompatibleBaseUrl: z.string().optional().or(z.literal("")),
+    authType: z.enum(["header", "bearer"]),
+    headerName: z.string().optional(),
+    apiKey: z.string().optional(),
+    contextCachingEnabled: z.boolean(),
+    contextCachingTtlSeconds: z.preprocess(emptyToUndefined, z.coerce.number().min(60).max(86400).optional()),
+  }),
+  grounding: z.object({
+    minConfidence: z.coerce.number().min(0).max(1),
+    requireSources: z.boolean(),
+  }),
 })
   .superRefine((data, ctx) => {
     const ids = new Set(data.dataProviders.map((p) => p.id.trim()).filter(Boolean));
@@ -192,6 +256,15 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     auth: "Autenticación",
     ragSearch: "RAG",
     minCosineSimilarity: "Similitud coseno mín.",
+    agent: "Agente",
+    llm: "LLM",
+    grounding: "Grounding",
+    defaultEngine: "Motor",
+    useLangGraph: "LangGraph",
+    model: "Modelo",
+    maxIterations: "Iteraciones máx.",
+    openAiCompatibleBaseUrl: "URL LiteLLM / OpenAI-compat",
+    contextCachingEnabled: "Context caching",
   };
   return map[segment] ?? segment;
 }
@@ -230,11 +303,31 @@ function normalizeRerank(v: string | null | undefined): "none" | "mmr" {
   return "none";
 }
 
+function llmFormFromApi(llm?: LlmConfig | null) {
+  if (!llm) return { ...defaultLlmForm };
+  return {
+    provider: llm.provider === "openai_compatible" ? ("openai_compatible" as const) : ("gemini_native" as const),
+    model: llm.model?.trim() ? llm.model : defaultLlmForm.model,
+    temperature: typeof llm.temperature === "number" ? llm.temperature : defaultLlmForm.temperature,
+    maxIterations: typeof llm.maxIterations === "number" ? llm.maxIterations : defaultLlmForm.maxIterations,
+    openAiCompatibleBaseUrl: llm.openAiCompatibleBaseUrl ?? "",
+    authType: llm.auth?.type === "header" ? ("header" as const) : ("bearer" as const),
+    headerName: llm.auth?.headerName ?? "",
+    apiKey: "",
+    contextCachingEnabled: llm.contextCaching?.enabled === true,
+    contextCachingTtlSeconds:
+      typeof llm.contextCaching?.ttlSeconds === "number" ? llm.contextCaching.ttlSeconds : undefined,
+  };
+}
+
 function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): BusinessConfig {
   if (!config) return defaultConfig;
   const um = config.userMemory;
   const rs = config.ragSearch;
   const cf = config.commerceFlow;
+  const ag = config.agent;
+  const gr = config.grounding;
+  const lm = config.llm;
   return {
     conversationTimeout: config.conversationTimeout ?? defaultConfig.conversationTimeout,
     messageLimit: config.messageLimit ?? defaultConfig.messageLimit,
@@ -262,6 +355,29 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
     commerceFlow: {
       enabled: cf?.enabled ?? defaultCommerceFlow.enabled,
     },
+    agent: {
+      defaultEngine: ag?.defaultEngine === "pae" ? "pae" : "cse",
+      useLangGraph: ag?.useLangGraph === true,
+    },
+    grounding: {
+      minConfidence: typeof gr?.minConfidence === "number" ? gr.minConfidence : defaultGrounding.minConfidence,
+      requireSources: gr?.requireSources === true,
+    },
+    llm: lm
+      ? {
+          provider: lm.provider === "openai_compatible" ? "openai_compatible" : "gemini_native",
+          model: lm.model?.trim() ? lm.model : defaultLlmApi.model,
+          temperature: typeof lm.temperature === "number" ? lm.temperature : defaultLlmApi.temperature,
+          maxIterations: typeof lm.maxIterations === "number" ? lm.maxIterations : defaultLlmApi.maxIterations,
+          openAiCompatibleBaseUrl: lm.openAiCompatibleBaseUrl ?? null,
+          auth: lm.auth ?? null,
+          contextCaching: {
+            enabled: lm.contextCaching?.enabled === true,
+            ttlSeconds:
+              typeof lm.contextCaching?.ttlSeconds === "number" ? lm.contextCaching.ttlSeconds : null,
+          },
+        }
+      : { ...defaultLlmApi },
   };
 }
 
@@ -305,8 +421,55 @@ export default function BusinessConfigPage() {
       userMemory: { ...defaultUserMemory },
       ragSearch: { ...defaultRagSearch },
       commerceFlow: { ...defaultCommerceFlow },
+      agent: { ...defaultAgent },
+      llm: { ...defaultLlmForm },
+      grounding: { ...defaultGrounding },
     },
   });
+
+  const applyBusinessToForm = useCallback(
+    (b: Business) => {
+      setBusiness(b);
+      const cfg = mergeWithDefault(b.config);
+      form.reset({
+        conversationTimeout: cfg.conversationTimeout,
+        messageLimit: cfg.messageLimit,
+        personality: cfg.personality,
+        globalResponses: {
+          greeting: cfg.globalResponses?.greeting,
+          goodbye: cfg.globalResponses?.goodbye,
+          noData: cfg.globalResponses?.noData,
+          noReplyWithoutRag: cfg.globalResponses?.noReplyWithoutRag ?? false,
+        },
+        knowledgeSources: cfg.knowledgeSources ?? [],
+        tools: (cfg.tools ?? []).map((t) => ({
+          name: t.name,
+          description: t.description,
+          params: t.params ?? [],
+          providerId: t.providerId ?? "",
+          restMethod: (t.restMethod ?? "POST") as "POST" | "GET" | "PUT" | "PATCH" | "DELETE",
+          restPath: t.restPath ?? "",
+        })),
+        dataProviders: (cfg.dataProviders ?? []).map((p) => ({
+          id: p.id,
+          kind: p.kind,
+          baseUrl: p.baseUrl ?? "",
+          endpoint: p.endpoint ?? "",
+          auth: { type: p.auth?.type ?? "bearer", headerName: p.auth?.headerName ?? "", apiKey: "" },
+        })),
+        userMemory: { ...defaultUserMemory, ...cfg.userMemory },
+        ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
+        commerceFlow: { ...defaultCommerceFlow, ...cfg.commerceFlow },
+        agent: { ...cfg.agent },
+        llm: llmFormFromApi(cfg.llm),
+        grounding: { ...cfg.grounding },
+      });
+      setProviderDocSnippets(Array((cfg.dataProviders ?? []).length).fill(""));
+      setToolDocSnippets(Array((cfg.tools ?? []).length).fill(""));
+      setToolTestParamsJson(Array((cfg.tools ?? []).length).fill("{}"));
+    },
+    [form]
+  );
 
   useEffect(() => {
     if (!businessId) return;
@@ -332,41 +495,7 @@ export default function BusinessConfigPage() {
           })) as Business | null;
         }
         if (b) {
-          setBusiness(b);
-          const cfg = mergeWithDefault(b.config);
-          form.reset({
-            conversationTimeout: cfg.conversationTimeout,
-            messageLimit: cfg.messageLimit,
-            personality: cfg.personality,
-            globalResponses: {
-              greeting: cfg.globalResponses?.greeting,
-              goodbye: cfg.globalResponses?.goodbye,
-              noData: cfg.globalResponses?.noData,
-              noReplyWithoutRag: cfg.globalResponses?.noReplyWithoutRag ?? false,
-            },
-            knowledgeSources: cfg.knowledgeSources ?? [],
-            tools: (cfg.tools ?? []).map((t) => ({
-              name: t.name,
-              description: t.description,
-              params: t.params ?? [],
-              providerId: t.providerId ?? "",
-              restMethod: (t.restMethod ?? "POST") as "POST" | "GET" | "PUT" | "PATCH" | "DELETE",
-              restPath: t.restPath ?? "",
-            })),
-            dataProviders: (cfg.dataProviders ?? []).map((p) => ({
-              id: p.id,
-              kind: p.kind,
-              baseUrl: p.baseUrl ?? "",
-              endpoint: p.endpoint ?? "",
-              auth: { type: p.auth?.type ?? "bearer", headerName: p.auth?.headerName ?? "", apiKey: "" },
-            })),
-            userMemory: { ...defaultUserMemory, ...cfg.userMemory },
-            ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
-            commerceFlow: { ...defaultCommerceFlow, ...cfg.commerceFlow },
-          });
-          setProviderDocSnippets(Array((cfg.dataProviders ?? []).length).fill(""));
-          setToolDocSnippets(Array((cfg.tools ?? []).length).fill(""));
-          setToolTestParamsJson(Array((cfg.tools ?? []).length).fill("{}"));
+          applyBusinessToForm(b);
         } else {
           toast.error("Negocio no encontrado");
           router.push("/businesses");
@@ -379,7 +508,7 @@ export default function BusinessConfigPage() {
       }
     };
     load();
-  }, [businessId, meData?.business]);
+  }, [businessId, meData?.business, applyBusinessToForm]);
 
   const onSubmit = async (values: FormValues) => {
     if (!business) return;
@@ -428,6 +557,38 @@ export default function BusinessConfigPage() {
         commerceFlow: {
           enabled: values.commerceFlow.enabled,
         },
+        agent: {
+          defaultEngine: values.agent.defaultEngine,
+          useLangGraph: values.agent.useLangGraph,
+        },
+        grounding: {
+          minConfidence: values.grounding.minConfidence,
+          requireSources: values.grounding.requireSources,
+        },
+        llm: {
+          provider: values.llm.provider,
+          model: values.llm.model.trim(),
+          temperature: values.llm.temperature,
+          maxIterations: values.llm.maxIterations,
+          ...(values.llm.openAiCompatibleBaseUrl?.trim()
+            ? { openAiCompatibleBaseUrl: values.llm.openAiCompatibleBaseUrl.trim() }
+            : {}),
+          ...(values.llm.apiKey?.trim()
+            ? {
+                auth: {
+                  type: values.llm.authType,
+                  headerName: values.llm.headerName?.trim() || undefined,
+                  apiKey: values.llm.apiKey.trim(),
+                },
+              }
+            : {}),
+          contextCaching: {
+            enabled: values.llm.contextCachingEnabled,
+            ...(typeof values.llm.contextCachingTtlSeconds === "number"
+              ? { ttlSeconds: values.llm.contextCachingTtlSeconds }
+              : {}),
+          },
+        },
       };
       await fetchApiV1({
         query: queries.updateBusiness,
@@ -438,7 +599,19 @@ export default function BusinessConfigPage() {
         },
       });
       toast.success("Configuración guardada");
-      setBusiness((prev) => (prev ? { ...prev, config } : null));
+      let fresh: Business | null = (await fetchApiV1({
+        query: queries.getBusiness,
+        type: "json",
+        variables: { id: business._id },
+      })) as Business | null;
+      if (!fresh) {
+        fresh = (await fetchApiV1({
+          query: queries.getBusiness,
+          type: "json",
+          variables: { businessId: business.businessId ?? businessId },
+        })) as Business | null;
+      }
+      if (fresh) applyBusinessToForm(fresh);
     } catch (e: unknown) {
       const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al guardar";
       toast.error(msg);
@@ -543,6 +716,9 @@ export default function BusinessConfigPage() {
                   </TabsTrigger>
                   <TabsTrigger value="memory-rag" className="flex-1 min-w-[6.5rem]">
                     Memoria / RAG
+                  </TabsTrigger>
+                  <TabsTrigger value="agent-llm" className="flex-1 min-w-[6.5rem]">
+                    Agente / LLM
                   </TabsTrigger>
                 </TabsList>
 
@@ -1552,6 +1728,257 @@ export default function BusinessConfigPage() {
                         )}
                       />
                     </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="agent-llm" className="space-y-6 pt-4">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Motor del agente (blueprint)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      CSE = servicio al cliente (baja latencia, RAG estricto). PAE = asistente personal (razonamiento más amplio). El worker aplicará el grafo LangGraph cuando esté activado.
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="agent.defaultEngine"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Motor por defecto</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Motor" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="cse">Customer Service (CSE)</SelectItem>
+                                <SelectItem value="pae">Personal Assistant (PAE)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="agent.useLangGraph"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 sm:col-span-2">
+                            <div className="space-y-0.5">
+                              <FormLabel>Usar LangGraph en el worker</FormLabel>
+                              <p className="text-xs text-muted-foreground">Feature flag; requiere worker con grafo compilado.</p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Modelo y proveedor</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="llm.provider"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Proveedor</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="gemini_native">Gemini (API directa)</SelectItem>
+                                <SelectItem value="openai_compatible">OpenAI-compatible (LiteLLM / Vertex)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="llm.model"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Modelo</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="gemini-2.5-flash-lite" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="llm.temperature"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Temperatura</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={2} step={0.1} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="llm.maxIterations"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Máx. iteraciones (tools / loop)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={1} max={50} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="llm.openAiCompatibleBaseUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL base OpenAI-compatible (LiteLLM)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="https://litellm.example.com/v1" />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Solo si el proveedor es OpenAI-compatible.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="llm.authType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tipo de auth (proxy)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="bearer">Bearer</SelectItem>
+                                <SelectItem value="header">Cabecera personalizada</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="llm.headerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nombre cabecera (si aplica)</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Authorization" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="llm.apiKey"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>API key del proxy (opcional)</FormLabel>
+                          <FormControl>
+                            <Input type="password" autoComplete="off" {...field} placeholder="Dejar vacío para no cambiar" />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Se cifra en servidor. Solo rellenar para fijar o rotar clave.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="llm.contextCachingEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel>Context caching (Gemini / Vertex vía proxy)</FormLabel>
+                            <p className="text-xs text-muted-foreground">Delegado al proxy; ver documentación LiteLLM/Vertex.</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="llm.contextCachingTtlSeconds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>TTL segmento cacheable (segundos, opcional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={60}
+                              max={86400}
+                              placeholder="Opcional"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Grounding</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Umbrales de confianza para anclar respuestas a fuentes (complemento a RAG en el worker).
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="grounding.minConfidence"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confianza mínima (0–1)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={0} max={1} step={0.05} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="grounding.requireSources"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <div className="space-y-0.5">
+                            <FormLabel>Exigir fuentes</FormLabel>
+                            <p className="text-xs text-muted-foreground">Política estricta cuando el motor lo aplique.</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
               </Tabs>

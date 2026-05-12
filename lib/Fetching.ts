@@ -510,6 +510,30 @@ export const queries = {
         commerceFlow {
           enabled
         }
+        agent {
+          defaultEngine
+          useLangGraph
+        }
+        llm {
+          provider
+          model
+          temperature
+          maxIterations
+          openAiCompatibleBaseUrl
+          auth {
+            type
+            headerName
+            apiKeyMasked
+          }
+          contextCaching {
+            enabled
+            ttlSeconds
+          }
+        }
+        grounding {
+          minConfidence
+          requireSources
+        }
       }
       whatsapps {
         metaCloudApiNumbers {
@@ -603,6 +627,31 @@ export const queries = {
         }
         createdAt
         updatedAt
+      }
+    }
+  }`,
+  checkoutAuditLogs: `query checkoutAuditLogs(
+    $businessDocId: ID!
+    $conversationId: String
+    $skip: Int
+    $limit: Int
+  ) {
+    checkoutAuditLogs(
+      businessDocId: $businessDocId
+      conversationId: $conversationId
+      skip: $skip
+      limit: $limit
+    ) {
+      totalCount
+      items {
+        id
+        businessId
+        conversationId
+        tool
+        previousCheckoutJson
+        nextCheckoutJson
+        traceId
+        createdAt
       }
     }
   }`,

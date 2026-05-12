@@ -119,6 +119,56 @@ export interface CommerceFlowConfig {
   enabled?: boolean;
 }
 
+/** Motor del agente (blueprint). */
+export interface AgentConfig {
+  defaultEngine: "cse" | "pae";
+  useLangGraph: boolean;
+}
+
+export interface LlmAuthMasked {
+  type: string;
+  headerName?: string | null;
+  apiKeyMasked: boolean;
+}
+
+export interface LlmContextCaching {
+  enabled: boolean;
+  ttlSeconds?: number | null;
+}
+
+/** Config LLM por tenant (respuesta API; auth solo enmascarado). */
+export interface LlmConfig {
+  provider: "gemini_native" | "openai_compatible" | string;
+  model: string;
+  temperature: number;
+  maxIterations: number;
+  openAiCompatibleBaseUrl?: string | null;
+  auth?: LlmAuthMasked | null;
+  contextCaching: LlmContextCaching;
+}
+
+export interface GroundingConfig {
+  minConfidence: number;
+  requireSources: boolean;
+}
+
+/** Línea de auditoría de checkout (colección checkout_audit_logs). */
+export interface CheckoutAuditRecordRow {
+  id: string;
+  businessId: string;
+  conversationId: string;
+  tool: string;
+  previousCheckoutJson: string | null;
+  nextCheckoutJson: string;
+  traceId?: string | null;
+  createdAt: string;
+}
+
+export interface CheckoutAuditListResult {
+  items: CheckoutAuditRecordRow[];
+  totalCount: number;
+}
+
 /** Preferencias persistidas en usermemories (lectura desde el panel). */
 export interface UserMemoryPreferencesFields {
   displayName?: string | null;
@@ -194,6 +244,9 @@ export interface BusinessConfig {
   userMemory?: UserMemoryConfig;
   ragSearch?: RagSearchConfig;
   commerceFlow?: CommerceFlowConfig;
+  agent?: AgentConfig;
+  llm?: LlmConfig;
+  grounding?: GroundingConfig;
 }
 
 export interface MetaCloudApiNumber {
