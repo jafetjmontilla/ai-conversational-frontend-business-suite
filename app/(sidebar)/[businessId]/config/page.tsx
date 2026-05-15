@@ -54,7 +54,6 @@ const defaultCommerceFlow = {
 
 const defaultAgent = {
   defaultEngine: "cse" as const,
-  useLangGraph: false,
 };
 
 const defaultGrounding = {
@@ -203,7 +202,6 @@ const formSchema = z.object({
   }),
   agent: z.object({
     defaultEngine: z.enum(["cse", "pae"]),
-    useLangGraph: z.boolean(),
   }),
   llm: z.object({
     provider: z.enum(["gemini_native", "openai_compatible"]),
@@ -287,7 +285,6 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     llm: "LLM",
     grounding: "Grounding",
     defaultEngine: "Motor",
-    useLangGraph: "LangGraph",
     model: "Modelo",
     maxIterations: "Iteraciones máx.",
     openAiCompatibleBaseUrl: "URL LiteLLM / OpenAI-compat",
@@ -392,7 +389,6 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
     },
     agent: {
       defaultEngine: ag?.defaultEngine === "pae" ? "pae" : "cse",
-      useLangGraph: ag?.useLangGraph === true,
     },
     grounding: {
       minConfidence: typeof gr?.minConfidence === "number" ? gr.minConfidence : defaultGrounding.minConfidence,
@@ -623,7 +619,6 @@ export default function BusinessConfigPage() {
         },
         agent: {
           defaultEngine: values.agent.defaultEngine,
-          useLangGraph: values.agent.useLangGraph,
         },
         grounding: {
           minConfidence: values.grounding.minConfidence,
@@ -1949,21 +1944,6 @@ export default function BusinessConfigPage() {
                               </SelectContent>
                             </Select>
                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="agent.useLangGraph"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 sm:col-span-2">
-                            <div className="space-y-0.5">
-                              <FormLabel>Usar LangGraph en el worker</FormLabel>
-                              <p className="text-xs text-muted-foreground">Feature flag; requiere worker con grafo compilado.</p>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
                           </FormItem>
                         )}
                       />

@@ -512,7 +512,6 @@ export const queries = {
         }
         agent {
           defaultEngine
-          useLangGraph
         }
         llm {
           provider

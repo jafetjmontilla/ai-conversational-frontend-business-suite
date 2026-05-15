@@ -122,7 +122,6 @@ export interface CommerceFlowConfig {
 /** Motor del agente (blueprint). */
 export interface AgentConfig {
   defaultEngine: "cse" | "pae";
-  useLangGraph: boolean;
 }
 
 export interface LlmAuthMasked {
