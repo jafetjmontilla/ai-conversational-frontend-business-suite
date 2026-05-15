@@ -534,6 +534,30 @@ export const queries = {
           minConfidence
           requireSources
         }
+        earlyResponse {
+          enabled
+          minLatencyMs
+          debounceMs
+          confidenceThresholds {
+            high
+            medium
+          }
+          customPools {
+            business {
+              high
+              medium
+              low
+            }
+            social {
+              greeting
+              general
+            }
+          }
+          placeholders {
+            includeUserName
+            includeBusinessName
+          }
+        }
       }
       whatsapps {
         metaCloudApiNumbers {

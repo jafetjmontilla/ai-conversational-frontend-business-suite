@@ -62,6 +62,18 @@ const defaultGrounding = {
   requireSources: false,
 };
 
+const defaultEarlyResponse = {
+  enabled: true,
+  minLatencyMs: 2500,
+  debounceMs: 1500,
+  confidenceThresholds: { high: 0.8, medium: 0.5 },
+  customPools: null as {
+    business?: { high?: string[]; medium?: string[]; low?: string[] };
+    social?: { greeting?: string[]; general?: string[] };
+  } | null,
+  placeholders: { includeUserName: true, includeBusinessName: true },
+};
+
 const defaultLlmApi: LlmConfig = {
   provider: "gemini_native",
   model: "gemini-2.5-flash-lite",
@@ -100,6 +112,7 @@ const defaultConfig: BusinessConfig = {
   agent: { ...defaultAgent },
   grounding: { ...defaultGrounding },
   llm: { ...defaultLlmApi },
+  earlyResponse: { ...defaultEarlyResponse },
 };
 
 const dataProviderAuthSchema = z.object({
@@ -208,6 +221,20 @@ const formSchema = z.object({
     minConfidence: z.coerce.number().min(0).max(1),
     requireSources: z.boolean(),
   }),
+  earlyResponse: z.object({
+    enabled: z.boolean(),
+    minLatencyMs: z.coerce.number().min(500).max(10000),
+    debounceMs: z.coerce.number().min(0).max(5000),
+    confidenceThresholds: z.object({
+      high: z.coerce.number().min(0).max(1),
+      medium: z.coerce.number().min(0).max(1),
+    }),
+    customPools: z.any().optional(),
+    placeholders: z.object({
+      includeUserName: z.boolean(),
+      includeBusinessName: z.boolean(),
+    }),
+  }),
 })
   .superRefine((data, ctx) => {
     const ids = new Set(data.dataProviders.map((p) => p.id.trim()).filter(Boolean));
@@ -265,6 +292,13 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     maxIterations: "Iteraciones máx.",
     openAiCompatibleBaseUrl: "URL LiteLLM / OpenAI-compat",
     contextCachingEnabled: "Context caching",
+    earlyResponse: "Respuestas tempranas",
+    minLatencyMs: "Latencia mínima (ms)",
+    debounceMs: "Debounce (ms)",
+    confidenceThresholds: "Umbrales de confianza",
+    placeholders: "Placeholders",
+    includeUserName: "Incluir nombre usuario",
+    includeBusinessName: "Incluir nombre negocio",
   };
   return map[segment] ?? segment;
 }
@@ -328,6 +362,7 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
   const ag = config.agent;
   const gr = config.grounding;
   const lm = config.llm;
+  const er = config.earlyResponse;
   return {
     conversationTimeout: config.conversationTimeout ?? defaultConfig.conversationTimeout,
     messageLimit: config.messageLimit ?? defaultConfig.messageLimit,
@@ -378,6 +413,20 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
           },
         }
       : { ...defaultLlmApi },
+    earlyResponse: {
+      enabled: er?.enabled ?? defaultEarlyResponse.enabled,
+      minLatencyMs: er?.minLatencyMs ?? defaultEarlyResponse.minLatencyMs,
+      debounceMs: er?.debounceMs ?? defaultEarlyResponse.debounceMs,
+      confidenceThresholds: {
+        high: er?.confidenceThresholds?.high ?? defaultEarlyResponse.confidenceThresholds.high,
+        medium: er?.confidenceThresholds?.medium ?? defaultEarlyResponse.confidenceThresholds.medium,
+      },
+      customPools: er?.customPools ?? defaultEarlyResponse.customPools,
+      placeholders: {
+        includeUserName: er?.placeholders?.includeUserName ?? defaultEarlyResponse.placeholders.includeUserName,
+        includeBusinessName: er?.placeholders?.includeBusinessName ?? defaultEarlyResponse.placeholders.includeBusinessName,
+      },
+    },
   };
 }
 
@@ -424,6 +473,7 @@ export default function BusinessConfigPage() {
       agent: { ...defaultAgent },
       llm: { ...defaultLlmForm },
       grounding: { ...defaultGrounding },
+      earlyResponse: { ...defaultEarlyResponse },
     },
   });
 
@@ -463,6 +513,20 @@ export default function BusinessConfigPage() {
         agent: { ...cfg.agent },
         llm: llmFormFromApi(cfg.llm),
         grounding: { ...cfg.grounding },
+        earlyResponse: {
+          enabled: cfg.earlyResponse?.enabled ?? defaultEarlyResponse.enabled,
+          minLatencyMs: cfg.earlyResponse?.minLatencyMs ?? defaultEarlyResponse.minLatencyMs,
+          debounceMs: cfg.earlyResponse?.debounceMs ?? defaultEarlyResponse.debounceMs,
+          confidenceThresholds: {
+            high: cfg.earlyResponse?.confidenceThresholds?.high ?? defaultEarlyResponse.confidenceThresholds.high,
+            medium: cfg.earlyResponse?.confidenceThresholds?.medium ?? defaultEarlyResponse.confidenceThresholds.medium,
+          },
+          customPools: cfg.earlyResponse?.customPools ?? defaultEarlyResponse.customPools,
+          placeholders: {
+            includeUserName: cfg.earlyResponse?.placeholders?.includeUserName ?? defaultEarlyResponse.placeholders.includeUserName,
+            includeBusinessName: cfg.earlyResponse?.placeholders?.includeBusinessName ?? defaultEarlyResponse.placeholders.includeBusinessName,
+          },
+        },
       });
       setProviderDocSnippets(Array((cfg.dataProviders ?? []).length).fill(""));
       setToolDocSnippets(Array((cfg.tools ?? []).length).fill(""));
@@ -588,6 +652,14 @@ export default function BusinessConfigPage() {
               ? { ttlSeconds: values.llm.contextCachingTtlSeconds }
               : {}),
           },
+        },
+        earlyResponse: {
+          enabled: values.earlyResponse.enabled,
+          minLatencyMs: values.earlyResponse.minLatencyMs,
+          debounceMs: values.earlyResponse.debounceMs,
+          confidenceThresholds: values.earlyResponse.confidenceThresholds,
+          customPools: values.earlyResponse.customPools,
+          placeholders: values.earlyResponse.placeholders,
         },
       };
       await fetchApiV1({
@@ -793,8 +865,128 @@ export default function BusinessConfigPage() {
                   />
                 </TabsContent>
 
-                <TabsContent value="responses" className="space-y-4 pt-4">
-                  <FormField
+                <TabsContent value="responses" className="space-y-6 pt-4">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Mensajes tempranos (early responses)</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Mensajes enviados mientras se procesa una consulta que toma más de unos segundos. Mejoran la UX sin costo de tokens.
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="earlyResponse.enabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 gap-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>Habilitar mensajes tempranos</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Envía un mensaje intermedio cuando la respuesta estimada toma más del tiempo configurado.
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.minLatencyMs"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Latencia mínima (ms)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={500} max={10000} step={100} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Enviar early response si latencia estimada supera este valor. Default: 2500ms</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.debounceMs"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Debounce (ms)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={5000} step={100} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Tiempo para fusionar mensajes consecutivos. Default: 1500ms</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.confidenceThresholds.high"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Umbral confianza alta (0–1)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={1} step={0.05} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Mensajes asertivos cuando confianza ≥ este valor. Default: 0.8</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.confidenceThresholds.medium"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Umbral confianza media (0–1)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={1} step={0.05} {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Mensajes cautelosos cuando confianza ≥ este valor. Default: 0.5</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="flex flex-row gap-4">
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.placeholders.includeUserName"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 flex-1">
+                            <div className="space-y-0.5">
+                              <FormLabel>Incluir nombre del usuario</FormLabel>
+                              <p className="text-xs text-muted-foreground">Placeholder {'{{userName}}'}</p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="earlyResponse.placeholders.includeBusinessName"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 flex-1">
+                            <div className="space-y-0.5">
+                              <FormLabel>Incluir nombre del negocio</FormLabel>
+                              <p className="text-xs text-muted-foreground">Placeholder {'{{businessName}}'}</p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Respuestas globales</h3>
+                    <FormField
                     control={form.control}
                     name="globalResponses.greeting"
                     render={({ field }) => (
@@ -852,6 +1044,7 @@ export default function BusinessConfigPage() {
                       </FormItem>
                     )}
                   />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="sources" className="space-y-4 pt-4">

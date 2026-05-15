@@ -152,6 +152,38 @@ export interface GroundingConfig {
   requireSources: boolean;
 }
 
+/** Pools de mensajes tempranos personalizados por negocio. */
+export interface EarlyResponsePool {
+  high?: string[];
+  medium?: string[];
+  low?: string[];
+}
+
+/** Pools de mensajes para ruta social. */
+export interface EarlyResponseSocialPool {
+  greeting?: string[];
+  general?: string[];
+}
+
+/** Configuración de mensajes tempranos (early responses) sin costo de tokens. */
+export interface EarlyResponseConfig {
+  enabled: boolean;
+  minLatencyMs: number;
+  debounceMs: number;
+  confidenceThresholds: {
+    high: number;
+    medium: number;
+  };
+  customPools?: {
+    business?: EarlyResponsePool;
+    social?: EarlyResponseSocialPool;
+  } | null;
+  placeholders: {
+    includeUserName: boolean;
+    includeBusinessName: boolean;
+  };
+}
+
 /** Línea de auditoría de checkout (colección checkout_audit_logs). */
 export interface CheckoutAuditRecordRow {
   id: string;
@@ -247,6 +279,7 @@ export interface BusinessConfig {
   agent?: AgentConfig;
   llm?: LlmConfig;
   grounding?: GroundingConfig;
+  earlyResponse?: EarlyResponseConfig;
 }
 
 export interface MetaCloudApiNumber {
