@@ -71,12 +71,9 @@ export interface ToolConfig {
   name: string;
   description: string;
   params?: string[];
-  /** Id del proveedor de datos que ejecuta esta herramienta. */
-  providerId?: string;
-  /** Solo proveedor REST: POST = proxy tool_request; otro = HTTP directo. */
-  restMethod?: "POST" | "GET" | "PUT" | "PATCH" | "DELETE";
-  /** Ruta bajo baseUrl con placeholders {{param}}. */
-  restPath?: string;
+  providerId: string;
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  path?: string;
 }
 
 /** Auth de un data provider (en lectura solo apiKeyMasked; en edición se envía apiKey para cambiar). */

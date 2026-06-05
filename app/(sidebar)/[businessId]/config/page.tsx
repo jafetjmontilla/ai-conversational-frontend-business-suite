@@ -153,9 +153,9 @@ const toolSchema = z.object({
   name: z.string().min(1, "Nombre de herramienta obligatorio"),
   description: z.string().min(1, "Descripción de herramienta obligatoria"),
   params: z.array(z.string()).optional(),
-  providerId: z.string().optional(),
-  restMethod: z.enum(["POST", "GET", "PUT", "PATCH", "DELETE"]),
-  restPath: z.string().optional(),
+  providerId: z.string().min(1, "Proveedor obligatorio"),
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional(),
+  path: z.string().optional(),
 });
 
 const knowledgeSourceSchema = z.object({
@@ -274,8 +274,8 @@ function humanizeErrorPathSegment(segment: string, parentSegment: string | undef
     description: "Descripción",
     sourceId: "sourceId",
     providerId: "Proveedor (herramienta)",
-    restMethod: "Método REST",
-    restPath: "Ruta REST",
+    method: "Método HTTP",
+    path: "Ruta API",
     baseUrl: "Base URL",
     endpoint: "Endpoint",
     auth: "Autenticación",
@@ -493,8 +493,8 @@ export default function BusinessConfigPage() {
           description: t.description,
           params: t.params ?? [],
           providerId: t.providerId ?? "",
-          restMethod: (t.restMethod ?? "POST") as "POST" | "GET" | "PUT" | "PATCH" | "DELETE",
-          restPath: t.restPath ?? "",
+          method: (t.method ?? "GET") as "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+          path: t.path ?? "",
         })),
         dataProviders: (cfg.dataProviders ?? []).map((p) => ({
           id: p.id,
@@ -587,9 +587,9 @@ export default function BusinessConfigPage() {
           name: t.name.trim(),
           description: t.description.trim(),
           params: t.params ?? [],
-          ...(t.providerId?.trim() ? { providerId: t.providerId.trim() } : {}),
-          ...(t.restMethod && t.restMethod !== "POST" ? { restMethod: t.restMethod } : {}),
-          ...(t.restPath?.trim() ? { restPath: t.restPath.trim() } : {}),
+          providerId: t.providerId.trim(),
+          ...(t.method ? { method: t.method } : {}),
+          ...(t.path?.trim() ? { path: t.path.trim() } : {}),
         })),
         dataProviders: values.dataProviders.map((p) => ({
           id: p.id,
@@ -1221,48 +1221,44 @@ export default function BusinessConfigPage() {
                                 <div className="w-full flex flex-wrap gap-2 items-end rounded-md border border-border/60 bg-muted/10 p-3">
                                   <FormField
                                     control={form.control}
-                                    name={`tools.${i}.restMethod`}
+                                    name={`tools.${i}.method`}
                                     render={({ field: f }) => (
                                       <FormItem className="min-w-[160px] max-w-[220px]">
-                                        <FormLabel className="text-xs">Método REST</FormLabel>
+                                        <FormLabel className="text-xs">Método HTTP</FormLabel>
                                         <FormControl>
                                           <select
                                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm"
-                                            value={f.value}
+                                            value={f.value ?? "GET"}
                                             onChange={(e) =>
-                                              f.onChange(e.target.value as "POST" | "GET" | "PUT" | "PATCH" | "DELETE")
+                                              f.onChange(e.target.value as "GET" | "POST" | "PUT" | "PATCH" | "DELETE")
                                             }
                                           >
-                                            <option value="POST">POST (proxy tool_request)</option>
-                                            <option value="GET">GET directo</option>
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
                                             <option value="PUT">PUT</option>
                                             <option value="PATCH">PATCH</option>
                                             <option value="DELETE">DELETE</option>
                                           </select>
                                         </FormControl>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">
-                                          POST usa el proxy estándar (event tool_request). Otros métodos: HTTP directo a
-                                          baseUrl + ruta.
-                                        </p>
                                       </FormItem>
                                     )}
                                   />
                                   <FormField
                                     control={form.control}
-                                    name={`tools.${i}.restPath`}
+                                    name={`tools.${i}.path`}
                                     render={({ field: f }) => (
                                       <FormItem className="flex-1 min-w-[200px]">
-                                        <FormLabel className="text-xs">Ruta bajo baseUrl (opcional)</FormLabel>
+                                        <FormLabel className="text-xs">Ruta bajo baseUrl</FormLabel>
                                         <FormControl>
                                           <Input
-                                            placeholder="ej. /api/facturas/{{id}}/"
+                                            placeholder="ej. /invoices/{{orderId}}/status"
                                             className="font-mono text-xs"
                                             {...f}
                                             value={f.value ?? ""}
                                           />
                                         </FormControl>
                                         <p className="text-[10px] text-muted-foreground leading-tight">
-                                          Plantillas tipo {'{{id}}'} con parámetros. GET sin ruta: params como query string.
+                                          Body POST/PUT/PATCH: {'{ tool, params, context }'}. GET: header X-Ai-Tool-Context.
                                         </p>
                                       </FormItem>
                                     )}
@@ -1456,8 +1452,8 @@ export default function BusinessConfigPage() {
                                 description: "",
                                 params: [],
                                 providerId: "",
-                                restMethod: "POST",
-                                restPath: "",
+                                method: "GET",
+                                path: "",
                               },
                             ]);
                             setToolDocSnippets((prev) => [...prev, ""]);

@@ -479,8 +479,8 @@ export const queries = {
           description
           params
           providerId
-          restMethod
-          restPath
+          method
+          path
         }
         dataProviders {
           id
