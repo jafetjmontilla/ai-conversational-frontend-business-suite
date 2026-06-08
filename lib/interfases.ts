@@ -273,6 +273,19 @@ export interface PaeWorkflowRunListResult {
   totalCount: number;
 }
 
+export interface PaeProactiveRoutineRow {
+  cron: string;
+  prompt: string;
+  enabled: boolean;
+}
+
+export interface PaeProactiveSettings {
+  defaultEngine: string;
+  routines: PaeProactiveRoutineRow[];
+  usesDefaultRoutine: boolean;
+  defaultRoutineCron: string;
+}
+
 export interface UserMemoryListResult {
   items: UserMemoryRecordRow[];
   totalCount: number;

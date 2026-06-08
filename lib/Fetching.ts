@@ -639,6 +639,30 @@ export const queries = {
   deletePaeSkill: `mutation deletePaeSkill($businessDocId: ID!, $skillId: ID!) {
     deletePaeSkill(businessDocId: $businessDocId, skillId: $skillId)
   }`,
+  getPaeProactiveSettings: `query getPaeProactiveSettings($businessDocId: ID!) {
+    getPaeProactiveSettings(businessDocId: $businessDocId) {
+      defaultEngine
+      usesDefaultRoutine
+      defaultRoutineCron
+      routines {
+        cron
+        prompt
+        enabled
+      }
+    }
+  }`,
+  updatePaeProactiveRoutines: `mutation updatePaeProactiveRoutines($businessDocId: ID!, $routines: [PaeProactiveRoutineInput!]!) {
+    updatePaeProactiveRoutines(businessDocId: $businessDocId, routines: $routines) {
+      defaultEngine
+      usesDefaultRoutine
+      defaultRoutineCron
+      routines {
+        cron
+        prompt
+        enabled
+      }
+    }
+  }`,
   listUserMemories: `query listUserMemories($businessDocId: ID!, $skip: Int, $limit: Int, $userKeyContains: String) {
     listUserMemories(businessDocId: $businessDocId, skip: $skip, limit: $limit, userKeyContains: $userKeyContains) {
       totalCount
