@@ -119,7 +119,7 @@ export default function ProductDetailPage() {
       variables: { id: businessIdDoc },
     })
       .then((res: ProductCategory[]) => setCategories(res || []))
-      .catch(() => {});
+      .catch(() => { });
   }, [businessIdDoc]);
 
   useEffect(() => {
@@ -369,12 +369,12 @@ export default function ProductDetailPage() {
           variants: prev.variants.map((v) =>
             v._id === variant._id
               ? {
-                  ...v,
-                  stock_quantity: stockChanged && stock !== undefined ? stock : v.stock_quantity,
-                  price_override: priceChanged && price !== undefined ? price : v.price_override,
-                  cost_price: costChanged && cost !== undefined ? cost : v.cost_price,
-                  unit_of_measure: unitChanged && unit !== undefined ? unit : v.unit_of_measure,
-                }
+                ...v,
+                stock_quantity: stockChanged && stock !== undefined ? stock : v.stock_quantity,
+                price_override: priceChanged && price !== undefined ? price : v.price_override,
+                cost_price: costChanged && cost !== undefined ? cost : v.cost_price,
+                unit_of_measure: unitChanged && unit !== undefined ? unit : v.unit_of_measure,
+              }
               : v
           ),
         };
@@ -820,13 +820,12 @@ export default function ProductDetailPage() {
                         {new Date(log.createdAt).toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}
                       </TableCell>
                       <TableCell>
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                          log.type === "VENTA" || log.type === "SALIDA"
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${log.type === "VENTA" || log.type === "SALIDA"
                             ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             : log.type === "INGRESO" || log.type === "RESTAURACIÓN"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                        }`}>
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                          }`}>
                           {log.type}
                         </span>
                       </TableCell>

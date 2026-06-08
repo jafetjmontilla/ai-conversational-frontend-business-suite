@@ -217,6 +217,62 @@ export interface UserMemoryRecordRow {
   updatedAt: string;
 }
 
+export interface PaeEpisodeRow {
+  id: string;
+  businessId: string;
+  userId: string;
+  role: string;
+  conversationId: string;
+  summary: string;
+  userMessage: string;
+  assistantReply?: string | null;
+  openQuestions?: string[];
+  createdAt: string;
+}
+
+export interface PaeEpisodeListResult {
+  items: PaeEpisodeRow[];
+  totalCount: number;
+}
+
+export interface PaeSkillRow {
+  id: string;
+  businessId: string;
+  userId?: string | null;
+  role: string;
+  name: string;
+  description: string;
+  template: string;
+  triggerHints: string[];
+  usageCount: number;
+  updatedAt: string;
+}
+
+export interface PaeSkillListResult {
+  items: PaeSkillRow[];
+  totalCount: number;
+}
+
+export interface PaeWorkflowRunRow {
+  id: string;
+  runId: string;
+  businessId: string;
+  userId: string;
+  role: string;
+  conversationId: string;
+  goal: string;
+  status: string;
+  resultText?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+export interface PaeWorkflowRunListResult {
+  items: PaeWorkflowRunRow[];
+  totalCount: number;
+}
+
 export interface UserMemoryListResult {
   items: UserMemoryRecordRow[];
   totalCount: number;

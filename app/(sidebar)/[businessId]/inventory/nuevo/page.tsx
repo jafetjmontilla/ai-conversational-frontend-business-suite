@@ -76,7 +76,7 @@ export default function InventoryNuevoPage() {
       variables: { id: businessIdDoc },
     })
       .then((res: ProductCategory[]) => setCategories(res || []))
-      .catch(() => {});
+      .catch(() => { });
   }, [businessIdDoc]);
 
   const handleSubmit = async (e: React.FormEvent) => {

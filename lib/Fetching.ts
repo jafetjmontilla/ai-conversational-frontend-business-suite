@@ -577,6 +577,68 @@ export const queries = {
       updatedAt
     }
   }`,
+  listPaeEpisodes: `query listPaeEpisodes($businessDocId: ID!, $role: String, $skip: Int, $limit: Int, $userIdContains: String) {
+    listPaeEpisodes(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit, userIdContains: $userIdContains) {
+      totalCount
+      items {
+        id
+        userId
+        role
+        conversationId
+        summary
+        userMessage
+        assistantReply
+        openQuestions
+        createdAt
+      }
+    }
+  }`,
+  listPaeSkills: `query listPaeSkills($businessDocId: ID!, $role: String, $skip: Int, $limit: Int) {
+    listPaeSkills(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit) {
+      totalCount
+      items {
+        id
+        name
+        description
+        template
+        triggerHints
+        usageCount
+        userId
+        role
+        updatedAt
+      }
+    }
+  }`,
+  listPaeWorkflowRuns: `query listPaeWorkflowRuns($businessDocId: ID!, $status: String, $skip: Int, $limit: Int) {
+    listPaeWorkflowRuns(businessDocId: $businessDocId, status: $status, skip: $skip, limit: $limit) {
+      totalCount
+      items {
+        id
+        runId
+        userId
+        goal
+        status
+        resultText
+        errorMessage
+        conversationId
+        createdAt
+        completedAt
+      }
+    }
+  }`,
+  upsertPaeSkill: `mutation upsertPaeSkill($businessDocId: ID!, $input: PaeSkillMutationInput!) {
+    upsertPaeSkill(businessDocId: $businessDocId, input: $input) {
+      id
+      name
+      description
+      template
+      triggerHints
+      usageCount
+    }
+  }`,
+  deletePaeSkill: `mutation deletePaeSkill($businessDocId: ID!, $skillId: ID!) {
+    deletePaeSkill(businessDocId: $businessDocId, skillId: $skillId)
+  }`,
   listUserMemories: `query listUserMemories($businessDocId: ID!, $skip: Int, $limit: Int, $userKeyContains: String) {
     listUserMemories(businessDocId: $businessDocId, skip: $skip, limit: $limit, userKeyContains: $userKeyContains) {
       totalCount
