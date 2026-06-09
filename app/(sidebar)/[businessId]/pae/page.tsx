@@ -237,7 +237,7 @@ export default function PaeAdminPage() {
     }
   };
 
-  if (!canViewCurrentBusiness) {
+  if (!canViewCurrentBusiness()) {
     return (
       <div className="p-6 text-muted-foreground">No tienes permiso para ver esta sección.</div>
     );
@@ -329,7 +329,7 @@ export default function PaeAdminPage() {
                 <CardTitle>Skills (memoria procedural)</CardTitle>
                 <CardDescription>Plantillas que el planificador PAE puede reutilizar.</CardDescription>
               </div>
-              {canEditCurrentBusiness && (
+              {canEditCurrentBusiness() && (
                 <Button size="sm" onClick={() => setSkillOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Nueva skill
@@ -353,7 +353,7 @@ export default function PaeAdminPage() {
                       <TableCell className="max-w-md truncate">{row.description}</TableCell>
                       <TableCell>{row.usageCount}</TableCell>
                       <TableCell>
-                        {canEditCurrentBusiness && (
+                        {canEditCurrentBusiness() && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -434,7 +434,7 @@ export default function PaeAdminPage() {
                   activa reciente. El asistente inicia la conversación sin esperar un mensaje.
                 </CardDescription>
               </div>
-              {canEditCurrentBusiness && (
+              {canEditCurrentBusiness() && (
                 <div className="flex gap-2 shrink-0">
                   <Button variant="outline" size="sm" onClick={() => void loadProactiveSettings()} disabled={loadingProactive}>
                     <RefreshCw className={`h-4 w-4 mr-1 ${loadingProactive ? "animate-spin" : ""}`} />
@@ -487,7 +487,7 @@ export default function PaeAdminPage() {
                           <Switch
                             id={`routine-enabled-${index}`}
                             checked={routine.enabled}
-                            disabled={!canEditCurrentBusiness}
+                            disabled={!canEditCurrentBusiness()}
                             onCheckedChange={(checked) =>
                               updateProactiveRoutine(index, { enabled: checked })
                             }
@@ -496,7 +496,7 @@ export default function PaeAdminPage() {
                             Activa
                           </Label>
                         </div>
-                        {canEditCurrentBusiness && (
+                        {canEditCurrentBusiness() && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -514,7 +514,7 @@ export default function PaeAdminPage() {
                       <Input
                         id={`routine-cron-${index}`}
                         value={routine.cron}
-                        disabled={!canEditCurrentBusiness}
+                        disabled={!canEditCurrentBusiness()}
                         onChange={(e) => updateProactiveRoutine(index, { cron: e.target.value })}
                         placeholder="0 8 * * *"
                         className="font-mono text-sm max-w-xs"
@@ -525,7 +525,7 @@ export default function PaeAdminPage() {
                       <Textarea
                         id={`routine-prompt-${index}`}
                         value={routine.prompt}
-                        disabled={!canEditCurrentBusiness}
+                        disabled={!canEditCurrentBusiness()}
                         onChange={(e) => updateProactiveRoutine(index, { prompt: e.target.value })}
                         rows={4}
                         placeholder="Instrucción que recibe el grafo PAE al iniciar el turno…"
@@ -535,7 +535,7 @@ export default function PaeAdminPage() {
                 ))}
               </div>
 
-              {canEditCurrentBusiness && (
+              {canEditCurrentBusiness() && (
                 <Button type="button" variant="outline" size="sm" onClick={addProactiveRoutine}>
                   <Plus className="h-4 w-4 mr-1" />
                   Añadir rutina
