@@ -99,7 +99,7 @@ export default function InvoiceEditorPage() {
       }) as Invoice | null;
       if (!inv) {
         toast.error("Factura no encontrada");
-        router.push(`/${businessId}/invoice`);
+        router.push(`/${businessId}/billing/facturas`);
         return;
       }
       setInvoice(inv);
@@ -265,7 +265,7 @@ export default function InvoiceEditorPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para ver esta factura.</p>
-            <Button variant="outline" className="mt-4" onClick={() => router.push(`/${businessId}/invoice`)}>
+            <Button variant="outline" className="mt-4" onClick={() => router.push(`/${businessId}/billing/facturas`)}>
               Volver
             </Button>
           </CardContent>
@@ -277,7 +277,7 @@ export default function InvoiceEditorPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full">
       <div className="mb-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push(`/${businessId}/invoice`)}>
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/${businessId}/billing/facturas`)}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           Volver a facturas
         </Button>

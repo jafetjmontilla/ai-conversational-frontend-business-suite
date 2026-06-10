@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import packageJson from "@/package.json"
-import { getBusinessIdFromPathname, useMyBusinesses } from "@/lib/hooks/useAllowed"
+import { getBusinessIdFromPathname, useAllowed, useBusinessRole, useMyBusinesses } from "@/lib/hooks/useAllowed"
 import { getProfileHref } from "@/lib/profileRoutes"
+import { resolveNavBreadcrumb } from "@/lib/navigation/businessNav"
 import { fetchApiV1, queries } from "@/lib/Fetching"
 import {
   Select,
@@ -39,7 +40,6 @@ const roleLabels: Record<string, string> = {
 const SYSTEM_VALUE = "__system__"
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
-  const [slugs, setSlugs] = useState<{ name: string, href: string }[]>([])
   const [currentDate, setCurrentDate] = useState(new Date())
   const pathname = usePathname()
   const { theme } = useThemeContext();
@@ -48,6 +48,22 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
   const { businesses, loading: loadingBusinesses } = useMyBusinesses();
   const currentBusinessId = getBusinessIdFromPathname(pathname || "");
   const selectValue = currentBusinessId || SYSTEM_VALUE;
+  const { businessRole } = useBusinessRole(currentBusinessId);
+  const { can } = useAllowed({ businessRole: businessRole ?? undefined });
+
+  const activeNavLabel = resolveNavBreadcrumb(
+    pathname || "",
+    currentBusinessId,
+    {
+      canViewCurrentBusiness: can("negocio:ver"),
+      canEditCurrentBusiness: can("negocio:editar"),
+      canManageBusinessUsers: can("negocio:usuarios"),
+    },
+    {
+      canViewBusinesses: can("negocios:ver"),
+      canViewUsers: can("usuarios:ver"),
+    }
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -59,15 +75,23 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
 
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar setSlugs={setSlugs} />
+      <AppSidebar />
       <div className="flex flex-col w-[100vw] h-[100vh]">
         <div className="flex items-center md:items-end w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
           <div className="flex-1 flex gap-4 items-center" >
             <span className="md:hidden">
               <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Logo" width={50} height={30} className="rounded-md" />
             </span>
-            <div className="flex-1 text-xs" >
-              {`ERP V-${packageJson.version}`}
+            <div className="flex-1 flex items-center gap-2 text-xs min-w-0">
+              <span className="shrink-0">{`ERP V-${packageJson.version}`}</span>
+              {activeNavLabel && (
+                <>
+                  <span className="text-muted-foreground shrink-0">/</span>
+                  <span className="truncate font-medium text-foreground first-letter:uppercase">
+                    {activeNavLabel}
+                  </span>
+                </>
+              )}
             </div>
             {authUser && (businesses.length > 0 || authUser.customClaims?.role) && (
               <Select
@@ -169,7 +193,6 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                 </div>
               </div>
             }
-            {/* <span className="uppercase">{slugs.find((slug) => slug.href === pathname)?.name}</span> */}
           </div>
           <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
           <span className="hidden md:block first-letter:uppercase text-sm">{currentDate.toLocaleDateString('es-VE', {

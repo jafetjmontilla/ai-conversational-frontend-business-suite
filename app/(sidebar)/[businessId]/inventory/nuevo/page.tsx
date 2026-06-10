@@ -119,7 +119,7 @@ export default function InventoryNuevoPage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para agregar productos.</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${businessId}/inventory`}>Volver al inventario</Link>
+              <Link href={`/${businessId}/catalog/productos`}>Volver al inventario</Link>
             </Button>
           </CardContent>
         </Card>
@@ -130,7 +130,7 @@ export default function InventoryNuevoPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-2xl">
       <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href={`/${businessId}/inventory`}>
+        <Link href={`/${businessId}/catalog/productos`}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al inventario
         </Link>
@@ -216,7 +216,7 @@ export default function InventoryNuevoPage() {
                 {saving ? "Guardando…" : "Crear producto"}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href={`/${businessId}/inventory`}>Cancelar</Link>
+                <Link href={`/${businessId}/catalog/productos`}>Cancelar</Link>
               </Button>
             </div>
           </form>

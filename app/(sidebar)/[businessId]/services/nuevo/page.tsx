@@ -81,7 +81,7 @@ export default function NewServicePage() {
         },
       });
       toast.success("Servicio creado");
-      router.push(`/${businessId}/services/${(created as { _id: string })._id}`);
+      router.push(`/${businessId}/catalog/servicios/${(created as { _id: string })._id}`);
     } catch (e: unknown) {
       toast.error((e as { message?: string })?.message || "Error al crear");
     } finally {
@@ -97,7 +97,7 @@ export default function NewServicePage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para crear servicios.</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${businessId}/services`}>Volver al catálogo</Link>
+              <Link href={`/${businessId}/catalog/servicios`}>Volver al catálogo</Link>
             </Button>
           </CardContent>
         </Card>
@@ -108,7 +108,7 @@ export default function NewServicePage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-2xl">
       <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href={`/${businessId}/services`}>
+        <Link href={`/${businessId}/catalog/servicios`}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al catálogo
         </Link>
@@ -163,7 +163,7 @@ export default function NewServicePage() {
                 {saving ? "Guardando…" : !businessIdDoc ? "Cargando…" : "Crear servicio"}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href={`/${businessId}/services`}>Cancelar</Link>
+                <Link href={`/${businessId}/catalog/servicios`}>Cancelar</Link>
               </Button>
             </div>
           </form>

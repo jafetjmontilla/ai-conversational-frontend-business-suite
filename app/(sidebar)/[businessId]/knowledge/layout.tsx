@@ -1,9 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import { KNOWLEDGE_SOURCE_TYPES } from "@/lib/knowledgeTypes";
-import { cn } from "@/lib/utils";
+import {
+  SectionTabDivider,
+  SectionTabLayout,
+  SectionTabLink,
+  SectionTabNav,
+} from "@/components/layouts/SectionTabLayout";
+
+const ADMIN_TABS = [
+  { id: "fuentes", label: "Config. fuentes" },
+  { id: "rag", label: "Búsqueda RAG" },
+] as const;
 
 export default function KnowledgeLayout({
   children,
@@ -11,33 +20,29 @@ export default function KnowledgeLayout({
   children: React.ReactNode;
 }) {
   const params = useParams();
-  const pathname = usePathname();
   const businessId = params?.businessId as string;
   const base = `/${businessId}/knowledge`;
 
   return (
-    <div className="flex flex-col h-full">
-      <nav className="border-b bg-muted/30 px-2 py-2 flex flex-wrap gap-1">
-        {KNOWLEDGE_SOURCE_TYPES.map(({ sourceId, label }) => {
-          const href = `${base}/${sourceId}`;
-          const isActive = pathname === href || pathname?.startsWith(href + "/");
-          return (
-            <Link
-              key={sourceId}
-              href={href}
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-              )}
-            >
+    <SectionTabLayout
+      base={base}
+      nav={
+        <SectionTabNav>
+          {KNOWLEDGE_SOURCE_TYPES.map(({ sourceId, label }) => (
+            <SectionTabLink key={sourceId} href={`${base}/${sourceId}`}>
               {label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="flex-1">{children}</div>
-    </div>
+            </SectionTabLink>
+          ))}
+          <SectionTabDivider />
+          {ADMIN_TABS.map(({ id, label }) => (
+            <SectionTabLink key={id} href={`${base}/${id}`}>
+              {label}
+            </SectionTabLink>
+          ))}
+        </SectionTabNav>
+      }
+    >
+      {children}
+    </SectionTabLayout>
   );
 }
