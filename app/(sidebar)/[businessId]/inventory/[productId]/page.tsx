@@ -23,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import {
   buildPreviewInput,
@@ -35,10 +34,14 @@ import {
   restoreProductVariant,
   type VariantPreviewRow,
 } from "@/lib/productVariantLogic";
-import type { Business, Product, ProductCategory, ProductVariant, InventoryLog } from "@/lib/interfases";
+import type { Product, ProductCategory, ProductVariant, InventoryLog } from "@/lib/interfases";
 import { toast } from "sonner";
 import { ArrowLeft, Package, Sparkles, Trash2, RotateCcw, History } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
+import { hasCapability } from "@/lib/app-suite/capabilities";
+import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
+import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
 
 type AttributeWithValues = { _id: string; name: string; values?: { _id: string; attribute_id: string; value: string }[] };
 type ProductWithDetails = Product & {
@@ -56,7 +59,7 @@ export default function ProductDetailPage() {
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
 
-  const [business, setBusiness] = useState<Business | null>(null);
+  const { businessIdDoc, installedApps } = useBusinessApps(businessId);
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,34 +85,6 @@ export default function ProductDetailPage() {
   const [kardexVariant, setKardexVariant] = useState<ProductVariant | null>(null);
   const [kardexLogs, setKardexLogs] = useState<InventoryLog[]>([]);
   const [kardexLoading, setKardexLoading] = useState(false);
-
-  const businessIdDoc = business?._id;
-
-  useEffect(() => {
-    if (!businessId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
-      } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [businessId]);
 
   useEffect(() => {
     if (!businessIdDoc) return;
@@ -165,6 +140,15 @@ export default function ProductDetailPage() {
 
   const handleSaveProduct = async () => {
     if (!businessIdDoc || !product) return;
+    const isSellable = product.is_sellable !== false;
+    if (isSellable && !hasCapability(installedApps, "product.sellable")) {
+      toast.error(getCapabilityHintPlain("product.sellable"));
+      return;
+    }
+    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial")) {
+      toast.error(getCapabilityHintPlain("product.rawMaterial"));
+      return;
+    }
     setSaving(true);
     try {
       await fetchApiV1({
@@ -482,15 +466,15 @@ export default function ProductDetailPage() {
                 className="mt-1"
               />
             </div>
-            <div className="flex items-center space-x-2 md:col-span-2">
-              <Switch
-                id="is_sellable"
+            <div className="md:col-span-2">
+              <ProductSellableField
+                businessId={businessId}
+                installedApps={installedApps}
                 checked={product.is_sellable !== false}
-                onCheckedChange={(checked) => setProduct((p) => (p ? { ...p, is_sellable: checked } : null))}
+                onCheckedChange={(checked) =>
+                  setProduct((p) => (p ? { ...p, is_sellable: checked } : null))
+                }
               />
-              <Label htmlFor="is_sellable" className="cursor-pointer">
-                Vendible (catálogo de ventas). Desactivar = insumo (solo recetas).
-              </Label>
             </div>
           </div>
           <Button onClick={handleSaveProduct} disabled={saving}>{saving ? "Guardando…" : "Guardar producto"}</Button>

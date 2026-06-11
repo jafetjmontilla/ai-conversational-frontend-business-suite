@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronLeft, ChevronRight, SquareArrowOutUpRight } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps"
 import { getProfileHref, isProfilePath } from "@/lib/profileRoutes"
 import { useAuth } from "@/contexts/AuthContext"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -84,6 +85,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const { theme } = useThemeContext();
   const businessId = getBusinessIdFromPathname(pathname);
+  const { installedApps } = useBusinessApps(businessId);
   const { businessRole } = useBusinessRole(businessId);
   const { can } = useAllowed({ businessRole: businessRole ?? undefined });
   const { user } = useAuth();
@@ -112,13 +114,13 @@ export function AppSidebar() {
   const isSystemScope = !businessId;
 
   const topItems = useMemo(
-    () => (businessId ? buildBusinessTopItems(businessId, businessPerms) : []),
-    [businessId, businessPerms]
+    () => (businessId ? buildBusinessTopItems(businessId, businessPerms, installedApps) : []),
+    [businessId, businessPerms, installedApps]
   );
 
   const navGroups = useMemo(
-    () => (businessId ? buildBusinessNavGroups(businessId, businessPerms) : []),
-    [businessId, businessPerms]
+    () => (businessId ? buildBusinessNavGroups(businessId, businessPerms, installedApps) : []),
+    [businessId, businessPerms, installedApps]
   );
 
   const systemItems = useMemo(

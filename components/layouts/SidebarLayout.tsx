@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner"
 import packageJson from "@/package.json"
 import { getBusinessIdFromPathname, useAllowed, useBusinessRole, useMyBusinesses } from "@/lib/hooks/useAllowed"
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps"
 import { getProfileHref } from "@/lib/profileRoutes"
 import { resolveNavBreadcrumb } from "@/lib/navigation/businessNav"
 import { fetchApiV1, queries } from "@/lib/Fetching"
@@ -44,6 +45,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
   const { businesses, loading: loadingBusinesses } = useMyBusinesses();
   const currentBusinessId = getBusinessIdFromPathname(pathname || "");
   const selectValue = currentBusinessId || SYSTEM_VALUE;
+  const { installedApps } = useBusinessApps(currentBusinessId);
   const { businessRole } = useBusinessRole(currentBusinessId);
   const { can } = useAllowed({ businessRole: businessRole ?? undefined });
 
@@ -58,7 +60,8 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
     {
       canViewBusinesses: can("negocios:ver"),
       canViewUsers: can("usuarios:ver"),
-    }
+    },
+    installedApps
   );
 
   useEffect(() => {

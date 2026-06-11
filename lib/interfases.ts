@@ -425,6 +425,8 @@ export interface Business {
   config?: BusinessConfig;
   whatsapps?: WhatsappsConfig;
   callbackUrl?: string;
+  /** Apps instaladas en Suite (registros enriquecidos). */
+  installedApps?: import("@/lib/app-suite/capabilities").BusinessInstalledApp[];
   createdAt?: string;
   updatedAt?: string;
 }

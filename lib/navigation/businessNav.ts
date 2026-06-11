@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { isAppInstalled, type BusinessInstalledApp } from "@/lib/app-suite/capabilities";
 import {
   Home,
   Users,
@@ -14,6 +15,7 @@ import {
   Brain,
   FileSearch,
   LayoutDashboard,
+  LayoutGrid,
 } from "lucide-react";
 
 /** Permiso requerido para mostrar un ítem del menú de negocio. */
@@ -41,6 +43,11 @@ export type NavItem = {
   permission?: NavPermission;
   /** Si true, resalta cuando pathname === href o empieza por href + "/" */
   matchPrefix?: boolean;
+  /**
+   * Apps requeridas (cualquiera) para mostrar en el menú.
+   * Solo aplica a navegación; no ocultar controles en formularios (ver FeatureGate).
+   */
+  requiredAnyApps?: string[];
 };
 
 export type NavGroup = {
@@ -71,20 +78,42 @@ function hasPermission(
   }
 }
 
-function filterItems(items: NavItem[], perms: BusinessNavPermissions): NavItem[] {
-  return items.filter((item) => hasPermission(item.permission, perms));
+function filterItemsByInstalledApps(
+  items: NavItem[],
+  installedApps?: BusinessInstalledApp[] | null
+): NavItem[] {
+  return items.filter((item) => {
+    if (!item.requiredAnyApps?.length) return true;
+    return item.requiredAnyApps.some((appId) => isAppInstalled(installedApps, appId));
+  });
 }
 
-function filterGroups(groups: NavGroup[], perms: BusinessNavPermissions): NavGroup[] {
+function filterItems(
+  items: NavItem[],
+  perms: BusinessNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
+): NavItem[] {
+  return filterItemsByInstalledApps(
+    items.filter((item) => hasPermission(item.permission, perms)),
+    installedApps
+  );
+}
+
+function filterGroups(
+  groups: NavGroup[],
+  perms: BusinessNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
+): NavGroup[] {
   return groups
-    .map((group) => ({ ...group, items: filterItems(group.items, perms) }))
+    .map((group) => ({ ...group, items: filterItems(group.items, perms, installedApps) }))
     .filter((group) => group.items.length > 0);
 }
 
 /** Ítem suelto (sin grupo) mostrado arriba del menú de negocio. */
 export function buildBusinessTopItems(
   businessId: string,
-  perms: BusinessNavPermissions
+  perms: BusinessNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
 ): NavItem[] {
   return filterItems(
     [
@@ -95,15 +124,24 @@ export function buildBusinessTopItems(
         icon: LayoutDashboard,
         permission: "negocio:ver",
       },
+      {
+        id: "app-suite",
+        href: `/${businessId}/app-suite`,
+        label: "Suite de aplicaciones",
+        icon: LayoutGrid,
+        permission: "negocio:ver",
+      },
     ],
-    perms
+    perms,
+    installedApps
   );
 }
 
 /** Grupos del menú lateral dentro del ámbito de un negocio. */
 export function buildBusinessNavGroups(
   businessId: string,
-  perms: BusinessNavPermissions
+  perms: BusinessNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
 ): NavGroup[] {
   const base = `/${businessId}`;
 
@@ -146,6 +184,7 @@ export function buildBusinessNavGroups(
           icon: Package,
           permission: "negocio:ver",
           matchPrefix: true,
+          requiredAnyApps: ["catalogo-web", "tienda-online"],
         },
         {
           id: "billing",
@@ -154,6 +193,7 @@ export function buildBusinessNavGroups(
           icon: FileText,
           permission: "negocio:ver",
           matchPrefix: true,
+          requiredAnyApps: ["facturacion-inventario"],
         },
       ],
     },
@@ -168,6 +208,7 @@ export function buildBusinessNavGroups(
           icon: Settings,
           permission: "negocio:editar",
           matchPrefix: true,
+          requiredAnyApps: ["agente-atencion-cliente"],
         },
         {
           id: "knowledge",
@@ -176,6 +217,7 @@ export function buildBusinessNavGroups(
           icon: BookOpen,
           permission: "negocio:editar",
           matchPrefix: true,
+          requiredAnyApps: ["agente-atencion-cliente"],
         },
         {
           id: "tools",
@@ -184,6 +226,7 @@ export function buildBusinessNavGroups(
           icon: Wrench,
           permission: "negocio:editar",
           matchPrefix: true,
+          requiredAnyApps: ["agente-atencion-cliente"],
         },
         {
           id: "memory",
@@ -192,6 +235,7 @@ export function buildBusinessNavGroups(
           icon: Brain,
           permission: "negocio:ver",
           matchPrefix: true,
+          requiredAnyApps: ["agente-asistente-personal"],
         },
       ],
     },
@@ -211,7 +255,7 @@ export function buildBusinessNavGroups(
     },
   ];
 
-  return filterGroups(groups, perms);
+  return filterGroups(groups, perms, installedApps);
 }
 
 /** Menú principal en ámbito sistema (sin businessId). */
@@ -261,10 +305,11 @@ export function isNavItemActive(pathname: string, item: NavItem): boolean {
 /** Todos los ítems visibles del ámbito negocio (top + grupos), aplanados. */
 export function flattenBusinessNavItems(
   businessId: string,
-  perms: BusinessNavPermissions
+  perms: BusinessNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
 ): NavItem[] {
-  const top = buildBusinessTopItems(businessId, perms);
-  const groups = buildBusinessNavGroups(businessId, perms);
+  const top = buildBusinessTopItems(businessId, perms, installedApps);
+  const groups = buildBusinessNavGroups(businessId, perms, installedApps);
   return [...top, ...groups.flatMap((g) => g.items)];
 }
 
@@ -272,10 +317,11 @@ export function flattenBusinessNavItems(
 export function buildNavSlugs(
   businessId: string | null,
   businessPerms: BusinessNavPermissions,
-  systemPerms: SystemNavPermissions
+  systemPerms: SystemNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
 ): NavSlug[] {
   if (businessId) {
-    return flattenBusinessNavItems(businessId, businessPerms).map((item) => ({
+    return flattenBusinessNavItems(businessId, businessPerms, installedApps).map((item) => ({
       name: item.label,
       href: item.href,
     }));
@@ -292,10 +338,11 @@ export function resolveNavBreadcrumb(
   pathname: string,
   businessId: string | null,
   businessPerms: BusinessNavPermissions,
-  systemPerms: SystemNavPermissions
+  systemPerms: SystemNavPermissions,
+  installedApps?: BusinessInstalledApp[] | null
 ): string | undefined {
   const allItems: NavItem[] = businessId
-    ? flattenBusinessNavItems(businessId, businessPerms)
+    ? flattenBusinessNavItems(businessId, businessPerms, installedApps)
     : [...buildSystemNavItems(), ...buildAccountNavItems(systemPerms)];
 
   const sorted = [...allItems].sort((a, b) => b.href.length - a.href.length);

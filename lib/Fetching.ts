@@ -573,8 +573,59 @@ export const queries = {
         whatsapp_allowed_phone_numbers
       }
       callbackUrl
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
       createdAt
       updatedAt
+    }
+  }`,
+  installBusinessApp: `mutation installBusinessApp($id: ID!, $appId: String!) {
+    installBusinessApp(id: $id, appId: $appId) {
+      _id
+      businessId
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
+    }
+  }`,
+  uninstallBusinessApp: `mutation uninstallBusinessApp($id: ID!, $appId: String!) {
+    uninstallBusinessApp(id: $id, appId: $appId) {
+      _id
+      businessId
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
     }
   }`,
   listPaeEpisodes: `query listPaeEpisodes($businessDocId: ID!, $role: String, $skip: Int, $limit: Int, $userIdContains: String) {

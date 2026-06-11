@@ -14,12 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Product, ProductCategory } from "@/lib/interfases";
+import type { Product, ProductCategory } from "@/lib/interfases";
 import { toast } from "sonner";
 import { ArrowLeft, Package } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
+import { hasCapability } from "@/lib/app-suite/capabilities";
+import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
+import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
 
 const roundToTwo = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -30,7 +33,7 @@ export default function InventoryNuevoPage() {
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
 
-  const [business, setBusiness] = useState<Business | null>(null);
+  const { business, businessIdDoc, installedApps } = useBusinessApps(businessId);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -40,33 +43,10 @@ export default function InventoryNuevoPage() {
   const [isSellable, setIsSellable] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const businessIdDoc = business?._id;
-
   useEffect(() => {
-    if (!businessId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
-      } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [businessId]);
+    if (!businessIdDoc) return;
+    setIsSellable(hasCapability(installedApps, "product.sellable"));
+  }, [installedApps, businessIdDoc]);
 
   useEffect(() => {
     if (!businessIdDoc) return;
@@ -83,6 +63,14 @@ export default function InventoryNuevoPage() {
     e.preventDefault();
     if (!businessIdDoc || !name.trim()) {
       toast.error("Nombre es obligatorio");
+      return;
+    }
+    if (isSellable && !hasCapability(installedApps, "product.sellable")) {
+      toast.error(getCapabilityHintPlain("product.sellable"));
+      return;
+    }
+    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial")) {
+      toast.error(getCapabilityHintPlain("product.rawMaterial"));
       return;
     }
     setSaving(true);
@@ -201,16 +189,12 @@ export default function InventoryNuevoPage() {
                 placeholder="Opcional"
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="is_sellable"
-                checked={isSellable}
-                onCheckedChange={setIsSellable}
-              />
-              <Label htmlFor="is_sellable" className="cursor-pointer">
-                Vendible (aparece en catálogo de ventas). Si está desactivado puede ser usado como insumos/materia prima.
-              </Label>
-            </div>
+            <ProductSellableField
+              businessId={businessId}
+              installedApps={installedApps}
+              checked={isSellable}
+              onCheckedChange={setIsSellable}
+            />
             <div className="flex gap-2 pt-4">
               <Button type="submit" disabled={saving}>
                 {saving ? "Guardando…" : "Crear producto"}
