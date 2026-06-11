@@ -1,70 +1,45 @@
-import { useCallback, useEffect, useState } from "react";
-import { fetchApiV1, queries } from "../Fetching";
-import type { Business } from "../interfases";
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  BUSINESS_STALE_TIME_MS,
+  businessQueryKeys,
+  fetchBusinessBySlug,
+} from "@/lib/queries/business";
 
-async function fetchBusinessBySlug(slug: string): Promise<Business | null> {
-  let b = (await fetchApiV1({
-    query: queries.getBusiness,
-    type: "json",
-    variables: { id: slug },
-  })) as Business | null;
-  if (!b) {
-    b = (await fetchApiV1({
-      query: queries.getBusiness,
-      type: "json",
-      variables: { businessId: slug },
-    })) as Business | null;
-  }
-  return b || null;
-}
-
-export function useBusiness(businessId: string | null) {
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [loading, setLoading] = useState(!!businessId);
-
-  const refetch = useCallback(async () => {
-    if (!businessId) {
-      setBusiness(null);
-      return null;
-    }
-    setLoading(true);
-    try {
-      const b = await fetchBusinessBySlug(businessId);
-      setBusiness(b);
-      return b;
-    } catch {
-      toast.error("Error al cargar el negocio");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [businessId]);
-
-  useEffect(() => {
-    if (!businessId) {
-      setBusiness(null);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    fetchBusinessBySlug(businessId)
-      .then((b) => {
-        if (!cancelled) setBusiness(b);
-      })
-      .catch(() => {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId]);
+export function useBusiness(businessSlug: string | null) {
+  const {
+    data: business = null,
+    isLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useQuery({
+    queryKey: businessQueryKeys.detail(businessSlug),
+    queryFn: async () => {
+      try {
+        return await fetchBusinessBySlug(businessSlug!);
+      } catch {
+        toast.error("Error al cargar el negocio");
+        throw new Error("Error al cargar el negocio");
+      }
+    },
+    enabled: !!businessSlug,
+    staleTime: BUSINESS_STALE_TIME_MS,
+  });
 
   const businessIdDoc = business?._id ?? null;
 
-  return { business, businessIdDoc, loading, refetch };
+  return {
+    business,
+    businessIdDoc,
+    loading: isLoading,
+    isFetching,
+    error,
+    refetch: async () => {
+      const result = await refetch();
+      return result.data ?? null;
+    },
+  };
 }

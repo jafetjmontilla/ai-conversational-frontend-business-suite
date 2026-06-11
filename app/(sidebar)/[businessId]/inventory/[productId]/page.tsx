@@ -486,7 +486,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <CardTitle>Variantes (SKU)</CardTitle>
-              <CardDescription>Cada variante tiene SKU único. Edita stock o precio. Usa "Generar variantes" para añadir más a partir de atributos.</CardDescription>
+              <CardDescription>Cada variante tiene SKU único. Edita stock o precio. Usa &quot;Generar variantes&quot; para añadir más a partir de atributos.</CardDescription>
             </div>
             <Button onClick={() => setGenerateOpen(true)} size="sm">
               <Sparkles className="h-4 w-4 mr-2" />
@@ -510,7 +510,7 @@ export default function ProductDetailPage() {
               {(product.variants || []).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                    No hay variantes. Usa "Generar variantes" o el producto debería tener al menos una variante por defecto.
+                    No hay variantes. Usa &quot;Generar variantes&quot; o el producto debería tener al menos una variante por defecto.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -743,7 +743,7 @@ export default function ProductDetailPage() {
               Restaurar variante eliminada
             </DialogTitle>
             <DialogDescription>
-              Esta variante fue desactivada anteriormente. Indica el stock inicial con el que quedará al reactivarse. Se registrará en el historial como "Reactivación".
+              Esta variante fue desactivada anteriormente. Indica el stock inicial con el que quedará al reactivarse. Se registrará en el historial como &quot;Reactivación&quot;.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

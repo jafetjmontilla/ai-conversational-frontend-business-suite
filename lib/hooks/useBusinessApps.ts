@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBusiness } from "@/lib/hooks/useBusiness";
 import {
   findInstalledAppRecord,
@@ -13,10 +14,21 @@ import {
   type BusinessInstalledApp,
   type Capability,
 } from "@/lib/app-suite/capabilities";
+import { businessQueryKeys } from "@/lib/queries/business";
 import { fetchApiV1, queries } from "@/lib/Fetching";
+import type { Business } from "@/lib/interfases";
 import { toast } from "sonner";
 
+function mergeBusinessCache(
+  old: Business | null | undefined,
+  updated: Business
+): Business {
+  if (!old) return updated;
+  return { ...old, ...updated, installedApps: updated.installedApps ?? old.installedApps };
+}
+
 export function useBusinessApps(businessSlug: string | null) {
+  const queryClient = useQueryClient();
   const { business, businessIdDoc, loading, refetch, ...rest } = useBusiness(businessSlug);
 
   const installedApps = business?.installedApps;
@@ -55,44 +67,77 @@ export function useBusinessApps(businessSlug: string | null) {
     [installedApps]
   );
 
+  const patchBusinessCache = useCallback(
+    (updated: Business) => {
+      if (!businessSlug) return;
+      queryClient.setQueryData<Business | null>(
+        businessQueryKeys.detail(businessSlug),
+        (old) => mergeBusinessCache(old, updated)
+      );
+    },
+    [businessSlug, queryClient]
+  );
+
+  const installMutation = useMutation({
+    mutationFn: async (appId: string) => {
+      if (!businessIdDoc) throw new Error("Negocio no cargado");
+      return (await fetchApiV1({
+        query: queries.installBusinessApp,
+        type: "json",
+        variables: { id: businessIdDoc, appId },
+      })) as Business;
+    },
+    onSuccess: (updated) => {
+      patchBusinessCache(updated);
+      toast.success("App instalada");
+    },
+    onError: (e: unknown) => {
+      toast.error((e as { message?: string })?.message || "Error al instalar app");
+    },
+  });
+
+  const uninstallMutation = useMutation({
+    mutationFn: async (appId: string) => {
+      if (!businessIdDoc) throw new Error("Negocio no cargado");
+      return (await fetchApiV1({
+        query: queries.uninstallBusinessApp,
+        type: "json",
+        variables: { id: businessIdDoc, appId },
+      })) as Business;
+    },
+    onSuccess: (updated) => {
+      patchBusinessCache(updated);
+      toast.success("App desinstalada");
+    },
+    onError: (e: unknown) => {
+      toast.error((e as { message?: string })?.message || "Error al desinstalar app");
+    },
+  });
+
   const installApp = useCallback(
     async (appId: string) => {
       if (!businessIdDoc) return false;
       try {
-        await fetchApiV1({
-          query: queries.installBusinessApp,
-          type: "json",
-          variables: { id: businessIdDoc, appId },
-        });
-        await refetch();
-        toast.success("App instalada");
+        await installMutation.mutateAsync(appId);
         return true;
-      } catch (e: unknown) {
-        toast.error((e as { message?: string })?.message || "Error al instalar app");
+      } catch {
         return false;
       }
     },
-    [businessIdDoc]
+    [businessIdDoc, installMutation]
   );
 
   const uninstallApp = useCallback(
     async (appId: string) => {
       if (!businessIdDoc) return false;
       try {
-        await fetchApiV1({
-          query: queries.uninstallBusinessApp,
-          type: "json",
-          variables: { id: businessIdDoc, appId },
-        });
-        await refetch();
-        toast.success("App desinstalada");
+        await uninstallMutation.mutateAsync(appId);
         return true;
-      } catch (e: unknown) {
-        toast.error((e as { message?: string })?.message || "Error al desinstalar app");
+      } catch {
         return false;
       }
     },
-    [businessIdDoc]
+    [businessIdDoc, uninstallMutation]
   );
 
   return {

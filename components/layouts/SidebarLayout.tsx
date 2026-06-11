@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select"
 
 import { getRoleLabel } from "@/lib/roles";
+import { BusinessProvider } from "@/contexts/BusinessProvider";
 
 const SYSTEM_VALUE = "__system__"
 
@@ -72,8 +73,8 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
     return () => clearInterval(timer)
   }, [])
 
-  return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+  const mainContent = (
+    <>
       <AppSidebar />
       <div className="flex flex-col w-[100vw] h-[100vh]">
         <div className="flex items-center md:items-end w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
@@ -202,6 +203,16 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
         </div>
         {children}
       </div>
+    </>
+  );
+
+  return (
+    <SidebarProvider defaultOpen={defaultOpen}>
+      {currentBusinessId ? (
+        <BusinessProvider businessSlug={currentBusinessId}>{mainContent}</BusinessProvider>
+      ) : (
+        mainContent
+      )}
     </SidebarProvider>
-  )
+  );
 }

@@ -89,10 +89,8 @@ const nextConfig = {
 
     return config;
   },
-  experimental: {
-    // Mejorar la estabilidad del servidor
-    serverComponentsExternalPackages: ['firebase'],
-  },
+  serverExternalPackages: ['firebase'],
+  outputFileTracingRoot: require('path').join(__dirname),
 }
 
 module.exports = nextConfig 

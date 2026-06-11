@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 import { useWebSocket } from '@/lib/hooks/useWebSocket';
 import { getIdToken } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
+import type { BusinessUpdatedPayload } from '@/lib/types/businessRealtime';
 
 // Tipos para notificaciones
 interface NotificationData {
@@ -57,6 +58,8 @@ export interface ProtocolDraftUpdatedPayload {
   businessId: string;
 }
 
+export type { BusinessUpdatedPayload };
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -79,8 +82,12 @@ interface WebSocketContextType {
   onProtocolDraftUpdated: (callback: (payload: ProtocolDraftUpdatedPayload) => void) => () => void;
   subscribeToKnowledge: (businessId: string) => void;
   unsubscribeFromKnowledge: (businessId: string) => void;
+  // Negocio: apps, config, etc. (agente, otro usuario o API)
+  onBusinessUpdated: (callback: (payload: BusinessUpdatedPayload) => void) => () => void;
+  subscribeToBusiness: (businessId: string) => void;
+  unsubscribeFromBusiness: (businessId: string) => void;
   // Se invoca al reconectar tras pérdida de conexión
-  onReconnect: (callback: () => void) => void;
+  onReconnect: (callback: () => void) => () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -134,6 +141,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   });
 
   const protocolDraftCallbacksRef = useRef<((payload: ProtocolDraftUpdatedPayload) => void)[]>([]);
+
+  const businessUpdatedCallbacksRef = useRef<((payload: BusinessUpdatedPayload) => void)[]>([]);
 
   const onReconnectCallbacksRef = useRef<(() => void)[]>([]);
   const hadConnectedOnceRef = useRef<boolean>(false);
@@ -290,6 +299,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     protocolDraftCallbacksRef.current.forEach(cb => cb(payload));
   }, []);
 
+  const handleBusinessUpdated = useCallback((payload: BusinessUpdatedPayload) => {
+    businessUpdatedCallbacksRef.current.forEach(cb => cb(payload));
+  }, []);
+
   // Detectar reconexión (isConnected pasa de false a true tras haber estado conectado)
   useEffect(() => {
     if (isConnected) {
@@ -344,6 +357,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     // Knowledge: borradores de protocolos
     socket.on('protocolDraft:updated', handleProtocolDraftUpdated);
 
+    // Negocio: apps instaladas, config, etc.
+    socket.on('business:updated', handleBusinessUpdated);
+
     // Cleanup
     return () => {
       socket.off('notification', handleNotification);
@@ -355,8 +371,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.off('ticket:updated', handleTicketUpdated);
       socket.off('ticket:deleted', handleTicketDeleted);
       socket.off('protocolDraft:updated', handleProtocolDraftUpdated);
+      socket.off('business:updated', handleBusinessUpdated);
     };
-  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated, handleBusinessUpdated]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -427,8 +444,32 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, [socket]);
 
+  const onBusinessUpdated = useCallback((callback: (payload: BusinessUpdatedPayload) => void) => {
+    businessUpdatedCallbacksRef.current.push(callback);
+    return () => {
+      const i = businessUpdatedCallbacksRef.current.indexOf(callback);
+      if (i !== -1) businessUpdatedCallbacksRef.current.splice(i, 1);
+    };
+  }, []);
+
+  const subscribeToBusiness = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('business:subscribe', { businessId });
+    }
+  }, [socket]);
+
+  const unsubscribeFromBusiness = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('business:unsubscribe', { businessId });
+    }
+  }, [socket]);
+
   const onReconnect = useCallback((callback: () => void) => {
     onReconnectCallbacksRef.current.push(callback);
+    return () => {
+      const i = onReconnectCallbacksRef.current.indexOf(callback);
+      if (i !== -1) onReconnectCallbacksRef.current.splice(i, 1);
+    };
   }, []);
 
   const value: WebSocketContextType = {
@@ -448,6 +489,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onProtocolDraftUpdated,
     subscribeToKnowledge,
     unsubscribeFromKnowledge,
+    onBusinessUpdated,
+    subscribeToBusiness,
+    unsubscribeFromBusiness,
     onReconnect
   };
 
