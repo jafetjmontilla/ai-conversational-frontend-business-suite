@@ -558,21 +558,21 @@ export const queries = {
           }
         }
       }
-      whatsapps {
-        metaCloudApiNumbers {
-          phoneNumberId
-          phoneNumber
-          accessToken
-          verifyToken
-        }
-        baileysApiNumbers {
-          sessionId
-          phoneNumber
-          active
-        }
-        whatsapp_allowed_phone_numbers
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        accessToken
+        verifyToken
+        callbackUrl
+        webhookSecret
       }
-      callbackUrl
       installedApps {
         app_id
         status
@@ -869,12 +869,10 @@ export const queries = {
       billingDisplayCurrency
       billingExchangeRateSource
       billingCustomExchangeRate
-      whatsapps {
-        metaCloudApiNumbers { phoneNumberId phoneNumber accessToken verifyToken }
-        baileysApiNumbers { sessionId phoneNumber active }
-        whatsapp_allowed_phone_numbers
+      channels {
+        channelId name type active agentEngine allowedPhoneNumbers
+        sessionId phoneNumber phoneNumberId accessToken verifyToken callbackUrl webhookSecret
       }
-      callbackUrl
       createdAt
       updatedAt
     }
@@ -930,8 +928,8 @@ export const queries = {
       lastActivity
     }
   }`,
-  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String) {
-    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber) {
+  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String, $agentEngine: String) {
+    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber, agentEngine: $agentEngine) {
       success
       qrCode
       error
@@ -945,6 +943,43 @@ export const queries = {
   }`,
   removeBaileysNumber: `mutation removeBaileysNumber($id: ID!, $sessionId: String!, $disconnect: Boolean) {
     removeBaileysNumber(id: $id, sessionId: $sessionId, disconnect: $disconnect)
+  }`,
+  upsertBusinessChannel: `mutation upsertBusinessChannel($id: ID!, $input: BusinessChannelInput!) {
+    upsertBusinessChannel(id: $id, input: $input) {
+      _id
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        accessToken
+        verifyToken
+        callbackUrl
+        webhookSecret
+      }
+    }
+  }`,
+  deleteBusinessChannel: `mutation deleteBusinessChannel($id: ID!, $channelId: String!) {
+    deleteBusinessChannel(id: $id, channelId: $channelId) {
+      _id
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        callbackUrl
+      }
+    }
   }`,
   deleteBusiness: `mutation deleteBusiness($id: ID!) {
     deleteBusiness(id: $id)

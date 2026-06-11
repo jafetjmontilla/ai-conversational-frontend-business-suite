@@ -61,10 +61,11 @@ export default function BusinessSummaryPage() {
   }, [businessIdDoc]);
 
   const channelSummary = useMemo(() => {
-    const cloud = business?.whatsapps?.metaCloudApiNumbers?.length ?? 0;
-    const baileys = business?.whatsapps?.baileysApiNumbers?.length ?? 0;
-    const baileysActive = business?.whatsapps?.baileysApiNumbers?.filter((b) => b.active).length ?? 0;
-    const hasGeneric = Boolean(business?.callbackUrl?.trim());
+    const list = business?.channels ?? [];
+    const cloud = list.filter((c) => c.type === "whatsapp_cloud").length;
+    const baileys = list.filter((c) => c.type === "whatsapp_baileys").length;
+    const baileysActive = list.filter((c) => c.type === "whatsapp_baileys" && c.active).length;
+    const hasGeneric = list.some((c) => c.type === "generic");
     return { cloud, baileys, baileysActive, hasGeneric };
   }, [business]);
 

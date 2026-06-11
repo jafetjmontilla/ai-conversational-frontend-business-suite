@@ -36,12 +36,20 @@ export function useBusinessRealtimeSync(businessSlug: string | null) {
           if (!old) return old ?? null;
           return { ...old, installedApps: payload.installedApps };
         });
+      } else if (payload.scope === "channels" && payload.channels) {
+        queryClient.setQueryData<Business | null>(key, (old) => {
+          if (!old) return old ?? null;
+          return { ...old, channels: payload.channels };
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: key });
       }
 
       if (payload.actor === "agent" && payload.scope === "apps") {
         toast.info("El asistente actualizó las apps instaladas");
+      }
+      if (payload.actor === "agent" && payload.scope === "channels") {
+        toast.info("El asistente actualizó los canales");
       }
     });
 

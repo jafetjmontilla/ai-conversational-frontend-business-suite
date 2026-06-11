@@ -347,31 +347,23 @@ export interface BusinessConfig {
   earlyResponse?: EarlyResponseConfig;
 }
 
-export interface MetaCloudApiNumber {
-  phoneNumberId: string;
-  phoneNumber: string;
-  accessToken: string;
-  verifyToken: string;
-}
+export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic";
+export type ChannelAgentEngine = "cse" | "pae";
 
-export interface BaileysApiNumber {
-  sessionId: string;
-  phoneNumber?: string | null;
+export interface BusinessChannel {
+  channelId: string;
+  name: string;
+  type: ChannelType;
   active: boolean;
-}
-
-export interface WhatsappsConfig {
-  metaCloudApiNumbers: MetaCloudApiNumber[];
-  baileysApiNumbers: BaileysApiNumber[];
-  whatsapp_allowed_phone_numbers: string[];
-}
-
-/** @deprecated Usar WhatsappsConfig.metaCloudApiNumbers */
-export interface WhatsAppConfig {
-  phoneNumberId: string;
-  phoneNumber: string;
-  accessToken: string;
-  verifyToken: string;
+  agentEngine: ChannelAgentEngine;
+  allowedPhoneNumbers: string[];
+  sessionId?: string | null;
+  phoneNumber?: string | null;
+  phoneNumberId?: string | null;
+  accessToken?: string | null;
+  verifyToken?: string | null;
+  callbackUrl?: string | null;
+  webhookSecret?: string | null;
 }
 
 /** Dirección física o de facturación. */
@@ -423,8 +415,7 @@ export interface Business {
   billingCustomExchangeRate?: number;
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
-  whatsapps?: WhatsappsConfig;
-  callbackUrl?: string;
+  channels?: BusinessChannel[];
   /** Apps instaladas en Suite (registros enriquecidos). */
   installedApps?: import("@/lib/app-suite/capabilities").BusinessInstalledApp[];
   createdAt?: string;

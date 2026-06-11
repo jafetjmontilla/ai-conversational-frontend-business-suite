@@ -6,6 +6,7 @@ import { useWebSocket } from '@/lib/hooks/useWebSocket';
 import { getIdToken } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 import type { BusinessUpdatedPayload } from '@/lib/types/businessRealtime';
+import type { WhatsAppSessionEventPayload } from '@/lib/types/whatsappSession';
 
 // Tipos para notificaciones
 interface NotificationData {
@@ -59,6 +60,7 @@ export interface ProtocolDraftUpdatedPayload {
 }
 
 export type { BusinessUpdatedPayload };
+export type { WhatsAppSessionEventPayload };
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -86,6 +88,11 @@ interface WebSocketContextType {
   onBusinessUpdated: (callback: (payload: BusinessUpdatedPayload) => void) => () => void;
   subscribeToBusiness: (businessId: string) => void;
   unsubscribeFromBusiness: (businessId: string) => void;
+  // Canales Baileys: eventos de sesión WhatsApp (QR, conexión, etc.)
+  onWhatsAppSessionEvent: (callback: (payload: WhatsAppSessionEventPayload) => void) => () => void;
+  subscribeToChannels: (businessId: string) => void;
+  unsubscribeFromChannels: (businessId: string) => void;
+  refreshChannelsSnapshot: (businessId: string) => void;
   // Se invoca al reconectar tras pérdida de conexión
   onReconnect: (callback: () => void) => () => void;
 }
@@ -143,6 +150,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const protocolDraftCallbacksRef = useRef<((payload: ProtocolDraftUpdatedPayload) => void)[]>([]);
 
   const businessUpdatedCallbacksRef = useRef<((payload: BusinessUpdatedPayload) => void)[]>([]);
+
+  const whatsAppSessionEventCallbacksRef = useRef<((payload: WhatsAppSessionEventPayload) => void)[]>([]);
 
   const onReconnectCallbacksRef = useRef<(() => void)[]>([]);
   const hadConnectedOnceRef = useRef<boolean>(false);
@@ -303,6 +312,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     businessUpdatedCallbacksRef.current.forEach(cb => cb(payload));
   }, []);
 
+  const handleWhatsAppSessionEvent = useCallback((payload: WhatsAppSessionEventPayload) => {
+    whatsAppSessionEventCallbacksRef.current.forEach(cb => cb(payload));
+  }, []);
+
   // Detectar reconexión (isConnected pasa de false a true tras haber estado conectado)
   useEffect(() => {
     if (isConnected) {
@@ -360,6 +373,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     // Negocio: apps instaladas, config, etc.
     socket.on('business:updated', handleBusinessUpdated);
 
+    // Canales: sesiones Baileys (QR, conexión)
+    socket.on('whatsapp:session:event', handleWhatsAppSessionEvent);
+
     // Cleanup
     return () => {
       socket.off('notification', handleNotification);
@@ -372,8 +388,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.off('ticket:deleted', handleTicketDeleted);
       socket.off('protocolDraft:updated', handleProtocolDraftUpdated);
       socket.off('business:updated', handleBusinessUpdated);
+      socket.off('whatsapp:session:event', handleWhatsAppSessionEvent);
     };
-  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated, handleBusinessUpdated]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated, handleBusinessUpdated, handleWhatsAppSessionEvent]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -464,6 +481,32 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, [socket]);
 
+  const onWhatsAppSessionEvent = useCallback((callback: (payload: WhatsAppSessionEventPayload) => void) => {
+    whatsAppSessionEventCallbacksRef.current.push(callback);
+    return () => {
+      const i = whatsAppSessionEventCallbacksRef.current.indexOf(callback);
+      if (i !== -1) whatsAppSessionEventCallbacksRef.current.splice(i, 1);
+    };
+  }, []);
+
+  const subscribeToChannels = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('channels:subscribe', { businessId });
+    }
+  }, [socket]);
+
+  const unsubscribeFromChannels = useCallback((businessId: string) => {
+    if (socket && businessId) {
+      socket.emit('channels:unsubscribe', { businessId });
+    }
+  }, [socket]);
+
+  const refreshChannelsSnapshot = useCallback((businessId: string) => {
+    if (socket?.connected && businessId) {
+      socket.emit('channels:refresh', { businessId });
+    }
+  }, [socket]);
+
   const onReconnect = useCallback((callback: () => void) => {
     onReconnectCallbacksRef.current.push(callback);
     return () => {
@@ -492,6 +535,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     onBusinessUpdated,
     subscribeToBusiness,
     unsubscribeFromBusiness,
+    onWhatsAppSessionEvent,
+    subscribeToChannels,
+    unsubscribeFromChannels,
+    refreshChannelsSnapshot,
     onReconnect
   };
 

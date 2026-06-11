@@ -1,6 +1,7 @@
 import type { BusinessInstalledApp } from "@/lib/app-suite/capabilities";
+import type { BusinessChannel } from "@/lib/interfases";
 
-export type BusinessUpdatedScope = "apps" | "config" | "all";
+export type BusinessUpdatedScope = "apps" | "channels" | "config" | "all";
 
 export type BusinessUpdatedActor = "user" | "agent" | "system";
 
@@ -10,4 +11,5 @@ export type BusinessUpdatedPayload = {
   scope: BusinessUpdatedScope;
   actor?: BusinessUpdatedActor;
   installedApps?: BusinessInstalledApp[];
+  channels?: BusinessChannel[];
 };
