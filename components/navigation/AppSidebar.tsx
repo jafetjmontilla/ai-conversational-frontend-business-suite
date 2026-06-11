@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
+import { Roboto } from 'next/font/google'
+
+const roboto = Roboto({ subsets: ['latin'], weight: ['700'] })
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
@@ -87,7 +90,7 @@ export function AppSidebar() {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
-  const versionLabel = packageJson.version ? `Business Suite v${packageJson.version}` : "Business Suite";
+  const versionLabel = packageJson.version ? `v${packageJson.version}` : "";
 
   const businessPerms = useMemo(
     () => ({
@@ -157,10 +160,13 @@ export function AppSidebar() {
         </Button>
         <SidebarHeader>
           <SidebarMenu>
-            <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
-              <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-                <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Business Suite" width={50} height={30} className="rounded-md" />
-                {state === "expanded" && <span className="font-bold text-sm">{versionLabel}</span>}
+            <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1 w-full">
+              <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer w-full">
+                <Image src="/images/icons/android-chrome-192x192.png" alt="Business Suite" width={36} height={36} className="rounded-md" />
+                <div className="flex w-full justify-between items-center">
+                  <span className={`font-bold text-xl *dark:text-[#40D55C] text-[#1FB014] ${roboto.className}`}>kiterAi</span>
+                  {state === "expanded" && <span className={`text-[10px] text-muted-foreground ${roboto.className}`}>{versionLabel}</span>}
+                </div>
               </div>
             </div>
           </SidebarMenu>

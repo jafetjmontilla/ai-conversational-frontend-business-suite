@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { Business } from "@/lib/interfases";
-import BusinessFormModal from "@/components/BusinessFormModal";
+import BusinessFormCreateEdit from "@/components/BusinessFormCreateEdit";
 import { useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ export default function BusinessesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const { canViewBusinesses, canCreateBusinesses, canEditBusinesses, canDeleteBusinesses } = useBusinessPermissions();
   const router = useRouter();
 
@@ -44,11 +45,18 @@ export default function BusinessesPage() {
   }, []);
 
   const handleAdd = () => {
+    setEditingBusiness(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (b: Business) => {
-    router.push(`/${b.businessId}/edit`);
+    setEditingBusiness(b);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingBusiness(null);
   };
 
   const handleDelete = async (b: Business) => {
@@ -188,10 +196,11 @@ export default function BusinessesPage() {
         </CardContent>
       </Card>
       {isModalOpen && (
-        <BusinessFormModal
+        <BusinessFormCreateEdit
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
           onSuccess={fetchBusinesses}
+          business={editingBusiness}
         />
       )}
     </div>

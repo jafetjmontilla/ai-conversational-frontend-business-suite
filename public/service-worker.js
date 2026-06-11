@@ -6,8 +6,9 @@ const IMAGE_CACHE = 'frontend-business-suite-images-v1-1-0';
 // Archivos estáticos para cachear en la instalación (solo assets básicos)
 const STATIC_ASSETS = [
   '/manifest.json',
-  '/images/icon-192x192.png',
-  '/images/icon-512x512.png'
+  '/favicon.ico',
+  '/images/icons/android-chrome-192x192.png',
+  '/images/icons/android-chrome-512x512.png'
 ];
 
 // Instalar el service worker y cachear archivos estáticos

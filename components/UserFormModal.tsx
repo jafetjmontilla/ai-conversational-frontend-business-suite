@@ -7,23 +7,12 @@ import * as z from "zod";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { FormFieldInput, OptionSelect, Role, roles, User, businessRoles } from "@/lib/interfases";
+import { FormFieldInput, User } from "@/lib/interfases";
+import { getRoleOptions } from "@/lib/roles";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
 import { User as UserIcon, Mail, Phone, Image, Shield } from "lucide-react";
 import { FormFieldInputs } from "./FormFieldInputs";
-
-const systemRoleOptions: OptionSelect[] = [
-  { value: 'system_admin' as Role, title: 'Administrador del sistema', description: '', icon: '⚙️', features: [] },
-  { value: 'system_operator' as Role, title: 'Operador del sistema', description: '', icon: '👤', features: [] },
-  { value: 'system_viewer' as Role, title: 'Solo lectura (sistema)', description: '', icon: '👤', features: [] },
-].sort((a, b) => a.title.localeCompare(b.title));
-
-const businessRoleOptions: OptionSelect[] = [
-  { value: 'business_admin' as unknown as Role, title: 'Administrador del negocio', description: '', icon: '⚙️', features: [] },
-  { value: 'business_editor' as unknown as Role, title: 'Editor', description: '', icon: '✏️', features: [] },
-  { value: 'business_viewer' as unknown as Role, title: 'Solo lectura', description: '', icon: '👤', features: [] },
-].sort((a, b) => a.title.localeCompare(b.title));
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -48,7 +37,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 function getFormFields(scope: 'system' | 'business'): FormFieldInput[] {
-  const roleOptions = scope === 'business' ? businessRoleOptions : systemRoleOptions;
+  const roleOptions = getRoleOptions(scope);
   return [
     { name: 'name', label: 'Nombre', placeholder: 'Nombre del usuario', icon: UserIcon, type: 'text', required: true },
     { name: 'email', label: 'Email', placeholder: 'usuario@ejemplo.com', icon: Mail, type: 'text', required: true },

@@ -9,7 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
-import { businessRoles, type BusinessRole } from "@/lib/interfases";
+import { businessRoles } from "@/lib/interfases";
+import { BUSINESS_ROLE_LABELS } from "@/lib/roles";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
@@ -18,12 +19,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-const roleLabels: Record<BusinessRole, string> = {
-  business_admin: "Administrador del negocio",
-  business_editor: "Editor",
-  business_viewer: "Solo lectura",
-};
 
 interface BusinessMemberFormModalProps {
   isOpen: boolean;
@@ -105,7 +100,7 @@ export default function BusinessMemberFormModal({
                     <SelectContent>
                       {businessRoles.map((r) => (
                         <SelectItem key={r} value={r}>
-                          {roleLabels[r]}
+                          {BUSINESS_ROLE_LABELS[r]}
                         </SelectItem>
                       ))}
                     </SelectContent>

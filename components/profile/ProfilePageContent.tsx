@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { User as UserIcon, Mail, Phone, Image, Shield, Calendar, Edit3, Save, X, LogOut, Sun, Moon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FormFieldInputs } from "@/components/FormFieldInputs";
-import { FormFieldInput, Role } from "@/lib/interfases";
+import { FormFieldInput } from "@/lib/interfases";
+import { getRoleLabel } from "@/lib/roles";
 
 const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -53,12 +54,6 @@ const formFields: FormFieldInput[] = [
     required: false,
   },
 ];
-
-const roleLabels: Record<Role, string> = {
-  system_admin: "Administrador del sistema",
-  system_operator: "Operador del sistema",
-  system_viewer: "Solo lectura (sistema)",
-};
 
 export function ProfilePageContent() {
   const router = useRouter();
@@ -179,7 +174,7 @@ export function ProfilePageContent() {
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <Shield className="h-3 w-3" />
-                      {roleLabels[authUser.customClaims?.role as Role] || authUser.customClaims?.role || "Sin rol"}
+                      {getRoleLabel(authUser.customClaims?.role)}
                     </Badge>
                     <Badge variant="default">Activo</Badge>
                   </div>
@@ -316,7 +311,7 @@ export function ProfilePageContent() {
                 <div>
                   <p className="text-sm font-medium">Rol de usuario</p>
                   <p className="text-sm text-muted-foreground">
-                    {roleLabels[authUser.customClaims?.role as Role] || authUser.customClaims?.role || "Sin rol"}
+                    {getRoleLabel(authUser.customClaims?.role)}
                   </p>
                 </div>
               </div>

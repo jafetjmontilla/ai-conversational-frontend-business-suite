@@ -6,6 +6,7 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from 'next-themes'
 import Toaster from "@/components/ui/sonner"
+import { APP_ICONS, APP_LOGO } from "@/lib/branding"
 
 const AuthGuard = dynamic(
   () => import('@/components/AuthGuard').then((m) => ({ default: m.AuthGuard })),
@@ -31,8 +32,13 @@ export const metadata: Metadata = {
   description: 'ERP de 4net',
   manifest: '/manifest.json',
   icons: {
-    icon: 'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://4net.com.ve/&size=16',
-    apple: '/images/icon-192x192.png',
+    icon: [
+      { url: APP_ICONS.favicon, sizes: 'any' },
+      { url: APP_ICONS.favicon16, sizes: '16x16', type: 'image/png' },
+      { url: APP_ICONS.favicon32, sizes: '32x32', type: 'image/png' },
+    ],
+    apple: APP_ICONS.apple,
+    shortcut: APP_ICONS.favicon,
   },
   appleWebApp: {
     capable: true,
@@ -42,7 +48,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '4net - ERP',
     description: 'ERP de 4net',
-    images: 'https://i.ibb.co/B20cdqDy/4net-Logo-Open-Graph.png',
+    images: APP_LOGO,
   },
 }
 

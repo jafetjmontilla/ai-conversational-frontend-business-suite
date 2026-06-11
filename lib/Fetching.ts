@@ -912,6 +912,7 @@ export const queries = {
       role
       name
       email
+      phone
     }
   }`,
   setBusinessMember: `mutation setBusinessMember($args: SetBusinessMemberInput!) {

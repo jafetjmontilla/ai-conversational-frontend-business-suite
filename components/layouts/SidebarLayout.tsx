@@ -31,11 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const roleLabels: Record<string, string> = {
-  system_admin: 'Administrador del sistema',
-  system_operator: 'Operador del sistema',
-  system_viewer: 'Solo lectura (sistema)',
-};
+import { getRoleLabel } from "@/lib/roles";
 
 const SYSTEM_VALUE = "__system__"
 
@@ -80,7 +76,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
         <div className="flex items-center md:items-end w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
           <div className="flex-1 flex gap-4 items-center" >
             <span className="md:hidden">
-              <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Logo" width={50} height={30} className="rounded-md" />
+              <Image src="/images/icons/android-chrome-192x192.png" alt="Logo" width={36} height={36} className="rounded-md" />
             </span>
             <div className="flex-1 flex items-center gap-2 text-xs min-w-0">
               <span className="shrink-0">{`ERP V-${packageJson.version}`}</span>
@@ -183,7 +179,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                     <Badge variant="secondary" className="h-5 px-1.5 text-xs flex items-center gap-1 border border-border/50">
                       <Shield className="h-3 w-3" />
                       <span className="truncate max-w-[100px]">
-                        {roleLabels[authUser.customClaims?.role as string] || authUser.customClaims?.role || "Sin rol"}
+                        {getRoleLabel(authUser.customClaims?.role)}
                       </span>
                     </Badge>
                     {/* <Badge variant="outline" className="h-5 px-1.5 text-xs">
