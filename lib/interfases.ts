@@ -398,6 +398,8 @@ export interface Business {
   phone?: string;
   address?: BusinessAddress;
   currency?: string;
+  /** País del negocio (configuración regional). */
+  country?: string;
   timezone?: string;
   language?: string;
   businessCategory?: string;

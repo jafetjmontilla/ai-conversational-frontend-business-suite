@@ -1,5 +1,7 @@
 import * as z from "zod";
-import type { Business, BusinessAddress } from "@/lib/interfases";
+import type { Business } from "@/lib/interfases";
+import { resolveDefaultCountry } from "@/lib/countries";
+import { resolveDefaultTimezone } from "@/lib/timezones";
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -28,7 +30,8 @@ export const baseBusinessFormSchema = z.object({
   phone: z.string().optional(),
   address: addressSchema.optional(),
   currency: z.string().optional(),
-  timezone: z.string().optional(),
+  country: z.string().min(1, "Requerido"),
+  timezone: z.string().min(1, "Requerido"),
   language: z.string().optional(),
   businessCategory: z.string().optional(),
   defaultTaxPercent: z.number().optional(),
@@ -51,7 +54,7 @@ export type BaseBusinessFormValues = z.infer<typeof baseBusinessFormSchema>;
 export type CreateBusinessFormValues = z.infer<typeof createBusinessFormSchema>;
 export type EditBusinessFormValues = z.infer<typeof editBusinessFormSchema>;
 
-function emptyAddress(): BusinessAddress {
+function emptyAddress(): NonNullable<BaseBusinessFormValues["address"]> {
   return {
     street: "",
     number: "",
@@ -82,7 +85,8 @@ export function emptyCreateBusinessValues(): CreateBusinessFormValues {
     phone: "",
     address: emptyAddress(),
     currency: "",
-    timezone: "",
+    country: resolveDefaultCountry(),
+    timezone: resolveDefaultTimezone(),
     language: "",
     businessCategory: "",
     defaultTaxPercent: undefined,
@@ -105,7 +109,8 @@ export function businessToFormValues(b: Business): EditBusinessFormValues {
     phone: b.phone ?? "",
     address: b.address ? { ...emptyAddress(), ...b.address } : emptyAddress(),
     currency: b.currency ?? "",
-    timezone: b.timezone ?? "",
+    country: resolveDefaultCountry(b.country),
+    timezone: resolveDefaultTimezone(b.timezone),
     language: b.language ?? "",
     businessCategory: b.businessCategory ?? "",
     defaultTaxPercent: b.defaultTaxPercent ?? undefined,
@@ -162,7 +167,8 @@ export function buildBusinessArgs(values: BaseBusinessFormValues) {
     phone: values.phone || undefined,
     address: address && Object.keys(address).length ? address : undefined,
     currency: values.currency || undefined,
-    timezone: values.timezone || undefined,
+    country: resolveDefaultCountry(values.country) || undefined,
+    timezone: resolveDefaultTimezone(values.timezone) || undefined,
     language: values.language || undefined,
     businessCategory: values.businessCategory || undefined,
     defaultTaxPercent: toOptionalNumber(values.defaultTaxPercent),

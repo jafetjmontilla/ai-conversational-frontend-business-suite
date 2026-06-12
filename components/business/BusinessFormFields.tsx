@@ -2,8 +2,11 @@
 
 import type { UseFormReturn } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Input } from "@/components/ui/input";
 import { InputPhone } from "@/components/InputPhone";
+import { COUNTRY_OPTIONS, resolveDefaultCountry } from "@/lib/countries";
+import { TIMEZONE_OPTIONS } from "@/lib/timezones";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { TabsContent } from "@/components/ui/tabs";
@@ -366,9 +369,14 @@ export function SharedBusinessTabs({ form }: SharedBusinessTabsProps) {
             name="address.country"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>País</FormLabel>
+                <FormLabel>País (dirección)</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <AutocompleteInput
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    options={COUNTRY_OPTIONS}
+                    placeholder="Buscar país..."
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -378,6 +386,24 @@ export function SharedBusinessTabs({ form }: SharedBusinessTabsProps) {
       </TabsContent>
 
       <TabsContent value="regional" className="space-y-3 pt-3">
+        <FormField
+          control={form.control}
+          name="country"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>País (regional) *</FormLabel>
+              <FormControl>
+                <AutocompleteInput
+                  value={field.value ?? resolveDefaultCountry()}
+                  onChange={field.onChange}
+                  options={COUNTRY_OPTIONS}
+                  placeholder="Buscar país..."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="currency"
@@ -396,9 +422,14 @@ export function SharedBusinessTabs({ form }: SharedBusinessTabsProps) {
           name="timezone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Zona horaria</FormLabel>
+              <FormLabel>Zona horaria *</FormLabel>
               <FormControl>
-                <Input placeholder="America/Caracas" {...field} />
+                <AutocompleteInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={TIMEZONE_OPTIONS}
+                  placeholder="Buscar zona horaria..."
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

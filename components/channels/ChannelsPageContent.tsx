@@ -35,6 +35,7 @@ import {
   MessageSquare,
   Globe,
   Radio,
+  X,
 } from "lucide-react";
 
 const CHANNEL_TYPE_LABEL: Record<ChannelType, string> = {
@@ -88,6 +89,139 @@ function ChannelTypeIcon({ type }: { type: ChannelType }) {
   return <Globe className="h-4 w-4" />;
 }
 
+function allowlistArraysEqual(a: string[] | undefined, b: string[] | undefined): boolean {
+  const left = a ?? [];
+  const right = b ?? [];
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
+interface ChannelAllowlistEditorProps {
+  numbers: string[];
+  disabled?: boolean;
+  onChange: (numbers: string[]) => void;
+}
+
+function ChannelAllowlistEditor({ numbers, disabled, onChange }: ChannelAllowlistEditorProps) {
+  const [input, setInput] = useState("");
+  const [pendingRemoveNumber, setPendingRemoveNumber] = useState<string | null>(null);
+
+  const addNumber = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    if (numbers.includes(trimmed)) {
+      toast.error("Ese número ya está en la lista");
+      return;
+    }
+    onChange([...numbers, trimmed]);
+    setInput("");
+  };
+
+  const removeNumber = (value: string) => {
+    if (numbers.length === 1) {
+      setPendingRemoveNumber(value);
+      return;
+    }
+    onChange(numbers.filter((n) => n !== value));
+  };
+
+  const confirmRemoveLastNumber = () => {
+    if (!pendingRemoveNumber) return;
+    onChange([]);
+    setPendingRemoveNumber(null);
+  };
+
+  return (
+    <div className="w-full max-w-[300px] space-y-2">
+      <label className="text-xs font-medium text-muted-foreground">
+        Números permitidos (vacío = todos)
+      </label>
+      <div className="flex gap-2">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addNumber();
+            }
+          }}
+          placeholder="+58 412 1234567"
+          disabled={disabled}
+          className="h-8 text-sm"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0"
+          disabled={disabled || !input.trim()}
+          onClick={addNumber}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-2 min-h-[1.5rem]">
+        {numbers.length === 0 ? (
+          <span className="text-xs text-muted-foreground">Sin restricción — todos los números</span>
+        ) : (
+          numbers.map((number) => (
+            <Badge key={number} variant="secondary" className="gap-1 pr-1 font-normal">
+              {number}
+              <button
+                type="button"
+                className="rounded-sm p-0.5 hover:bg-muted-foreground/20 disabled:opacity-50"
+                disabled={disabled}
+                onClick={() => removeNumber(number)}
+                aria-label={`Quitar ${number}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))
+        )}
+      </div>
+
+      <ConfirmDeleteDialog
+        open={pendingRemoveNumber !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemoveNumber(null);
+        }}
+        onConfirm={confirmRemoveLastNumber}
+        title="Quitar último número"
+        description={
+          pendingRemoveNumber ? (
+            <span>
+              ¿Quitar <strong>{pendingRemoveNumber}</strong> de la lista? Si no queda ningún
+              número configurado, el canal <strong>aceptará mensajes de todos los números</strong>.
+            </span>
+          ) : (
+            ""
+          )
+        }
+        confirmButtonText="Quitar y permitir todos"
+        cancelButtonText="Cancelar"
+      />
+    </div>
+  );
+}
+
+function getChannelDisplayPhone(
+  ch: BusinessChannel,
+  baileysStatus?: BaileysStatusEntry
+): string | null {
+  if (ch.type === "whatsapp_cloud") {
+    return ch.phoneNumber?.trim() || ch.phoneNumberId?.trim() || null;
+  }
+  if (ch.type === "whatsapp_baileys") {
+    if (baileysStatus && baileysStatus !== "loading" && baileysStatus.phoneNumber?.trim()) {
+      return baileysStatus.phoneNumber.trim();
+    }
+    return ch.phoneNumber?.trim() || null;
+  }
+  return null;
+}
+
 export function ChannelsPageContent() {
   const params = useParams();
   const router = useRouter();
@@ -129,7 +263,7 @@ export function ChannelsPageContent() {
   const [genericAgentEngine, setGenericAgentEngine] = useState<"cse" | "pae">("cse");
   const [savingGeneric, setSavingGeneric] = useState(false);
 
-  const [allowlistDrafts, setAllowlistDrafts] = useState<Record<string, string>>({});
+  const [allowlistDrafts, setAllowlistDrafts] = useState<Record<string, string[]>>({});
 
   const baileysSessionIdsKey = useMemo(
     () =>
@@ -175,15 +309,15 @@ export function ChannelsPageContent() {
   );
 
   useEffect(() => {
-    const next: Record<string, string> = {};
+    const next: Record<string, string[]> = {};
     for (const ch of channels) {
-      next[ch.channelId] = (ch.allowedPhoneNumbers ?? []).join("\n");
+      next[ch.channelId] = [...(ch.allowedPhoneNumbers ?? [])];
     }
     setAllowlistDrafts((prev) => {
       const ids = Object.keys(next);
       if (
         ids.length === Object.keys(prev).length &&
-        ids.every((id) => prev[id] === next[id])
+        ids.every((id) => allowlistArraysEqual(prev[id], next[id]))
       ) {
         return prev;
       }
@@ -207,7 +341,8 @@ export function ChannelsPageContent() {
 
   const handleChannelFieldUpdate = async (
     channel: BusinessChannel,
-    patch: Partial<BusinessChannel>
+    patch: Partial<BusinessChannel>,
+    options?: { silent?: boolean }
   ) => {
     const nextEngine = (patch.agentEngine ?? channel.agentEngine) as ChannelAgentEngine;
     if (patch.agentEngine && !assertAgentEngineAvailable(installedApps, nextEngine, businessId)) {
@@ -233,20 +368,16 @@ export function ChannelsPageContent() {
         callbackUrl: channel.callbackUrl,
         webhookSecret: channel.webhookSecret,
       });
-      if (updated) toast.success("Canal actualizado");
+      if (updated && !options?.silent) toast.success("Canal actualizado");
     } finally {
       setSavingChannelId(null);
     }
   };
 
-  const handleSaveAllowlist = async (channel: BusinessChannel) => {
-    const text = allowlistDrafts[channel.channelId] ?? "";
-    const parsed = text
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const unique = Array.from(new Set(parsed));
-    await handleChannelFieldUpdate(channel, { allowedPhoneNumbers: unique });
+  const handleAllowlistChange = async (channel: BusinessChannel, numbers: string[]) => {
+    const unique = Array.from(new Set(numbers.map((n) => n.trim()).filter(Boolean)));
+    setAllowlistDrafts((prev) => ({ ...prev, [channel.channelId]: unique }));
+    await handleChannelFieldUpdate(channel, { allowedPhoneNumbers: unique }, { silent: true });
   };
 
   const handleConfirmDeleteChannel = async () => {
@@ -400,6 +531,7 @@ export function ChannelsPageContent() {
                   ch.type === "whatsapp_baileys" && ch.sessionId
                     ? baileysStatusBySession[ch.sessionId]
                     : undefined;
+                const displayPhone = getChannelDisplayPhone(ch, baileysSt);
                 return (
                   <li
                     key={ch.channelId}
@@ -411,19 +543,13 @@ export function ChannelsPageContent() {
                           <ChannelTypeIcon type={ch.type} />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{ch.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{ch.name}</p>
+                            {displayPhone && (
+                              <p className="text-xs text-muted-foreground mt-1">{displayPhone}</p>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{CHANNEL_TYPE_LABEL[ch.type]}</p>
-                          {ch.type === "whatsapp_baileys" && ch.sessionId && (
-                            <p className="text-xs font-mono text-muted-foreground mt-1">{ch.sessionId}</p>
-                          )}
-                          {ch.type === "whatsapp_cloud" && ch.phoneNumber && (
-                            <p className="text-xs text-muted-foreground mt-1">{ch.phoneNumber}</p>
-                          )}
-                          {(ch.type === "generic" || ch.type === "whatsapp_baileys") && ch.callbackUrl && (
-                            <p className="text-xs text-muted-foreground mt-1 truncate max-w-md" title={ch.callbackUrl}>
-                              Salida: {ch.callbackUrl}
-                            </p>
-                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -465,32 +591,12 @@ export function ChannelsPageContent() {
                     </div>
 
                     {(ch.type === "whatsapp_cloud" || ch.type === "whatsapp_baileys") && (
-                      <div className="space-y-2 border-t pt-3">
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Números permitidos (uno por línea; vacío = todos)
-                        </label>
-                        <textarea
-                          className="min-h-[72px] w-full rounded-md border bg-background px-3 py-2 text-sm"
-                          value={allowlistDrafts[ch.channelId] ?? ""}
-                          onChange={(e) =>
-                            setAllowlistDrafts((prev) => ({
-                              ...prev,
-                              [ch.channelId]: e.target.value,
-                            }))
-                          }
+                      <div className="border-t pt-3">
+                        <ChannelAllowlistEditor
+                          numbers={allowlistDrafts[ch.channelId] ?? []}
                           disabled={savingChannelId === ch.channelId}
+                          onChange={(numbers) => void handleAllowlistChange(ch, numbers)}
                         />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={savingChannelId === ch.channelId}
-                          onClick={() => void handleSaveAllowlist(ch)}
-                        >
-                          {savingChannelId === ch.channelId ? (
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          ) : null}
-                          Guardar allowlist
-                        </Button>
                       </div>
                     )}
                   </li>

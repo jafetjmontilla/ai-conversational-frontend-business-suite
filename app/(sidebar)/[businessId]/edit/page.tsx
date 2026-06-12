@@ -5,7 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Input } from "@/components/ui/input";
+import { COUNTRY_OPTIONS, resolveDefaultCountry } from "@/lib/countries";
+import { resolveDefaultTimezone, TIMEZONE_OPTIONS } from "@/lib/timezones";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +20,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import type { Business, BusinessAddress, ProductCategory } from "@/lib/interfases";
+import type { Business, ProductCategory } from "@/lib/interfases";
 import { Pencil, Trash2, Tag } from "lucide-react";
 
 const addressSchema = z.object({
@@ -48,7 +51,8 @@ const formSchema = z.object({
   phone: z.string().optional(),
   address: addressSchema.optional(),
   currency: z.string().optional(),
-  timezone: z.string().optional(),
+  country: z.string().min(1, "Requerido"),
+  timezone: z.string().min(1, "Requerido"),
   language: z.string().optional(),
   businessCategory: z.string().optional(),
   defaultTaxPercent: z.number().optional(),
@@ -63,8 +67,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-function emptyAddress(): BusinessAddress {
-  return { street: "", number: "", sector: "", city: "", stateProvince: "", postalCode: "", country: "" };
+function emptyAddress(): NonNullable<FormValues["address"]> {
+  return {
+    street: "",
+    number: "",
+    sector: "",
+    city: "",
+    stateProvince: "",
+    postalCode: "",
+    country: "",
+  };
 }
 
 function emptyInvoiceNumbering(): NonNullable<FormValues["invoiceNumbering"]> {
@@ -89,7 +101,8 @@ function businessToFormValues(b: Business | null): FormValues {
       phone: "",
       address: emptyAddress(),
       currency: "",
-      timezone: "",
+      country: resolveDefaultCountry(),
+      timezone: resolveDefaultTimezone(),
       language: "",
       businessCategory: "",
       defaultTaxPercent: undefined,
@@ -112,11 +125,10 @@ function businessToFormValues(b: Business | null): FormValues {
     logoUrl: b.logoUrl ?? "",
     email: b.email ?? "",
     phone: b.phone ?? "",
-    address: b.address
-      ? { ...emptyAddress(), ...b.address }
-      : emptyAddress(),
+    address: b.address ? { ...emptyAddress(), ...b.address } : emptyAddress(),
     currency: b.currency ?? "",
-    timezone: b.timezone ?? "",
+    country: resolveDefaultCountry(b.country),
+    timezone: resolveDefaultTimezone(b.timezone),
     language: b.language ?? "",
     businessCategory: b.businessCategory ?? "",
     defaultTaxPercent: b.defaultTaxPercent ?? undefined,
@@ -412,7 +424,7 @@ export default function BusinessEditPage() {
             city: values.address.city || undefined,
             stateProvince: values.address.stateProvince || undefined,
             postalCode: values.address.postalCode || undefined,
-            country: values.address.country || undefined,
+            country: values.address?.country || undefined,
           }
         : undefined;
       const invoiceNumbering = values.invoiceNumbering && (values.invoiceNumbering.prefix || values.invoiceNumbering.rangeFrom != null || values.invoiceNumbering.rangeTo != null)
@@ -439,7 +451,8 @@ export default function BusinessEditPage() {
             phone: values.phone || undefined,
             address: Object.keys(address || {}).length ? address : undefined,
             currency: values.currency || undefined,
-            timezone: values.timezone || undefined,
+            country: resolveDefaultCountry(values.country) || undefined,
+            timezone: resolveDefaultTimezone(values.timezone) || undefined,
             language: values.language || undefined,
             businessCategory: values.businessCategory || undefined,
             defaultTaxPercent: toOptionalNumber(values.defaultTaxPercent),
@@ -581,17 +594,53 @@ export default function BusinessEditPage() {
                       <FormItem><FormLabel>Código postal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="address.country" render={({ field }) => (
-                      <FormItem><FormLabel>País</FormLabel><FormControl><Input placeholder="Para impuestos y zona horaria" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem>
+                        <FormLabel>País (dirección)</FormLabel>
+                        <FormControl>
+                          <AutocompleteInput
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            options={COUNTRY_OPTIONS}
+                            placeholder="Buscar país..."
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )} />
                   </div>
                 </TabsContent>
                 <TabsContent value="regional" className="space-y-4 pt-4">
-                  <p className="text-sm text-muted-foreground">Moneda, zona horaria, idioma y categoría del negocio.</p>
+                  <p className="text-sm text-muted-foreground">País, moneda, zona horaria, idioma y categoría del negocio.</p>
+                  <FormField control={form.control} name="country" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>País (regional) *</FormLabel>
+                      <FormControl>
+                        <AutocompleteInput
+                          value={field.value ?? resolveDefaultCountry()}
+                          onChange={field.onChange}
+                          options={COUNTRY_OPTIONS}
+                          placeholder="Buscar país..."
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   <FormField control={form.control} name="currency" render={({ field }) => (
                     <FormItem><FormLabel>Moneda</FormLabel><FormControl><Input placeholder="ISO 4217: USD, VES, EUR, etc." {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="timezone" render={({ field }) => (
-                    <FormItem><FormLabel>Zona horaria</FormLabel><FormControl><Input placeholder="Ej. America/Caracas" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                      <FormLabel>Zona horaria *</FormLabel>
+                      <FormControl>
+                        <AutocompleteInput
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          options={TIMEZONE_OPTIONS}
+                          placeholder="Buscar zona horaria..."
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="language" render={({ field }) => (
                     <FormItem><FormLabel>Idioma</FormLabel><FormControl><Input placeholder="Para i18n: es, en, etc." {...field} /></FormControl><FormMessage /></FormItem>

@@ -402,6 +402,7 @@ export const queries = {
         country
       }
       currency
+      country
       timezone
       language
       businessCategory
@@ -440,6 +441,7 @@ export const queries = {
         country
       }
       currency
+      country
       timezone
       language
       businessCategory
@@ -858,6 +860,7 @@ export const queries = {
       phone
       address { street number sector city stateProvince postalCode country }
       currency
+      country
       timezone
       language
       businessCategory
