@@ -14,6 +14,7 @@ import {
   FileText,
   Brain,
   FileSearch,
+  ScanSearch,
   LayoutDashboard,
   LayoutGrid,
 } from "lucide-react";
@@ -215,6 +216,15 @@ export function buildBusinessNavGroups(
           href: `${base}/knowledge`,
           label: "Conocimiento",
           icon: BookOpen,
+          permission: "negocio:editar",
+          matchPrefix: true,
+          requiredAnyApps: ["agente-atencion-cliente"],
+        },
+        {
+          id: "knowledge-audit",
+          href: `${base}/ai/audit`,
+          label: "Auditoría conocimiento",
+          icon: ScanSearch,
           permission: "negocio:editar",
           matchPrefix: true,
           requiredAnyApps: ["agente-atencion-cliente"],

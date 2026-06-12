@@ -4,36 +4,19 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import { fetchKnowledgeAudit, type KnowledgeAuditResponse } from "@/lib/api";
 import { toast } from "sonner";
 import { useBusinessRole, useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
-import { Badge } from "@/components/ui/badge";
-import { FileSearch, AlertTriangle, Info } from "lucide-react";
-
-type ProtocolDraft = {
-  _id: string;
-  businessId: string;
-  protocolId: string;
-  version: string;
-  category: string;
-  title: string;
-  content: { summary: string; steps: string[]; raw_markdown?: string };
-  retrieval_hints?: { semantic_intents?: string[]; tags?: string[] };
-  tools?: { tool_name: string; required_params: string[] }[];
-  metadata?: { priority?: number; author?: string; last_updated?: string; requires_human_handoff?: boolean };
-  status: string;
-  createdBy: string;
-  conversationId?: string;
-  approvedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import { ProtocolDraftForm } from "@/components/knowledge/ProtocolDraftForm";
+import {
+  narrativeStorageKey,
+  type ProtocolDraftRecord,
+} from "@/lib/knowledge/protocolDraftForm";
 
 export default function ProtocolsKnowledgePage() {
   const params = useParams();
@@ -45,57 +28,71 @@ export default function ProtocolsKnowledgePage() {
   const [generateMode, setGenerateMode] = useState(false);
   const [narrative, setNarrative] = useState("");
   const [sending, setSending] = useState(false);
-  const [drafts, setDrafts] = useState<ProtocolDraft[]>([]);
-  const [loadingDrafts, setLoadingDrafts] = useState(true);
-  const [selectedDraft, setSelectedDraft] = useState<ProtocolDraft | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<ProtocolDraftRecord[]>([]);
+  const [published, setPublished] = useState<ProtocolDraftRecord[]>([]);
+  const [loadingLists, setLoadingLists] = useState(true);
+  const [selectedDraft, setSelectedDraft] = useState<ProtocolDraftRecord | null>(null);
   const [saving, setSaving] = useState(false);
-  const [audit, setAudit] = useState<KnowledgeAuditResponse | null>(null);
-  const [auditLoading, setAuditLoading] = useState(false);
+  const [listTab, setListTab] = useState<"pending" | "published">("pending");
 
-  const loadAudit = useCallback(async () => {
-    if (!businessId) return;
-    setAuditLoading(true);
-    try {
-      const data = await fetchKnowledgeAudit(businessId);
-      setAudit(data);
-    } catch (e) {
-      toast.error((e as Error)?.message ?? "Error al cargar auditoría");
-      setAudit(null);
-    } finally {
-      setAuditLoading(false);
-    }
-  }, [businessId]);
-
-  const loadDrafts = useCallback(async () => {
+  const loadLists = useCallback(async () => {
     if (!businessId) return;
     try {
-      const list = (await fetchApiV1({
-        query: queries.listProtocolDrafts,
-        type: "json",
-        variables: { businessId, status: "draft" },
-      })) as ProtocolDraft[] | undefined;
-      setDrafts(Array.isArray(list) ? list : []);
-    } catch (e) {
-      toast.error("Error al cargar borradores");
-      setDrafts([]);
+      const [draftList, publishedList] = await Promise.all([
+        fetchApiV1({
+          query: queries.listProtocolDrafts,
+          type: "json",
+          variables: { businessId, status: "draft" },
+        }) as Promise<ProtocolDraftRecord[] | undefined>,
+        fetchApiV1({
+          query: queries.listProtocolDrafts,
+          type: "json",
+          variables: { businessId, status: "approved" },
+        }) as Promise<ProtocolDraftRecord[] | undefined>,
+      ]);
+      setPendingDrafts(Array.isArray(draftList) ? draftList : []);
+      setPublished(Array.isArray(publishedList) ? publishedList : []);
+    } catch {
+      toast.error("Error al cargar protocolos");
+      setPendingDrafts([]);
+      setPublished([]);
     } finally {
-      setLoadingDrafts(false);
+      setLoadingLists(false);
     }
   }, [businessId]);
 
   useEffect(() => {
     if (!businessId) return;
-    loadDrafts();
+    loadLists();
     subscribeToKnowledge(businessId);
-    const cb = (payload: { businessId: string }) => {
-      if (payload.businessId === businessId) loadDrafts();
-    };
-    const unsubscribe = onProtocolDraftUpdated(cb);
+    const unsubscribe = onProtocolDraftUpdated((payload: { businessId: string }) => {
+      if (payload.businessId === businessId) loadLists();
+    });
     return () => {
       unsubscribe();
       unsubscribeFromKnowledge(businessId);
     };
-  }, [businessId, loadDrafts, subscribeToKnowledge, unsubscribeFromKnowledge, onProtocolDraftUpdated]);
+  }, [businessId, loadLists, subscribeToKnowledge, unsubscribeFromKnowledge, onProtocolDraftUpdated]);
+
+  useEffect(() => {
+    if (!businessId) return;
+    try {
+      const stored = localStorage.getItem(narrativeStorageKey(businessId));
+      if (stored) setNarrative(stored);
+    } catch {
+      /* ignore */
+    }
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!businessId) return;
+    const key = narrativeStorageKey(businessId);
+    if (narrative.trim()) {
+      localStorage.setItem(key, narrative);
+    } else {
+      localStorage.removeItem(key);
+    }
+  }, [businessId, narrative]);
 
   const handleSendNarrative = async () => {
     if (!businessId || !narrative.trim()) {
@@ -109,8 +106,10 @@ export default function ProtocolsKnowledgePage() {
         type: "json",
         variables: { businessId, content: narrative.trim() },
       });
-      toast.success("Narrativa enviada. El borrador se actualizará en tiempo real.");
+      toast.success("Narrativa enviada. El borrador aparecerá en Pendientes en unos segundos.");
       setNarrative("");
+      localStorage.removeItem(narrativeStorageKey(businessId));
+      setListTab("pending");
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al enviar");
     } finally {
@@ -118,25 +117,45 @@ export default function ProtocolsKnowledgePage() {
     }
   };
 
-  const handleApprove = async (draftId: string, sourceId?: string) => {
+  const handleSaveDraft = async (draft: ProtocolDraftRecord, input: Record<string, unknown>) => {
+    setSaving(true);
+    try {
+      const updated = (await fetchApiV1({
+        query: queries.updateProtocolDraft,
+        type: "json",
+        variables: { id: draft._id, input },
+      })) as ProtocolDraftRecord;
+      toast.success(
+        draft.status === "approved"
+          ? "Protocolo actualizado y reindexado."
+          : "Borrador guardado."
+      );
+      setSelectedDraft(updated);
+      await loadLists();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async (draft: ProtocolDraftRecord) => {
     setSaving(true);
     try {
       await fetchApiV1({
         query: queries.approveProtocolDraft,
         type: "json",
-        variables: { id: draftId, sourceId: sourceId || "protocols" },
+        variables: { id: draft._id, sourceId: "protocols" },
       });
-      toast.success("Protocolo aprobado e indexado en la base de conocimiento.");
+      toast.success("Protocolo publicado en la base de conocimiento.");
       setSelectedDraft(null);
-      loadDrafts();
-    } catch (e: unknown) {
-      toast.error((e as Error)?.message || "Error al aprobar");
+      setListTab("published");
+      await loadLists();
     } finally {
       setSaving(false);
     }
   };
 
   const handleReject = async (draftId: string) => {
+    if (!window.confirm("¿Rechazar este borrador? No se publicará en Knowledge-RAG.")) return;
     setSaving(true);
     try {
       await fetchApiV1({
@@ -145,8 +164,8 @@ export default function ProtocolsKnowledgePage() {
         variables: { id: draftId },
       });
       toast.success("Borrador rechazado.");
-      setSelectedDraft(null);
-      loadDrafts();
+      if (selectedDraft?._id === draftId) setSelectedDraft(null);
+      await loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al rechazar");
     } finally {
@@ -154,41 +173,58 @@ export default function ProtocolsKnowledgePage() {
     }
   };
 
-  const handleUpdateAndApprove = async (draft: ProtocolDraft, form: Record<string, unknown>) => {
-    setSaving(true);
-    try {
-      await fetchApiV1({
-        query: queries.updateProtocolDraft,
-        type: "json",
-        variables: {
-          id: draft._id,
-          input: {
-            protocolId: form.protocolId ?? draft.protocolId,
-            version: form.version ?? draft.version,
-            category: form.category ?? draft.category,
-            title: form.title ?? draft.title,
-            content: {
-              summary: form.summary ?? draft.content.summary,
-              steps: Array.isArray(form.steps) ? form.steps : draft.content.steps,
-              raw_markdown: (form.raw_markdown as string) ?? draft.content.raw_markdown,
-            },
-            retrieval_hints: form.retrieval_hints ?? draft.retrieval_hints,
-            tools: form.tools ?? draft.tools,
-            metadata: form.metadata ?? draft.metadata,
-          },
-        },
-      });
-      await handleApprove(draft._id);
-    } catch (e: unknown) {
-      toast.error((e as Error)?.message || "Error al guardar");
-    } finally {
-      setSaving(false);
-    }
+  const openDraft = (d: ProtocolDraftRecord) => {
+    setSelectedDraft((prev) => (prev?._id === d._id ? null : d));
   };
 
   const canEdit = canEditCurrentBusiness();
 
   if (!businessId) return null;
+
+  const renderList = (items: ProtocolDraftRecord[], emptyMessage: string, showReject: boolean) => {
+    if (loadingLists && items.length === 0) {
+      return <p className="text-muted-foreground">Cargando…</p>;
+    }
+    if (items.length === 0) {
+      return <p className="text-muted-foreground">{emptyMessage}</p>;
+    }
+    return (
+      <div className="space-y-2">
+        {items.map((d) => (
+          <div key={d._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border p-3">
+            <div className="min-w-0">
+              <p className="font-medium truncate">{d.title}</p>
+              <p className="text-sm text-muted-foreground">
+                {d.category} · {d.content.steps?.length ?? 0} pasos ·{" "}
+                {d.status === "approved" && d.approvedAt
+                  ? `Publicado ${new Date(d.approvedAt).toLocaleString()}`
+                  : `Actualizado ${new Date(d.updatedAt).toLocaleString()}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openDraft(d)}
+              >
+                {selectedDraft?._id === d._id ? "Cerrar" : "Revisar"}
+              </Button>
+              {canEdit && showReject && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleReject(d._id)}
+                  disabled={saving}
+                >
+                  Rechazar
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -196,14 +232,17 @@ export default function ProtocolsKnowledgePage() {
         <CardHeader>
           <CardTitle>Protocolos — Cómo hacer</CardTitle>
           <CardDescription>
-            Modo &quot;De Charla a Protocolo&quot;: escribe una narrativa y la IA extraerá un protocolo en JSON. Revisa el borrador, edita si hace falta y confirma para indexarlo en la base de conocimiento.
+            Escribe cómo se hace algo en lenguaje natural. La IA propone un borrador; tú lo revisas,
+            guardas y publicas cuando esté listo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <Label className="text-base">Modo: Generar Conocimiento</Label>
-              <p className="text-sm text-muted-foreground">Al activar, el mensaje se enviará a la IA para extraer un protocolo (no conversación).</p>
+              <Label className="text-base">Generar desde narrativa</Label>
+              <p className="text-sm text-muted-foreground">
+                La IA extraerá título, resumen y pasos. No envía mensajes al agente.
+              </p>
             </div>
             <Switch checked={generateMode} onCheckedChange={setGenerateMode} />
           </div>
@@ -213,12 +252,15 @@ export default function ProtocolsKnowledgePage() {
               <div>
                 <Label>Narrativa</Label>
                 <Textarea
-                  placeholder="Ej: Cuando un cliente pide devolución, validamos el pedido con la herramienta de consulta. Si está dentro de 30 días, ejecutamos la API de reembolso; si no, aplicamos la Excepción de Cortesía."
+                  placeholder="Ej: Cuando un cliente pide devolución, validamos el pedido. Si está dentro de 30 días, ejecutamos el reembolso; si no, aplicamos la excepción de cortesía."
                   value={narrative}
                   onChange={(e) => setNarrative(e.target.value)}
                   rows={4}
                   className="mt-2"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  El texto se conserva en este navegador hasta que lo envíes o lo borres.
+                </p>
               </div>
               <Button onClick={handleSendNarrative} disabled={sending}>
                 {sending ? "Enviando…" : "Enviar y generar borrador"}
@@ -230,278 +272,62 @@ export default function ProtocolsKnowledgePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Borradores de protocolos</CardTitle>
-          <CardDescription>Borradores pendientes de revisión. Edita y pulsa &quot;Confirmar y Guardar&quot; para indexar en Knowledge-RAG.</CardDescription>
+          <CardTitle>Protocolos</CardTitle>
+          <CardDescription>
+            Pendientes: revisa y publica. Publicados: ya disponibles para el agente.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {loadingDrafts && drafts.length === 0 ? (
-            <p className="text-muted-foreground">Cargando…</p>
-          ) : drafts.length === 0 ? (
-            <p className="text-muted-foreground">No hay borradores. Activa el modo y envía una narrativa.</p>
-          ) : (
-            <div className="space-y-2">
-              {drafts.map((d) => (
-                <div key={d._id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <p className="font-medium">{d.title}</p>
-                    <p className="text-sm text-muted-foreground">{d.protocolId} · {d.category} · {new Date(d.updatedAt).toLocaleString()}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedDraft(selectedDraft?._id === d._id ? null : d)}>
-                      {selectedDraft?._id === d._id ? "Cerrar" : "Editar"}
-                    </Button>
-                    {canEdit && (
-                      <>
-                        <Button size="sm" onClick={() => handleApprove(d._id)} disabled={saving}>
-                          Aprobar
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleReject(d._id)} disabled={saving}>
-                          Rechazar
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <Tabs value={listTab} onValueChange={(v) => setListTab(v as "pending" | "published")}>
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="pending">
+                Pendientes ({pendingDrafts.length})
+              </TabsTrigger>
+              <TabsTrigger value="published">
+                Publicados ({published.length})
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="pending" className="mt-4">
+              {renderList(
+                pendingDrafts,
+                "No hay borradores pendientes. Genera uno desde una narrativa.",
+                true
+              )}
+            </TabsContent>
+            <TabsContent value="published" className="mt-4">
+              {renderList(
+                published,
+                "Aún no hay protocolos publicados.",
+                false
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
       {selectedDraft && canEdit && (
-        <DraftForm
+        <ProtocolDraftForm
+          key={selectedDraft._id}
           draft={selectedDraft}
-          onSave={(form) => handleUpdateAndApprove(selectedDraft, form)}
-          onCancel={() => setSelectedDraft(null)}
           saving={saving}
+          onSaveDraft={(input) =>
+            handleSaveDraft(selectedDraft, input).catch((e: unknown) => {
+              toast.error((e as Error)?.message || "Error al guardar");
+              throw e;
+            })
+          }
+          onPublish={
+            selectedDraft.status === "draft"
+              ? () =>
+                  handlePublish(selectedDraft).catch((e: unknown) => {
+                    toast.error((e as Error)?.message || "Error al publicar");
+                    throw e;
+                  })
+              : undefined
+          }
+          onCancel={() => setSelectedDraft(null)}
         />
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSearch className="h-5 w-5" />
-            Auditoría del conocimiento
-          </CardTitle>
-          <CardDescription>
-            Compara la configuración del negocio (fuentes y roles) con el contenido realmente indexado en Knowledge-RAG.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            variant="outline"
-            onClick={loadAudit}
-            disabled={auditLoading}
-          >
-            {auditLoading ? "Cargando…" : "Cargar auditoría"}
-          </Button>
-
-          {audit && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Documentos totales</p>
-                  <p className="text-xl font-semibold">{audit.summary.totalDocuments}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Fuentes configuradas</p>
-                  <p className="text-xl font-semibold">{audit.summary.totalConfigSources}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Fuentes con documentos</p>
-                  <p className="text-xl font-semibold">{audit.summary.sourcesWithDocuments}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Coherencia</p>
-                  <p className="text-xl font-semibold">
-                    {audit.summary.orphanSources.length === 0 &&
-                     audit.summary.sourcesWithoutDocuments.length === 0
-                      ? "OK"
-                      : "Revisar"}
-                  </p>
-                </div>
-              </div>
-
-              {(audit.summary.sourcesWithoutDocuments.length > 0 ||
-                audit.summary.orphanSources.length > 0) && (
-                <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3">
-                  {audit.summary.sourcesWithoutDocuments.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                          Fuentes configuradas sin documentos indexados
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {audit.summary.sourcesWithoutDocuments.join(", ") || "—"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {audit.summary.orphanSources.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                          Fuentes con documentos pero no en configuración (huérfanas)
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {audit.summary.orphanSources.join(", ") || "—"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <p className="text-sm font-medium mb-2">Fuentes configuradas (MongoDB)</p>
-                <div className="flex flex-wrap gap-2">
-                  {audit.configSources.length === 0 ? (
-                    <span className="text-muted-foreground text-sm">Ninguna</span>
-                  ) : (
-                    audit.configSources.map((s) => (
-                      <Badge key={s.sourceId} variant="secondary">
-                        {s.name || s.sourceId} · {s.roles?.length ?? 0} roles
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium mb-2">Documentos por fuente (índice RAG)</p>
-                <div className="space-y-4">
-                  {audit.documentsBySource.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No hay documentos indexados.</p>
-                  ) : (
-                    audit.documentsBySource.map((src) => (
-                      <div key={src.sourceId} className="rounded-lg border p-3">
-                        <p className="font-medium flex items-center gap-2">
-                          {src.name || src.sourceId}
-                          <Badge variant="outline">{src.documentCount} docs</Badge>
-                        </p>
-                        <ul className="mt-2 space-y-2 pl-2 border-l border-muted">
-                          {src.documents.map((doc, i) => (
-                            <li key={doc.documentId ?? i} className="text-sm py-1">
-                              <span className="font-mono text-muted-foreground">
-                                {doc.documentId ?? `#${i + 1}`}
-                              </span>
-                              <span className="text-muted-foreground ml-1">
-                                ({doc.contentLength} chars)
-                              </span>
-                              <p className="text-muted-foreground truncate max-w-full mt-0.5">
-                                {doc.contentPreview || "—"}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
-  );
-}
-
-function DraftForm({
-  draft,
-  onSave,
-  onCancel,
-  saving,
-}: {
-  draft: ProtocolDraft;
-  onSave: (form: Record<string, unknown>) => void;
-  onCancel: () => void;
-  saving: boolean;
-}) {
-  const [protocolId, setProtocolId] = useState(draft.protocolId);
-  const [version, setVersion] = useState(draft.version);
-  const [category, setCategory] = useState(draft.category);
-  const [title, setTitle] = useState(draft.title);
-  const [summary, setSummary] = useState(draft.content.summary);
-  const [stepsText, setStepsText] = useState((draft.content.steps || []).join("\n"));
-  const [rawMarkdown, setRawMarkdown] = useState(draft.content.raw_markdown ?? "");
-  const [intentsText, setIntentsText] = useState((draft.retrieval_hints?.semantic_intents || []).join(", "));
-  const [tagsText, setTagsText] = useState((draft.retrieval_hints?.tags || []).join(", "));
-
-  const submit = () => {
-    onSave({
-      protocolId,
-      version,
-      category,
-      title,
-      summary,
-      steps: stepsText.split("\n").map((s) => s.trim()).filter(Boolean),
-      raw_markdown: rawMarkdown || undefined,
-      retrieval_hints: {
-        semantic_intents: intentsText.split(",").map((s) => s.trim()).filter(Boolean),
-        tags: tagsText.split(",").map((s) => s.trim()).filter(Boolean),
-      },
-      metadata: draft.metadata,
-      tools: draft.tools,
-    });
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Editar borrador: {draft.title}</CardTitle>
-        <CardDescription>Ajusta los campos y pulsa &quot;Confirmar y Guardar&quot; para indexar en la base de conocimiento.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4 max-w-2xl">
-        <div>
-          <Label>ID protocolo</Label>
-          <Input value={protocolId} onChange={(e) => setProtocolId(e.target.value)} className="mt-1" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Versión</Label>
-            <Input value={version} onChange={(e) => setVersion(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label>Categoría</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} className="mt-1" />
-          </div>
-        </div>
-        <div>
-          <Label>Título</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
-        </div>
-        <div>
-          <Label>Resumen</Label>
-          <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="mt-1" />
-        </div>
-        <div>
-          <Label>Pasos (uno por línea)</Label>
-          <Textarea value={stepsText} onChange={(e) => setStepsText(e.target.value)} rows={5} className="mt-1 font-mono text-sm" />
-        </div>
-        <div>
-          <Label>Raw Markdown (opcional)</Label>
-          <Textarea value={rawMarkdown} onChange={(e) => setRawMarkdown(e.target.value)} rows={3} className="mt-1 font-mono text-sm" />
-        </div>
-        <div>
-          <Label>Intenciones semánticas (separadas por coma)</Label>
-          <Input value={intentsText} onChange={(e) => setIntentsText(e.target.value)} className="mt-1" />
-        </div>
-        <div>
-          <Label>Tags (separados por coma)</Label>
-          <Input value={tagsText} onChange={(e) => setTagsText(e.target.value)} className="mt-1" />
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "Guardando…" : "Confirmar y Guardar"}
-          </Button>
-          <Button variant="outline" onClick={onCancel} disabled={saving}>
-            Cancelar
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

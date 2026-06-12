@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useBusinessRole, useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import type { KnowledgeSourceId } from "@/lib/knowledgeTypes";
+import { extractDraftItems } from "@/lib/knowledgeDraftItems";
 
 type KnowledgeDraft = {
   _id: string;
@@ -22,7 +23,20 @@ type KnowledgeDraft = {
   payload: string;
   createdBy: string;
   conversationId?: string;
-  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type KnowledgeItem = {
+  _id: string;
+  businessId: string;
+  sourceId: string;
+  itemId: string;
+  label: string;
+  payload: string;
+  createdBy: string;
+  approvedAt: string;
+  originDraftId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,6 +47,10 @@ type Props = {
   description: string;
   narrativePlaceholder: string;
 };
+
+type EditTarget =
+  | { kind: "draft"; draft: KnowledgeDraft }
+  | { kind: "item"; item: KnowledgeItem };
 
 export function KnowledgeGenericPage({ sourceId, title, description, narrativePlaceholder }: Props) {
   const params = useParams();
@@ -45,32 +63,33 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
   const [narrative, setNarrative] = useState("");
   const [sending, setSending] = useState(false);
   const [drafts, setDrafts] = useState<KnowledgeDraft[]>([]);
-  const [indexed, setIndexed] = useState<KnowledgeDraft[]>([]);
+  const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
-  const [selectedDraft, setSelectedDraft] = useState<KnowledgeDraft | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const loadLists = useCallback(async () => {
     if (!businessId) return;
     try {
-      const [draftList, indexedList] = await Promise.all([
+      const [draftList, itemList] = await Promise.all([
         fetchApiV1({
           query: queries.listKnowledgeDrafts,
           type: "json",
           variables: { businessId, sourceId, status: "draft" },
         }) as Promise<KnowledgeDraft[] | undefined>,
         fetchApiV1({
-          query: queries.listKnowledgeDrafts,
+          query: queries.listKnowledgeItems,
           type: "json",
-          variables: { businessId, sourceId, status: "approved" },
-        }) as Promise<KnowledgeDraft[] | undefined>,
+          variables: { businessId, sourceId },
+        }) as Promise<KnowledgeItem[] | undefined>,
       ]);
       setDrafts(Array.isArray(draftList) ? draftList : []);
-      setIndexed(Array.isArray(indexedList) ? indexedList : []);
+      setItems(Array.isArray(itemList) ? itemList : []);
     } catch {
       toast.error("Error al cargar conocimiento");
       setDrafts([]);
-      setIndexed([]);
+      setItems([]);
     } finally {
       setLoadingLists(false);
     }
@@ -110,16 +129,16 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
     }
   };
 
-  const handleApprove = async (draft: KnowledgeDraft) => {
+  const handleApproveItem = async (draft: KnowledgeDraft, itemId: string) => {
     setSaving(true);
     try {
       await fetchApiV1({
-        query: queries.approveKnowledgeDraft,
+        query: queries.approveKnowledgeDraftItem,
         type: "json",
-        variables: { id: draft._id, sourceId },
+        variables: { id: draft._id, sourceId, itemId },
       });
-      toast.success("Borrador aprobado e indexado en la base de conocimiento.");
-      setSelectedDraft(null);
+      toast.success("Item aprobado e indexado.");
+      setEditTarget(null);
       loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al aprobar");
@@ -128,16 +147,15 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
     }
   };
 
-  const handleReject = async (draft: KnowledgeDraft) => {
+  const handleRejectItem = async (draft: KnowledgeDraft, itemId: string) => {
     setSaving(true);
     try {
       await fetchApiV1({
-        query: queries.rejectKnowledgeDraft,
+        query: queries.rejectKnowledgeDraftItem,
         type: "json",
-        variables: { id: draft._id, sourceId },
+        variables: { id: draft._id, sourceId, itemId },
       });
-      toast.success("Borrador rechazado.");
-      setSelectedDraft(null);
+      toast.success("Item rechazado y eliminado del borrador.");
       loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al rechazar");
@@ -146,21 +164,54 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
     }
   };
 
-  const handleDelete = async (d: KnowledgeDraft) => {
-    const msg =
-      d.status === "approved"
-        ? `¿Eliminar "${d.draftId}" del índice y de la base de datos? Esta acción no se puede deshacer.`
-        : `¿Eliminar el borrador "${d.draftId}"?`;
-    if (!confirm(msg)) return;
+  const handleRejectDraft = async (draft: KnowledgeDraft) => {
+    setSaving(true);
+    try {
+      await fetchApiV1({
+        query: queries.rejectKnowledgeDraft,
+        type: "json",
+        variables: { id: draft._id, sourceId },
+      });
+      toast.success("Borrador rechazado.");
+      setEditTarget(null);
+      loadLists();
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || "Error al rechazar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteDraft = async (draft: KnowledgeDraft) => {
+    if (!confirm(`¿Eliminar el borrador "${draft.draftId}"?`)) return;
     setSaving(true);
     try {
       await fetchApiV1({
         query: queries.deleteKnowledgeDraft,
         type: "json",
-        variables: { id: d._id, sourceId },
+        variables: { id: draft._id, sourceId },
       });
-      toast.success(d.status === "approved" ? "Entrada eliminada del índice y del registro." : "Borrador eliminado.");
-      setSelectedDraft(null);
+      toast.success("Borrador eliminado.");
+      setEditTarget(null);
+      loadLists();
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || "Error al eliminar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteItem = async (item: KnowledgeItem) => {
+    if (!confirm(`¿Eliminar "${item.label}" del índice y de la base de datos?`)) return;
+    setSaving(true);
+    try {
+      await fetchApiV1({
+        query: queries.deleteKnowledgeItem,
+        type: "json",
+        variables: { id: item._id, sourceId },
+      });
+      toast.success("Item eliminado del índice.");
+      setEditTarget(null);
       loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al eliminar");
@@ -181,8 +232,8 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
             {title} — {description}
           </CardTitle>
           <CardDescription>
-            Escribe un texto o narrativa y la IA extraerá un borrador estructurado. Revisa, edita si hace falta y aprueba para
-            indexarlo en Knowledge-RAG.
+            Escribe un texto o narrativa y la IA extraerá un borrador estructurado. Revisa cada item y aprueba
+            individualmente para indexarlo en Knowledge-RAG.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -219,7 +270,9 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
       <Card>
         <CardHeader>
           <CardTitle>Borradores de {title}</CardTitle>
-          <CardDescription>Pendientes de aprobación. Edita el JSON si hace falta y aprueba para indexar.</CardDescription>
+          <CardDescription>
+            Pendientes de revisión. Aprueba o rechaza cada item por separado; al aprobar, el item sale del borrador.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loadingLists && drafts.length === 0 ? (
@@ -227,33 +280,88 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
           ) : drafts.length === 0 ? (
             <p className="text-muted-foreground">No hay borradores. Activa el modo y envía un texto.</p>
           ) : (
-            <div className="space-y-2">
-              {drafts.map((d) => (
-                <div key={d._id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <p className="font-medium">{d.draftId}</p>
-                    <p className="text-sm text-muted-foreground">{new Date(d.updatedAt).toLocaleString()}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedDraft(selectedDraft?._id === d._id ? null : d)}>
-                      {selectedDraft?._id === d._id ? "Cerrar" : "Editar"}
-                    </Button>
-                    {canEdit && (
-                      <>
-                        <Button size="sm" onClick={() => handleApprove(d)} disabled={saving}>
-                          Aprobar
+            <div className="space-y-3">
+              {drafts.map((d) => {
+                let draftItems: ReturnType<typeof extractDraftItems> = [];
+                try {
+                  draftItems = extractDraftItems(sourceId, JSON.parse(d.payload));
+                } catch {
+                  draftItems = [];
+                }
+                const isExpanded = expandedDraftId === d._id;
+                return (
+                  <div key={d._id} className="rounded-lg border">
+                    <div className="flex items-center justify-between p-3 gap-2">
+                      <div>
+                        <p className="font-medium">{d.draftId}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {draftItems.length} item(s) · {new Date(d.updatedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExpandedDraftId(isExpanded ? null : d._id)}
+                        >
+                          {isExpanded ? "Ocultar items" : "Ver items"}
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleReject(d)} disabled={saving}>
-                          Rechazar
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setEditTarget(
+                              editTarget?.kind === "draft" && editTarget.draft._id === d._id
+                                ? null
+                                : { kind: "draft", draft: d }
+                            )
+                          }
+                        >
+                          Editar JSON
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(d)} disabled={saving}>
-                          Eliminar
-                        </Button>
-                      </>
+                        {canEdit && (
+                          <>
+                            <Button variant="destructive" size="sm" onClick={() => handleRejectDraft(d)} disabled={saving}>
+                              Rechazar todo
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteDraft(d)} disabled={saving}>
+                              Eliminar
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="border-t divide-y">
+                        {draftItems.length === 0 ? (
+                          <p className="p-3 text-sm text-muted-foreground">Sin items en este borrador.</p>
+                        ) : (
+                          draftItems.map((item) => (
+                            <div key={item.itemId} className="flex items-center justify-between gap-2 p-3 pl-5">
+                              <p className="text-sm flex-1 min-w-0 truncate">{item.label}</p>
+                              {canEdit && (
+                                <div className="flex gap-2 shrink-0">
+                                  <Button size="sm" onClick={() => handleApproveItem(d, item.itemId)} disabled={saving}>
+                                    Aprobar
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRejectItem(d, item.itemId)}
+                                    disabled={saving}
+                                  >
+                                    Rechazar
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -263,31 +371,40 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
         <CardHeader>
           <CardTitle>Conocimiento indexado — {title}</CardTitle>
           <CardDescription>
-            Entradas ya aprobadas y disponibles para el RAG. Puedes editar el JSON y guardar para reindexar, o eliminar por completo.
+            Items aprobados disponibles para el RAG. Puedes editar o eliminar cada uno de forma independiente.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loadingLists && indexed.length === 0 ? (
+          {loadingLists && items.length === 0 ? (
             <p className="text-muted-foreground">Cargando…</p>
-          ) : indexed.length === 0 ? (
-            <p className="text-muted-foreground">Aún no hay entradas indexadas para esta fuente.</p>
+          ) : items.length === 0 ? (
+            <p className="text-muted-foreground">Aún no hay items indexados para esta fuente.</p>
           ) : (
             <div className="space-y-2">
-              {indexed.map((d) => (
-                <div key={d._id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <p className="font-medium">{d.draftId}</p>
+              {items.map((item) => (
+                <div key={item._id} className="flex items-center justify-between rounded-lg border p-3 gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.label}</p>
                     <p className="text-sm text-muted-foreground">
-                      Aprobado: {d.approvedAt ? new Date(d.approvedAt).toLocaleString() : "—"} · Actualizado:{" "}
-                      {new Date(d.updatedAt).toLocaleString()}
+                      Aprobado: {item.approvedAt ? new Date(item.approvedAt).toLocaleString() : "—"}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedDraft(selectedDraft?._id === d._id ? null : d)}>
-                      {selectedDraft?._id === d._id ? "Cerrar" : "Editar"}
+                  <div className="flex flex-wrap gap-2 justify-end shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setEditTarget(
+                          editTarget?.kind === "item" && editTarget.item._id === item._id
+                            ? null
+                            : { kind: "item", item }
+                        )
+                      }
+                    >
+                      {editTarget?.kind === "item" && editTarget.item._id === item._id ? "Cerrar" : "Editar"}
                     </Button>
                     {canEdit && (
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(d)} disabled={saving}>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteItem(item)} disabled={saving}>
                         Eliminar
                       </Button>
                     )}
@@ -299,19 +416,40 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
         </CardContent>
       </Card>
 
-      {selectedDraft && canEdit && (
-        <KnowledgeDraftForm
-          key={selectedDraft._id}
-          draft={selectedDraft}
+      {editTarget && canEdit && (
+        <KnowledgePayloadForm
+          key={editTarget.kind === "draft" ? editTarget.draft._id : editTarget.item._id}
+          title={
+            editTarget.kind === "draft"
+              ? `Editar borrador: ${editTarget.draft.draftId}`
+              : `Editar item: ${editTarget.item.label}`
+          }
+          description={
+            editTarget.kind === "draft"
+              ? "Modifica el JSON del borrador completo. Cada item debe conservar su itemId."
+              : "Modifica el JSON del item y guarda para reindexar en Knowledge-RAG."
+          }
+          initialPayload={
+            editTarget.kind === "draft" ? editTarget.draft.payload : editTarget.item.payload
+          }
           onSave={async (payloadStr) => {
             setSaving(true);
             try {
-              await fetchApiV1({
-                query: queries.updateKnowledgeDraft,
-                type: "json",
-                variables: { id: selectedDraft._id, sourceId, payload: payloadStr },
-              });
-              toast.success(selectedDraft.status === "approved" ? "Actualizado y reindexado." : "Borrador actualizado.");
+              if (editTarget.kind === "draft") {
+                await fetchApiV1({
+                  query: queries.updateKnowledgeDraft,
+                  type: "json",
+                  variables: { id: editTarget.draft._id, sourceId, payload: payloadStr },
+                });
+                toast.success("Borrador actualizado.");
+              } else {
+                await fetchApiV1({
+                  query: queries.updateKnowledgeItem,
+                  type: "json",
+                  variables: { id: editTarget.item._id, sourceId, payload: payloadStr },
+                });
+                toast.success("Item actualizado y reindexado.");
+              }
               loadLists();
             } catch (e: unknown) {
               toast.error((e as Error)?.message || "Error al guardar");
@@ -319,9 +457,7 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
               setSaving(false);
             }
           }}
-          onApprove={() => handleApprove(selectedDraft)}
-          onDelete={() => handleDelete(selectedDraft)}
-          onCancel={() => setSelectedDraft(null)}
+          onCancel={() => setEditTarget(null)}
           saving={saving}
         />
       )}
@@ -329,30 +465,28 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
   );
 }
 
-function KnowledgeDraftForm({
-  draft,
+function KnowledgePayloadForm({
+  title,
+  description,
+  initialPayload,
   onSave,
-  onApprove,
-  onDelete,
   onCancel,
   saving,
 }: {
-  draft: KnowledgeDraft;
+  title: string;
+  description: string;
+  initialPayload: string;
   onSave: (payloadStr: string) => Promise<void>;
-  onApprove: () => void;
-  onDelete: () => void;
   onCancel: () => void;
   saving: boolean;
 }) {
   const [payloadStr, setPayloadStr] = useState(() => {
     try {
-      return JSON.stringify(JSON.parse(draft.payload), null, 2);
+      return JSON.stringify(JSON.parse(initialPayload), null, 2);
     } catch {
-      return draft.payload;
+      return initialPayload;
     }
   });
-
-  const isIndexed = draft.status === "approved";
 
   const handleSave = async () => {
     try {
@@ -367,14 +501,8 @@ function KnowledgeDraftForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          {isIndexed ? "Editar conocimiento indexado" : "Editar borrador"}: {draft.draftId}
-        </CardTitle>
-        <CardDescription>
-          {isIndexed
-            ? "Modifica el JSON y guarda para volver a indexar en Knowledge-RAG."
-            : "Modifica el JSON y guarda. Luego puedes aprobar para indexar."}
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -389,14 +517,6 @@ function KnowledgeDraftForm({
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Guardando…" : "Guardar"}
-          </Button>
-          {!isIndexed && (
-            <Button onClick={onApprove} disabled={saving}>
-              Aprobar e indexar
-            </Button>
-          )}
-          <Button variant="destructive" onClick={onDelete} disabled={saving}>
-            Eliminar
           </Button>
           <Button variant="outline" onClick={onCancel} disabled={saving}>
             Cancelar

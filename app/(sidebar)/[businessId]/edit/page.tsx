@@ -21,7 +21,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import type { Business, ProductCategory } from "@/lib/interfases";
-import { Pencil, Trash2, Tag } from "lucide-react";
+import { Pencil, Sparkles, Tag, Trash2 } from "lucide-react";
+import { GenerateDescriptionInterviewDialog } from "@/components/business/GenerateDescriptionInterviewDialog";
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -361,6 +362,7 @@ export default function BusinessEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
+  const [aiDescriptionOpen, setAiDescriptionOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -553,7 +555,25 @@ export default function BusinessEditPage() {
                     <FormItem><FormLabel>Logo</FormLabel><FormControl><Input placeholder="URL de la imagen (SVG o PNG transparente)" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Descripción (opcional)</FormLabel><FormControl><Textarea placeholder="Descripción" className="resize-none" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Descripción (opcional)</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0"
+                          onClick={() => setAiDescriptionOpen(true)}
+                        >
+                          <Sparkles className="h-4 w-4 mr-1.5" />
+                          Generar con IA
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <Textarea placeholder="Descripción" className="resize-none min-h-[100px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="active" render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -770,6 +790,14 @@ export default function BusinessEditPage() {
           </Form>
         </CardContent>
       </Card>
+
+      <GenerateDescriptionInterviewDialog
+        open={aiDescriptionOpen}
+        onOpenChange={setAiDescriptionOpen}
+        commercialName={form.watch("name")}
+        slogan={form.watch("slogan")}
+        onGenerated={(description) => form.setValue("description", description, { shouldDirty: true })}
+      />
     </div>
   );
 }

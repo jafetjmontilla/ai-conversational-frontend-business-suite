@@ -899,6 +899,23 @@ export const queries = {
       warnings
     }
   }`,
+  generateBusinessDescription: `mutation generateBusinessDescription($input: GenerateBusinessDescriptionInput!) {
+    generateBusinessDescription(input: $input) {
+      description
+    }
+  }`,
+  runBusinessDescriptionInterview: `mutation runBusinessDescriptionInterview($input: BusinessDescriptionInterviewInput!) {
+    runBusinessDescriptionInterview(input: $input) {
+      status
+      turnCount
+      description
+      questions {
+        question
+        typeQuestion
+        optionsList
+      }
+    }
+  }`,
   testBusinessTool: `mutation testBusinessTool($businessDocId: ID!, $toolName: String!, $paramsJson: String) {
     testBusinessTool(businessDocId: $businessDocId, toolName: $toolName, paramsJson: $paramsJson) {
       ok
@@ -1540,9 +1557,20 @@ export const queries = {
   updateProtocolDraft: `mutation updateProtocolDraft($id: ID!, $input: UpdateProtocolDraftInput!) {
     updateProtocolDraft(id: $id, input: $input) {
       _id
+      businessId
       protocolId
+      version
+      category
       title
+      content { summary steps raw_markdown }
+      retrieval_hints { semantic_intents tags }
+      tools { tool_name required_params }
+      metadata { priority author last_updated requires_human_handoff }
       status
+      createdBy
+      conversationId
+      approvedAt
+      createdAt
       updatedAt
     }
   }`,
@@ -1569,7 +1597,21 @@ export const queries = {
       payload
       createdBy
       conversationId
+      createdAt
+      updatedAt
+    }
+  }`,
+  listKnowledgeItems: `query listKnowledgeItems($businessId: String!, $sourceId: String!) {
+    listKnowledgeItems(businessId: $businessId, sourceId: $sourceId) {
+      _id
+      businessId
+      sourceId
+      itemId
+      label
+      payload
+      createdBy
       approvedAt
+      originDraftId
       createdAt
       updatedAt
     }
@@ -1577,11 +1619,19 @@ export const queries = {
   sendKnowledgeNarrative: `mutation sendKnowledgeNarrative($businessId: String!, $sourceId: String!, $content: String!) {
     sendKnowledgeNarrative(businessId: $businessId, sourceId: $sourceId, content: $content)
   }`,
-  approveKnowledgeDraft: `mutation approveKnowledgeDraft($id: ID!, $sourceId: String!) {
-    approveKnowledgeDraft(id: $id, sourceId: $sourceId) {
+  approveKnowledgeDraftItem: `mutation approveKnowledgeDraftItem($id: ID!, $sourceId: String!, $itemId: String!) {
+    approveKnowledgeDraftItem(id: $id, sourceId: $sourceId, itemId: $itemId) {
+      _id
+      itemId
+      label
+      approvedAt
+    }
+  }`,
+  rejectKnowledgeDraftItem: `mutation rejectKnowledgeDraftItem($id: ID!, $sourceId: String!, $itemId: String!) {
+    rejectKnowledgeDraftItem(id: $id, sourceId: $sourceId, itemId: $itemId) {
       _id
       status
-      approvedAt
+      payload
     }
   }`,
   rejectKnowledgeDraft: `mutation rejectKnowledgeDraft($id: ID!, $sourceId: String!) {
@@ -1599,6 +1649,16 @@ export const queries = {
   }`,
   deleteKnowledgeDraft: `mutation deleteKnowledgeDraft($id: ID!, $sourceId: String!) {
     deleteKnowledgeDraft(id: $id, sourceId: $sourceId)
+  }`,
+  updateKnowledgeItem: `mutation updateKnowledgeItem($id: ID!, $sourceId: String!, $payload: String!) {
+    updateKnowledgeItem(id: $id, sourceId: $sourceId, payload: $payload) {
+      _id
+      label
+      updatedAt
+    }
+  }`,
+  deleteKnowledgeItem: `mutation deleteKnowledgeItem($id: ID!, $sourceId: String!) {
+    deleteKnowledgeItem(id: $id, sourceId: $sourceId)
   }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {

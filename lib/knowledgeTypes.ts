@@ -15,7 +15,15 @@ export const KNOWLEDGE_SOURCE_TYPES = [
 export type KnowledgeSourceId = (typeof KNOWLEDGE_SOURCE_TYPES)[number]["sourceId"];
 
 /** sourceIds que ya tienen backend (flujo IA → aprobar → indexar) implementado */
-export const IMPLEMENTED_SOURCE_IDS: KnowledgeSourceId[] = ["protocols"];
+export const IMPLEMENTED_SOURCE_IDS: KnowledgeSourceId[] = [
+  "protocols",
+  "faqs",
+  "glossary",
+  "policies",
+  "tools",
+  "case_studies",
+  "products",
+];
 
 export function getKnowledgeType(sourceId: string) {
   return KNOWLEDGE_SOURCE_TYPES.find((t) => t.sourceId === sourceId);
