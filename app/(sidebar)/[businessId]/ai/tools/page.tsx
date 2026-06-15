@@ -1,5 +1,7 @@
-import { BusinessConfigForm } from "@/components/business-config/BusinessConfigForm";
+"use client";
+
+import { AiToolsPageContent } from "@/components/ai/AiToolsPageContent";
 
 export default function AiToolsPage() {
-  return <BusinessConfigForm mode="tools" />;
+  return <AiToolsPageContent />;
 }

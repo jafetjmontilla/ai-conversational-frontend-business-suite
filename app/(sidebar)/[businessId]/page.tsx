@@ -164,7 +164,7 @@ export default function BusinessSummaryPage() {
                 {invoices.map((inv) => (
                   <li key={inv._id} className="flex items-center justify-between gap-2">
                     <Link
-                      href={`/${businessSlug}/invoice/${inv._id}`}
+                      href={`/${businessSlug}/billing/facturas/${inv._id}`}
                       className="truncate font-medium hover:underline"
                     >
                       {inv.clientName || "Sin cliente"}

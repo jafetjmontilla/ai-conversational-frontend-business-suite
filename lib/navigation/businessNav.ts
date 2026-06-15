@@ -44,6 +44,8 @@ export type NavItem = {
   permission?: NavPermission;
   /** Si true, resalta cuando pathname === href o empieza por href + "/" */
   matchPrefix?: boolean;
+  /** Base para matchPrefix cuando href apunta a una subruta por defecto */
+  activePrefix?: string;
   /**
    * Apps requeridas (cualquiera) para mostrar en el menú.
    * Solo aplica a navegación; no ocultar controles en formularios (ver FeatureGate).
@@ -180,7 +182,8 @@ export function buildBusinessNavGroups(
       items: [
         {
           id: "catalog",
-          href: `${base}/catalog`,
+          href: `${base}/catalog/productos`,
+          activePrefix: `${base}/catalog`,
           label: "Catálogo",
           icon: Package,
           permission: "negocio:ver",
@@ -189,7 +192,8 @@ export function buildBusinessNavGroups(
         },
         {
           id: "billing",
-          href: `${base}/billing`,
+          href: `${base}/billing/facturas`,
+          activePrefix: `${base}/billing`,
           label: "Facturación y cobros",
           icon: FileText,
           permission: "negocio:ver",
@@ -213,7 +217,8 @@ export function buildBusinessNavGroups(
         },
         {
           id: "knowledge",
-          href: `${base}/knowledge`,
+          href: `${base}/knowledge/protocols`,
+          activePrefix: `${base}/knowledge`,
           label: "Conocimiento",
           icon: BookOpen,
           permission: "negocio:editar",
@@ -240,7 +245,8 @@ export function buildBusinessNavGroups(
         },
         {
           id: "memory",
-          href: `${base}/ai/memory`,
+          href: `${base}/ai/memory/datos`,
+          activePrefix: `${base}/ai/memory`,
           label: "Memoria y PAE",
           icon: Brain,
           permission: "negocio:ver",
@@ -255,7 +261,8 @@ export function buildBusinessNavGroups(
       items: [
         {
           id: "ops",
-          href: `${base}/ops`,
+          href: `${base}/ops/logs`,
+          activePrefix: `${base}/ops`,
           label: "Logs y auditoría",
           icon: FileSearch,
           permission: "negocio:ver",
@@ -306,8 +313,9 @@ export function buildAccountNavItems(perms: SystemNavPermissions): NavItem[] {
 }
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const matchBase = item.activePrefix ?? item.href;
   if (item.matchPrefix) {
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+    return pathname === matchBase || pathname.startsWith(`${matchBase}/`);
   }
   return pathname === item.href;
 }

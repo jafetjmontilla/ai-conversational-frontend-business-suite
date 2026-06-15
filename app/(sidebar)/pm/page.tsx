@@ -817,7 +817,7 @@ app.post("/login", (req, res) => {
 
                     <div className="border-t border-slate-800 pt-3">
                       <p className="text-[10px] text-slate-400 leading-relaxed italic text-center">
-                        Para activar esta nueva versión en tus flujos de usuario, ve a la pestaña "Control de Versiones" y dale clic a "Promover a Prod".
+                        Para activar esta nueva versión en tus flujos de usuario, ve a la pestaña &quot;Control de Versiones&quot; y dale clic a &quot;Promover a Prod&quot;.
                       </p>
                     </div>
                   </div>
@@ -955,7 +955,7 @@ app.post("/login", (req, res) => {
                             <div className="space-y-2">
                               <span className="text-xs text-slate-500 block uppercase text-[9px] font-bold">Bitácora del Cambio (Changelog):</span>
                               <p className="text-xs text-slate-300 italic bg-slate-900 p-2.5 rounded border border-slate-800">
-                                "{ver.changelog}"
+                                &ldquo;{ver.changelog}&rdquo;
                               </p>
                             </div>
 

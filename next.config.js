@@ -35,6 +35,42 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // Índices de sección → subruta por defecto
+      {
+        source: '/:businessId/ai/memory',
+        has: [{ type: 'query', key: 'tab', value: 'settings' }],
+        destination: '/:businessId/ai/memory/ajustes',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/ai/memory',
+        destination: '/:businessId/ai/memory/datos',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/catalog',
+        destination: '/:businessId/catalog/productos',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/billing',
+        destination: '/:businessId/billing/facturas',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/knowledge',
+        destination: '/:businessId/knowledge/protocols',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/ops',
+        destination: '/:businessId/ops/logs',
+        permanent: false,
+      },
+    ];
+  },
   // Headers de cache para assets de emoji-picker-react y otros CDNs
   async headers() {
     return [

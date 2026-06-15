@@ -147,13 +147,13 @@ export function useBaileysSessionRealtime(
 
     setStatusBySession((prev) => {
       const next: Record<string, BaileysStatusEntry> = {};
-      for (const id of activeIds) {
+      activeIds.forEach((id) => {
         if (prev[id] !== undefined) {
           next[id] = prev[id];
         } else {
           next[id] = "loading";
         }
-      }
+      });
       return next;
     });
 

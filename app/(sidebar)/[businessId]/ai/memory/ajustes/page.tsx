@@ -1,5 +1,7 @@
-import { BusinessConfigForm } from "@/components/business-config/BusinessConfigForm";
+"use client";
+
+import { AiMemoryAjustesPageContent } from "@/components/ai/AiMemoryAjustesPageContent";
 
 export default function AiMemoryAjustesPage() {
-  return <BusinessConfigForm mode="memory-settings" />;
+  return <AiMemoryAjustesPageContent />;
 }

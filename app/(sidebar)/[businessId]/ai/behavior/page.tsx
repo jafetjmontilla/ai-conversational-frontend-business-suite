@@ -1,5 +1,7 @@
-import { BusinessConfigForm } from "@/components/business-config/BusinessConfigForm";
+"use client";
+
+import { AiBehaviorPageContent } from "@/components/ai/AiBehaviorPageContent";
 
 export default function AiBehaviorPage() {
-  return <BusinessConfigForm mode="behavior" />;
+  return <AiBehaviorPageContent />;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import {
 import { isAgentEngineAvailable, pickAvailableAgentEngine } from "@/lib/app-suite/agentEngineApps";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { InfoNotice } from "@/components/ui/info-notice";
+import { cn } from "@/lib/utils";
 import {
   assertAgentEngineAvailable,
   ChannelAgentEngineSelect,
@@ -37,6 +39,7 @@ import {
   Radio,
   X,
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 const CHANNEL_TYPE_LABEL: Record<ChannelType, string> = {
   whatsapp_cloud: "WhatsApp Cloud API",
@@ -133,9 +136,29 @@ function ChannelAllowlistEditor({ numbers, disabled, onChange }: ChannelAllowlis
 
   return (
     <div className="w-full max-w-[300px] space-y-2">
-      <label className="text-xs font-medium text-muted-foreground">
+      <Label >
         Números permitidos (vacío = todos)
-      </label>
+      </Label>
+      <div className="flex flex-wrap gap-2 min-h-[1.5rem]">
+        {numbers.length === 0 ? (
+          <span className="text-xs text-muted-foreground">Sin restricción — todos los números</span>
+        ) : (
+          numbers.map((number) => (
+            <Badge key={number} variant="secondary" className="gap-1 pr-1 font-normal">
+              {number}
+              <button
+                type="button"
+                className="rounded-sm p-0.5 hover:bg-muted-foreground/20 disabled:opacity-50"
+                disabled={disabled}
+                onClick={() => removeNumber(number)}
+                aria-label={`Quitar ${number}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))
+        )}
+      </div>
       <div className="flex gap-2">
         <Input
           value={input}
@@ -160,26 +183,6 @@ function ChannelAllowlistEditor({ numbers, disabled, onChange }: ChannelAllowlis
         >
           <Plus className="h-4 w-4" />
         </Button>
-      </div>
-      <div className="flex flex-wrap gap-2 min-h-[1.5rem]">
-        {numbers.length === 0 ? (
-          <span className="text-xs text-muted-foreground">Sin restricción — todos los números</span>
-        ) : (
-          numbers.map((number) => (
-            <Badge key={number} variant="secondary" className="gap-1 pr-1 font-normal">
-              {number}
-              <button
-                type="button"
-                className="rounded-sm p-0.5 hover:bg-muted-foreground/20 disabled:opacity-50"
-                disabled={disabled}
-                onClick={() => removeNumber(number)}
-                aria-label={`Quitar ${number}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))
-        )}
       </div>
 
       <ConfirmDeleteDialog
@@ -264,6 +267,8 @@ export function ChannelsPageContent() {
   const [savingGeneric, setSavingGeneric] = useState(false);
 
   const [allowlistDrafts, setAllowlistDrafts] = useState<Record<string, string[]>>({});
+  const [mobileAddChannelOpen, setMobileAddChannelOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const baileysSessionIdsKey = useMemo(
     () =>
@@ -331,6 +336,7 @@ export function ChannelsPageContent() {
     if (entry && entry !== "loading" && entry.isConnected) {
       setQrCode(null);
       setPendingQrSessionId(null);
+      setMobileAddChannelOpen(false);
       toast.success("WhatsApp conectado");
       return;
     }
@@ -416,12 +422,14 @@ export function ChannelsPageContent() {
     });
     if (result.session?.isConnected) {
       toast.success("Sesión ya conectada");
+      setMobileAddChannelOpen(false);
     } else if (result.qrCode) {
       setPendingQrSessionId(trimmedSessionId);
       setQrCode(result.qrCode);
       toast.info("Escanea el código QR con WhatsApp");
     } else {
       toast.success("Sesión creada");
+      setMobileAddChannelOpen(false);
     }
     setSessionId("");
     setPhoneNumber("");
@@ -451,6 +459,7 @@ export function ChannelsPageContent() {
         setCloudPhoneNumber("");
         setCloudAccessToken("");
         setCloudVerifyToken("");
+        setMobileAddChannelOpen(false);
       }
     } finally {
       setSavingCloud(false);
@@ -477,6 +486,7 @@ export function ChannelsPageContent() {
         setGenericName("");
         setGenericCallbackUrl("");
         setGenericWebhookSecret("");
+        setMobileAddChannelOpen(false);
       }
     } finally {
       setSavingGeneric(false);
@@ -508,13 +518,230 @@ export function ChannelsPageContent() {
     );
   }
 
+  const renderAddChannelCard = (options?: { className?: string; onClose?: () => void }) => (
+    <Card id="card-right" className={cn("flex h-full flex-col border-none", options?.className)}>
+      <CardHeader className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="pt-12 pb-2">
+            <CardTitle>Añadir canal</CardTitle>
+            <CardDescription>Puedes tener varios canales del mismo tipo con distinto destino.</CardDescription>
+          </div>
+          {options?.onClose ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={options.onClose}
+              aria-label="Cerrar"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+        {!hasAnyAgentApp && (
+          <InfoNotice>
+            Instala un agente en la{" "}
+            <Link href={`/${businessId}/app-suite`}>Suite de aplicaciones</Link> para conectar
+            canales.
+          </InfoNotice>
+        )}
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 overflow-y-auto">
+        <Tabs defaultValue="baileys" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="cloud">Cloud API</TabsTrigger>
+            <TabsTrigger value="baileys">Baileys</TabsTrigger>
+            <TabsTrigger value="generico">Genérico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cloud">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[140px]">
+                <Label >Nombre</Label>
+                <Input
+                  placeholder="Ventas"
+                  value={cloudName}
+                  onChange={(e) => setCloudName(e.target.value)}
+                  disabled={savingCloud}
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Label >Phone Number ID</Label>
+                <Input
+                  value={cloudPhoneNumberId}
+                  onChange={(e) => setCloudPhoneNumberId(e.target.value)}
+                  disabled={savingCloud}
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Label >Teléfono</Label>
+                <Input
+                  value={cloudPhoneNumber}
+                  onChange={(e) => setCloudPhoneNumber(e.target.value)}
+                  disabled={savingCloud}
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Label >Verify Token</Label>
+                <Input
+                  value={cloudVerifyToken}
+                  onChange={(e) => setCloudVerifyToken(e.target.value)}
+                  disabled={savingCloud}
+                />
+              </div>
+              <div className="w-full">
+                <Label >Access Token</Label>
+                <Input
+                  value={cloudAccessToken}
+                  onChange={(e) => setCloudAccessToken(e.target.value)}
+                  type="password"
+                  disabled={savingCloud}
+                />
+              </div>
+              <div className="w-full">
+                <Label >Destino</Label>
+                <ChannelAgentEngineSelect
+                  value={cloudAgentEngine}
+                  businessId={businessId}
+                  installedApps={installedApps}
+                  onChange={setCloudAgentEngine}
+                />
+              </div>
+              <div className="w-full flex justify-end mt-4">
+                <Button onClick={() => void handleCreateCloud()} disabled={savingCloud}>
+                  {savingCloud ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Conectar
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="baileys">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[140px]">
+                <Label >ID de sesión</Label>
+                <Input
+                  placeholder="ventas-1"
+                  value={sessionId}
+                  onChange={(e) => setSessionId(e.target.value)}
+                  disabled={isCreatingBaileys}
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Label >Teléfono (opcional)</Label>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  disabled={isCreatingBaileys}
+                />
+              </div>
+              <div className="w-full">
+                <Label >Destino</Label>
+                <ChannelAgentEngineSelect
+                  value={baileysAgentEngine}
+                  businessId={businessId}
+                  installedApps={installedApps}
+                  onChange={setBaileysAgentEngine}
+                />
+              </div>
+              <div className="w-full flex justify-end mt-4">
+                <Button onClick={() => void handleCreateBaileys()} disabled={isCreatingBaileys}>
+                  {isCreatingBaileys ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Conectar
+                </Button>
+              </div>
+            </div>
+            {qrCode && (
+              <div className="p-4 bg-muted/50 rounded-lg flex flex-col items-center gap-2">
+                <p className="text-sm font-medium">Escanea con WhatsApp</p>
+                <img
+                  src={
+                    qrCode.startsWith("data:")
+                      ? qrCode
+                      : `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCode)}`
+                  }
+                  alt="QR de WhatsApp"
+                  className="w-48 h-48 object-contain border rounded"
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="generico">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[140px]">
+                <Label >Nombre</Label>
+                <Input
+                  placeholder="Webhook app"
+                  value={genericName}
+                  onChange={(e) => setGenericName(e.target.value)}
+                  disabled={savingGeneric}
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Label >Webhook secret (opcional)</Label>
+                <Input
+                  value={genericWebhookSecret}
+                  onChange={(e) => setGenericWebhookSecret(e.target.value)}
+                  type="password"
+                  disabled={savingGeneric}
+                />
+              </div>
+              <div className="w-full">
+                <Label >Callback URL</Label>
+                <Input
+                  value={genericCallbackUrl}
+                  onChange={(e) => setGenericCallbackUrl(e.target.value)}
+                  placeholder="https://tu-app.com/webhook"
+                  disabled={savingGeneric}
+                />
+              </div>
+              <div className="w-full">
+                <Label >Destino</Label>
+                <ChannelAgentEngineSelect
+                  value={genericAgentEngine}
+                  businessId={businessId}
+                  installedApps={installedApps}
+                  onChange={setGenericAgentEngine}
+                />
+              </div>
+              <div className="w-full flex justify-end mt-4">
+                <Button onClick={() => void handleCreateGeneric()} disabled={savingGeneric}>
+                  {savingGeneric ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Conectar
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+
+  const mobilePanelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: "tween" as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] as const };
+
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl space-y-6">
-      <Card>
+    <div className="flex gap-2 w-full h-full">
+      <Card id="card-left" className="w-full h-full border-none overflow-y-auto">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Radio className="h-5 w-5" />
-            Canales
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="h-5 w-5" />
+              Canales
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex md:hidden"
+              onClick={() => setMobileAddChannelOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Añadir canal
+            </Button>
           </CardTitle>
           <CardDescription>
             {business.name} — Cada canal tiene su configuración y un destino: agente CSE (servicio al cliente) o PAE
@@ -533,12 +760,12 @@ export function ChannelsPageContent() {
                     : undefined;
                 const displayPhone = getChannelDisplayPhone(ch, baileysSt);
                 return (
-                  <li
+                  <Card
                     key={ch.channelId}
-                    className="rounded-lg border bg-card p-4 space-y-3"
+                    className="p-2"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex flex-wrap items-start justify-end">
+                      <div className="flex flex-1 items-start gap-3 md:mr-2 min-w-72">
                         <div className="mt-0.5 text-muted-foreground">
                           <ChannelTypeIcon type={ch.type} />
                         </div>
@@ -551,9 +778,11 @@ export function ChannelsPageContent() {
                           </div>
                           <p className="text-xs text-muted-foreground">{CHANNEL_TYPE_LABEL[ch.type]}</p>
                         </div>
+                        <div className="flex-1 flex justify-end">
+                          {baileysSt !== undefined && <BaileysConnectionBadge entry={baileysSt} />}
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {baileysSt !== undefined && <BaileysConnectionBadge entry={baileysSt} />}
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">Activo</span>
                           <Switch
@@ -591,15 +820,13 @@ export function ChannelsPageContent() {
                     </div>
 
                     {(ch.type === "whatsapp_cloud" || ch.type === "whatsapp_baileys") && (
-                      <div className="border-t pt-3">
-                        <ChannelAllowlistEditor
-                          numbers={allowlistDrafts[ch.channelId] ?? []}
-                          disabled={savingChannelId === ch.channelId}
-                          onChange={(numbers) => void handleAllowlistChange(ch, numbers)}
-                        />
-                      </div>
+                      <ChannelAllowlistEditor
+                        numbers={allowlistDrafts[ch.channelId] ?? []}
+                        disabled={savingChannelId === ch.channelId}
+                        onChange={(numbers) => void handleAllowlistChange(ch, numbers)}
+                      />
                     )}
-                  </li>
+                  </Card>
                 );
               })}
             </ul>
@@ -607,155 +834,38 @@ export function ChannelsPageContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="space-y-3">
-          <div>
-            <CardTitle>Añadir canal</CardTitle>
-            <CardDescription>Puedes tener varios canales del mismo tipo con distinto destino.</CardDescription>
-          </div>
-          {!hasAnyAgentApp && (
-            <InfoNotice>
-              Instala un agente en la{" "}
-              <Link href={`/${businessId}/app-suite`}>Suite de aplicaciones</Link> para conectar
-              canales.
-            </InfoNotice>
-          )}
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="baileys" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="cloud">Cloud API</TabsTrigger>
-              <TabsTrigger value="baileys">Baileys</TabsTrigger>
-              <TabsTrigger value="generico">Genérico</TabsTrigger>
-            </TabsList>
+      <div className="hidden md:block w-full max-w-[33vw] shrink-0 overflow-y-auto">
+        {renderAddChannelCard()}
+      </div>
 
-            <TabsContent value="cloud" className="space-y-4 pt-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Nombre</label>
-                  <Input value={cloudName} onChange={(e) => setCloudName(e.target.value)} placeholder="Ventas" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Destino</label>
-                  <ChannelAgentEngineSelect
-                    value={cloudAgentEngine}
-                    businessId={businessId}
-                    installedApps={installedApps}
-                    onChange={setCloudAgentEngine}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Phone Number ID</label>
-                  <Input value={cloudPhoneNumberId} onChange={(e) => setCloudPhoneNumberId(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Teléfono</label>
-                  <Input value={cloudPhoneNumber} onChange={(e) => setCloudPhoneNumber(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Access Token</label>
-                  <Input value={cloudAccessToken} onChange={(e) => setCloudAccessToken(e.target.value)} type="password" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Verify Token</label>
-                  <Input value={cloudVerifyToken} onChange={(e) => setCloudVerifyToken(e.target.value)} />
-                </div>
-              </div>
-              <Button onClick={() => void handleCreateCloud()} disabled={savingCloud}>
-                {savingCloud ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Añadir canal Cloud API
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="baileys" className="space-y-4 pt-4">
-              <div className="flex flex-wrap gap-2 items-end">
-                <div className="flex-1 min-w-[140px]">
-                  <label className="text-xs text-muted-foreground block mb-1">ID de sesión</label>
-                  <Input
-                    placeholder="ventas-1"
-                    value={sessionId}
-                    onChange={(e) => setSessionId(e.target.value)}
-                    disabled={isCreatingBaileys}
-                  />
-                </div>
-                <div className="flex-1 min-w-[140px]">
-                  <label className="text-xs text-muted-foreground block mb-1">Teléfono (opcional)</label>
-                  <Input
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    disabled={isCreatingBaileys}
-                  />
-                </div>
-                <div className="w-[200px]">
-                  <label className="text-xs text-muted-foreground block mb-1">Destino</label>
-                  <ChannelAgentEngineSelect
-                    value={baileysAgentEngine}
-                    businessId={businessId}
-                    installedApps={installedApps}
-                    onChange={setBaileysAgentEngine}
-                  />
-                </div>
-                <Button onClick={() => void handleCreateBaileys()} disabled={isCreatingBaileys}>
-                  {isCreatingBaileys ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                  Conectar
-                </Button>
-              </div>
-              {qrCode && (
-                <div className="p-4 bg-muted/50 rounded-lg flex flex-col items-center gap-2">
-                  <p className="text-sm font-medium">Escanea con WhatsApp</p>
-                  <img
-                    src={
-                      qrCode.startsWith("data:")
-                        ? qrCode
-                        : `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCode)}`
-                    }
-                    alt="QR de WhatsApp"
-                    className="w-48 h-48 object-contain border rounded"
-                  />
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="generico" className="space-y-4 pt-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Nombre</label>
-                  <Input value={genericName} onChange={(e) => setGenericName(e.target.value)} placeholder="Webhook app" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Destino</label>
-                  <ChannelAgentEngineSelect
-                    value={genericAgentEngine}
-                    businessId={businessId}
-                    installedApps={installedApps}
-                    onChange={setGenericAgentEngine}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="text-xs text-muted-foreground">Callback URL</label>
-                  <Input
-                    value={genericCallbackUrl}
-                    onChange={(e) => setGenericCallbackUrl(e.target.value)}
-                    placeholder="https://tu-app.com/webhook"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="text-xs text-muted-foreground">Webhook secret (opcional)</label>
-                  <Input
-                    value={genericWebhookSecret}
-                    onChange={(e) => setGenericWebhookSecret(e.target.value)}
-                    type="password"
-                  />
-                </div>
-              </div>
-              <Button onClick={() => void handleCreateGeneric()} disabled={savingGeneric}>
-                {savingGeneric ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Añadir canal genérico
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <AnimatePresence>
+        {mobileAddChannelOpen ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Cerrar panel"
+              initial={{ opacity: prefersReducedMotion ? 1 : 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={mobilePanelTransition}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setMobileAddChannelOpen(false)}
+            />
+            <motion.div
+              initial={{ x: prefersReducedMotion ? 0 : "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: prefersReducedMotion ? 0 : "-100%" }}
+              transition={mobilePanelTransition}
+              className="fixed inset-y-0 left-0 z-50 w-full max-w-md md:hidden shadow-xl"
+            >
+              {renderAddChannelCard({
+                className: "h-full rounded-none border-0 border-r",
+                onClose: () => setMobileAddChannelOpen(false),
+              })}
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
 
       <ConfirmDeleteDialog
         open={channelToDelete !== null}

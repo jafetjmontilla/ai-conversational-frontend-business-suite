@@ -144,7 +144,7 @@ export function ServicesCatalogContent() {
             </div>
             {canEditCurrentBusiness?.() && (
               <Button asChild size="sm" disabled={!businessIdDoc || loading}>
-                <Link href={`/${businessId}/services/nuevo`}>
+                <Link href={`/${businessId}/catalog/servicios/nuevo`}>
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar servicio
                 </Link>
@@ -176,7 +176,7 @@ export function ServicesCatalogContent() {
                     <TableRow key={service._id}>
                       <TableCell>
                         <Link
-                          href={`/${businessId}/services/${service._id}`}
+                          href={`/${businessId}/catalog/servicios/${service._id}`}
                           className="font-medium text-primary hover:underline"
                         >
                           {service.name}
@@ -199,7 +199,7 @@ export function ServicesCatalogContent() {
                       <TableCell>{service.options?.length ?? 0}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/${businessId}/services/${service._id}`}>
+                <Link href={`/${businessId}/catalog/servicios/${service._id}`}>
                             <Settings2 className="h-3 w-3" />
                           </Link>
                         </Button>

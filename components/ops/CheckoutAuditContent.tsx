@@ -87,28 +87,37 @@ export function CheckoutAuditContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full max-w-[1200px] space-y-4">
-      <Card>
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5" />
-            Auditoría de checkout
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Auditoría de checkout
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => void load()}
+              disabled={loading}
+              aria-label="Actualizar"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </CardTitle>
           <CardDescription>
             Cambios de estado de checkout por conversación (solo lectura). Útil para depurar el flujo comercial.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <CardContent className="flex min-w-0 flex-col flex-1 space-y-4 overflow-x-hidden">
+          <div className="max-w-md">
             <Input
-              className="max-w-md"
               placeholder="Filtrar por conversationId"
               value={conversationFilter}
               onChange={(e) => setConversationFilter(e.target.value)}
             />
-            <Button type="button" variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Actualizar">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
           </div>
 
           <div className="rounded-md border overflow-x-auto">

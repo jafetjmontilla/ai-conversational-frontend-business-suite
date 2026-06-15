@@ -1,7 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { SectionTabLayout } from "@/components/layouts/SectionTabLayout";
+import {
+  SectionTabLayout,
+  SectionTabLink,
+  SectionTabNav,
+} from "@/components/layouts/SectionTabLayout";
 
 const MEMORY_TABS = [
   { id: "datos", label: "Datos" },
@@ -18,8 +22,20 @@ export default function AiMemoryLayout({ children }: { children: React.ReactNode
   const base = `/${businessId}/ai/memory`;
 
   return (
-    <SectionTabLayout base={base} tabs={MEMORY_TABS}>
-      {children}
+    <SectionTabLayout
+      base={base}
+      variant="line"
+      nav={
+        <SectionTabNav>
+          {MEMORY_TABS.map(({ id, label }) => (
+            <SectionTabLink key={id} href={`${base}/${id}`}>
+              {label}
+            </SectionTabLink>
+          ))}
+        </SectionTabNav>
+      }
+    >
+      <div className="h-full pt-1.5 overflow-y-auto">{children}</div>
     </SectionTabLayout>
   );
 }

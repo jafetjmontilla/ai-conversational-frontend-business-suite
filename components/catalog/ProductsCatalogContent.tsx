@@ -150,7 +150,7 @@ export function ProductsCatalogContent() {
             </div>
             {canEditCurrentBusiness?.() && (
               <Button asChild size="sm" disabled={!businessIdDoc || loading}>
-                <Link href={`/${businessId}/inventory/nuevo`}>
+                <Link href={`/${businessId}/catalog/productos/nuevo`}>
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar producto
                 </Link>
@@ -184,7 +184,7 @@ export function ProductsCatalogContent() {
                     <TableRow key={product._id}>
                       <TableCell>
                         <Link
-                          href={`/${businessId}/inventory/${product._id}`}
+                          href={`/${businessId}/catalog/productos/${product._id}`}
                           className="font-medium text-primary hover:underline"
                         >
                           {product.name}
@@ -198,7 +198,7 @@ export function ProductsCatalogContent() {
                       <TableCell>{product.variants?.length ?? 0}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/${businessId}/inventory/${product._id}`}>
+                          <Link href={`/${businessId}/catalog/productos/${product._id}`}>
                             <Settings2 className="h-3 w-3" />
                           </Link>
                         </Button>

@@ -108,28 +108,24 @@ export function InvoicesBillingContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full h-full">
-      <Card className="flex flex-col w-full h-full overflow-hidden">
-        <CardHeader className="h-[72px]">
-          <div className="flex flex-col">
-            <CardTitle className="flex items-center gap-2">
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
               Facturas
-            </CardTitle>
-            <CardDescription>Crear y gestionar facturas</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-2 md:px-6 w-full flex-1 flex flex-col">
-          <div className="flex items-center justify-between gap-4 pb-2">
-            <div className="flex items-center gap-2 flex-1" />
+            </div>
             {canEditCurrentBusiness?.() && (
-              <Button onClick={addNewInvoice} className="flex items-center gap-2" disabled={!businessIdDoc}>
+              <Button onClick={addNewInvoice} className="flex items-center gap-2 shrink-0" disabled={!businessIdDoc}>
                 <Plus className="h-4 w-4" />
                 Nueva Factura
               </Button>
             )}
-          </div>
-
+          </CardTitle>
+          <CardDescription>Crear y gestionar facturas</CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-w-0 flex-col flex-1 overflow-x-hidden p-2 md:px-6">
           <div className="flex flex-col h-full overflow-hidden">
             <div className="w-full h-[410px] flex relative flex-shrink-0">
               {localInvoices.length > 0 ? (
@@ -181,7 +177,7 @@ export function InvoicesBillingContent() {
                     <li
                       key={invoice._id}
                       className="w-full flex items-center text-xs text-primary hover:bg-accent flex-shrink-0 cursor-pointer"
-                      onClick={() => router.push(`/${businessId}/invoice/${invoice._id}`)}
+                      onClick={() => router.push(`/${businessId}/billing/facturas/${invoice._id}`)}
                     >
                       <span className={`flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
                         {new Date(invoice.createdAt).toLocaleString("es-VE", { hour: "2-digit", minute: "2-digit", hour12: true })}

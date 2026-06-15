@@ -167,7 +167,7 @@ export const fetchKnowledgeAudit = async (
   const query = options?.query?.trim();
   if (query) {
     params.set('query', query);
-    if (options.minScore != null) {
+    if (options?.minScore != null) {
       params.set('min_score', String(options.minScore));
     }
   }

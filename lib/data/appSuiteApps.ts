@@ -98,7 +98,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 312,
     icon: FileText,
     iconGradient: "from-teal-500 to-emerald-600",
-    routePath: "/billing",
+    routePath: "/billing/facturas",
     features: [
       "Facturación multidivisa e impresión simplificada",
       "Control estricto de múltiples almacenes/sucursales",
@@ -183,7 +183,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 421,
     icon: ShoppingBag,
     iconGradient: "from-violet-500 to-fuchsia-600",
-    routePath: "/catalog",
+    routePath: "/catalog/productos",
     features: [
       "Pasarelas de pago listas para usar integradas",
       "Carrito auto-guardado para recuperar ventas perdidas",
@@ -227,7 +227,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 156,
     icon: Zap,
     iconGradient: "from-indigo-500 to-purple-600",
-    routePath: "/ai/memory",
+    routePath: "/ai/memory/datos",
     features: [
       "Redacción y filtrado inteligente de correos electrónicos",
       "Generación ágil de resúmenes de reuniones en un clic",
@@ -270,7 +270,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 215,
     icon: LayoutGrid,
     iconGradient: "from-sky-500 to-blue-600",
-    routePath: "/catalog",
+    routePath: "/catalog/productos",
     features: [
       "Enlaces automáticos para iniciar chat de ventas en WhatsApp",
       "Clasificación ágil de productos y subida masiva CSV",

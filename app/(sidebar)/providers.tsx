@@ -17,7 +17,9 @@ export function SidebarProviders({ children, defaultOpen }: SidebarProvidersProp
       <WebSocketProvider>
         <NotificationHandler />
         <SidebarLayout defaultOpen={defaultOpen}>
-          <div className="flex-1 max-h-[100vh] overflow-auto">{children}</div>
+          <div className="max-w-full flex-1 max-h-[100vh] overflow-auto p-1.5 md:p-3">
+            {children}
+          </div>
         </SidebarLayout>
       </WebSocketProvider>
     </QueryProvider>

@@ -77,13 +77,12 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
     <>
       <AppSidebar />
       <div className="flex flex-col w-[100vw] h-[100vh]">
-        <div className="flex items-center md:items-end w-full h-10 bg-background border-b border-border shadow-sm px-2 md:px-7 py-1 gap-5 cursor-default">
-          <div className="flex-1 flex gap-4 items-center" >
+        <div className="flex items-center w-full h-12 bg-background border-b border-border shadow-sm px-2 gap-5 cursor-default">
+          <div className="flex flex-1 justify-between flex gap-4 items-center" >
             <span className="md:hidden">
               <Image src="/images/icons/android-chrome-192x192.png" alt="Logo" width={36} height={36} className="rounded-md" />
             </span>
-            <div className="flex-1 flex items-center gap-2 text-xs min-w-0">
-              <span className="shrink-0">{`ERP V-${packageJson.version}`}</span>
+            {/* <div className="flex-1 flex items-center gap-2 text-xs min-w-0">
               {activeNavLabel && (
                 <>
                   <span className="text-muted-foreground shrink-0">/</span>
@@ -92,7 +91,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                   </span>
                 </>
               )}
-            </div>
+            </div> */}
             {authUser && (businesses.length > 0 || authUser.customClaims?.role) && (
               <Select
                 value={selectValue}
@@ -195,11 +194,6 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
             }
           </div>
           <SidebarTrigger className="bg-white/30 flex items-center justify-center md:hidden" />
-          <span className="hidden md:block first-letter:uppercase text-sm">{currentDate.toLocaleDateString('es-VE', {
-            weekday: 'long',
-            year: 'numeric', month: 'numeric',
-            day: 'numeric', hour: '2-digit', minute: '2-digit'
-          })}</span>
         </div>
         {children}
       </div>

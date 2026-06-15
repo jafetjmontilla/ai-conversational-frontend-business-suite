@@ -39,3 +39,29 @@ export function extractDraftItems(sourceId: KnowledgeSourceId, payload: Record<s
       return { itemId: String(i.itemId), label, data: i };
     });
 }
+
+export function mergeDraftItemPayload(
+  sourceId: KnowledgeSourceId,
+  payload: Record<string, unknown>,
+  itemId: string,
+  itemData: Record<string, unknown>
+): Record<string, unknown> {
+  const dataWithId = { ...itemData, itemId };
+  if (sourceId === "case_studies") {
+    return { ...payload, ...dataWithId };
+  }
+  if (sourceId === "glossary") {
+    const terms = ((payload.terms as Array<Record<string, unknown>>) ?? []).map((t) =>
+      t.itemId === itemId ? dataWithId : t
+    );
+    return { ...payload, terms };
+  }
+  const items = ((payload.items as Array<Record<string, unknown>>) ?? []).map((i) =>
+    i.itemId === itemId ? dataWithId : i
+  );
+  return { ...payload, items };
+}
+
+export function draftItemViewKey(draftId: string, itemId: string): string {
+  return `${draftId}:${itemId}`;
+}

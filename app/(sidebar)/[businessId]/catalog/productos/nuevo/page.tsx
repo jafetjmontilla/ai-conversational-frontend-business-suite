@@ -91,7 +91,7 @@ export default function InventoryNuevoPage() {
         },
       })) as Product;
       toast.success("Producto creado con una variante por defecto");
-      router.push(`/${businessId}/inventory/${product._id}`);
+      router.push(`/${businessId}/catalog/productos/${product._id}`);
     } catch (e: unknown) {
       toast.error((e as { message?: string })?.message || "Error al crear producto");
     } finally {

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import type { Business, BusinessConfig, LlmConfig } from "@/lib/interfases";
-import { Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { Brain, Loader2, Play, Plus, Settings, Trash2, Wrench, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -472,11 +472,24 @@ const CONFIG_META: Record<
   },
 };
 
+const PAGE_LAYOUT_ICON: Partial<Record<BusinessConfigMode, LucideIcon>> = {
+  behavior: Settings,
+  tools: Wrench,
+  "memory-settings": Brain,
+};
+
 function showsSection(mode: BusinessConfigMode, section: string): boolean {
   return CONFIG_META[mode].tabs.some((t) => t.value === section);
 }
 
-export function BusinessConfigForm({ mode }: { mode: BusinessConfigMode }) {
+export function BusinessConfigForm({
+  mode,
+  pageLayout = false,
+}: {
+  mode: BusinessConfigMode;
+  /** Layout de página completa (como Canales), sin card lateral. */
+  pageLayout?: boolean;
+}) {
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
@@ -800,12 +813,23 @@ export function BusinessConfigForm({ mode }: { mode: BusinessConfigMode }) {
   }
 
   const meta = CONFIG_META[mode];
+  const PageIcon = PAGE_LAYOUT_ICON[mode];
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl">
-      <Card>
+    <div className={pageLayout ? "flex gap-2 w-full h-full" : "p-4 md:p-6 lg:p-8 max-w-4xl"}>
+      <Card
+        id={pageLayout ? "card-left" : undefined}
+        className={pageLayout ? "w-full h-full border-none overflow-y-auto" : undefined}
+      >
         <CardHeader>
-          <CardTitle>{meta.title}</CardTitle>
+          {pageLayout && PageIcon ? (
+            <CardTitle className="flex items-center gap-2">
+              <PageIcon className="h-5 w-5" />
+              {meta.title}
+            </CardTitle>
+          ) : (
+            <CardTitle>{meta.title}</CardTitle>
+          )}
           <CardDescription>
             {business.name} — {meta.description}
           </CardDescription>

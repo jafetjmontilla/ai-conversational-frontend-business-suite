@@ -100,18 +100,31 @@ export function PromptLogsContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full max-w-[1200px] space-y-4">
-      <Card>
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Logs de prompts
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Logs de prompts
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => void load()}
+              disabled={loading}
+              aria-label="Actualizar"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </CardTitle>
           <CardDescription>
             Auditoría de prompts enviados al modelo, su respuesta, tokens y contexto conversacional.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="flex min-w-0 flex-col flex-1 space-y-4 overflow-x-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <Input
               placeholder="Buscar en entrada/prompt/respuesta"
@@ -133,12 +146,6 @@ export function PromptLogsContent() {
               value={modelFilter}
               onChange={(e) => setModelFilter(e.target.value)}
             />
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Actualizar">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
           </div>
 
           <div className="rounded-md border overflow-x-auto">

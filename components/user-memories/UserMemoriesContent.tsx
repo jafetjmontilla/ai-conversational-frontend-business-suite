@@ -2,24 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { UserMemoryListResult, UserMemoryRecordRow } from "@/lib/interfases";
 import { toast } from "sonner";
-import { Brain, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Brain, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 const PAGE_SIZE = 30;
@@ -28,6 +24,7 @@ export function UserMemoriesContent() {
   const params = useParams();
   const router = useRouter();
   const businessSlug = params?.businessId as string;
+  const prefersReducedMotion = useReducedMotion();
   const { businessRole } = useBusinessRole(businessSlug);
   const { canViewCurrentBusiness, canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const { businessIdDoc } = useBusiness(businessSlug);
@@ -39,10 +36,10 @@ export function UserMemoriesContent() {
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<UserMemoryRecordRow | null>(null);
   const [factsText, setFactsText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mobileEditOpen, setMobileEditOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedFilter(filterInput.trim()), 400);
@@ -85,7 +82,12 @@ export function UserMemoriesContent() {
   const openEdit = (row: UserMemoryRecordRow) => {
     setEditing(row);
     setFactsText(row.facts?.length ? row.facts.join("\n") : "");
-    setEditOpen(true);
+    setMobileEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditing(null);
+    setMobileEditOpen(false);
   };
 
   const saveFacts = async () => {
@@ -107,8 +109,7 @@ export function UserMemoriesContent() {
         },
       });
       toast.success("Memoria actualizada");
-      setEditOpen(false);
-      setEditing(null);
+      closeEdit();
       void load();
     } catch (e: unknown) {
       const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al guardar";
@@ -132,6 +133,7 @@ export function UserMemoriesContent() {
         },
       });
       toast.success("Registro eliminado");
+      if (editing?.id === row.id) closeEdit();
       void load();
     } catch (e: unknown) {
       const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al eliminar";
@@ -158,39 +160,127 @@ export function UserMemoriesContent() {
 
   const canPrev = skip > 0;
   const canNext = skip + items.length < totalCount;
+  const canEdit = canEditCurrentBusiness();
+
+  const mobilePanelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: "tween" as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] as const };
+
+  const renderEditCard = (options?: { className?: string; onClose?: () => void }) => (
+    <Card id="card-right" className={cn("flex h-full flex-col border-none", options?.className)}>
+      <CardHeader className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="pt-12 pb-2">
+            <CardTitle>Editar hechos</CardTitle>
+            <CardDescription>
+              {editing
+                ? "Un hecho por línea. Se normalizan duplicados al guardar en servidor."
+                : "Selecciona un registro y pulsa editar para ver o modificar sus hechos."}
+            </CardDescription>
+          </div>
+          {options?.onClose ? (
+            <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={options.onClose} aria-label="Cerrar">
+              <X className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 overflow-y-auto space-y-4">
+        {editing ? (
+          <>
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-muted-foreground">Clave:</span>{" "}
+                <span className="font-mono text-xs break-all">{editing.userKey}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Rol:</span> {editing.role || "—"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="um-facts">Hechos</Label>
+              <Textarea
+                id="um-facts"
+                rows={12}
+                value={factsText}
+                onChange={(e) => setFactsText(e.target.value)}
+                className="font-mono text-xs"
+                disabled={!canEdit || saving}
+              />
+            </div>
+            {canEdit && (
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={closeEdit} disabled={saving}>
+                  Cancelar
+                </Button>
+                <Button type="button" onClick={() => void saveFacts()} disabled={saving}>
+                  {saving ? "Guardando…" : "Guardar"}
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            Ningún registro seleccionado.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full max-w-6xl">
-      <Card>
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Memoria de usuarios
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Memoria de usuarios
+            </div>
+            <div className="flex items-center gap-2">
+              {canEdit && editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex md:hidden"
+                  onClick={() => setMobileEditOpen(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => void load()}
+                disabled={loading}
+                aria-label="Actualizar"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </CardTitle>
           <CardDescription>
-            Hechos y preferencias que el worker guarda por usuario (WhatsApp / genérico). La configuración de límites y activación está en{" "}
+            Hechos y preferencias que el worker guarda por usuario (WhatsApp / genérico). Límites y activación en{" "}
             <Link href={`/${businessSlug}/ai/memory/ajustes`} className="underline text-primary">
               Ajustes
             </Link>
             .
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 flex-col gap-2 sm:max-w-md">
-              <label className="text-sm text-muted-foreground" htmlFor="um-filter">
-                Filtrar por clave de usuario
-              </label>
-              <Input
-                id="um-filter"
-                placeholder="Teléfono, uid, etc."
-                value={filterInput}
-                onChange={(e) => setFilterInput(e.target.value)}
-              />
-            </div>
-            <Button type="button" variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Actualizar">
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
+        <CardContent className="flex min-w-0 flex-col flex-1 space-y-4 overflow-x-hidden">
+          <div className="max-w-md">
+            <Label htmlFor="um-filter">Filtrar por clave de usuario</Label>
+            <Input
+              id="um-filter"
+              className="mt-1"
+              placeholder="Teléfono, uid, etc."
+              value={filterInput}
+              onChange={(e) => setFilterInput(e.target.value)}
+            />
           </div>
 
           <div className="rounded-md border overflow-x-auto">
@@ -214,7 +304,10 @@ export function UserMemoriesContent() {
                   </TableRow>
                 ) : (
                   items.map((row) => (
-                    <TableRow key={row.id}>
+                    <TableRow
+                      key={row.id}
+                      className={cn(editing?.id === row.id && "bg-muted/50")}
+                    >
                       <TableCell className="font-mono text-xs max-w-[200px] truncate" title={row.userKey}>
                         {row.userKey}
                       </TableCell>
@@ -225,7 +318,7 @@ export function UserMemoriesContent() {
                         {row.updatedAt ? new Date(row.updatedAt).toLocaleString("es") : "—"}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        {canEditCurrentBusiness() ? (
+                        {canEdit ? (
                           <>
                             <Button type="button" variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Editar hechos">
                               <Pencil className="h-4 w-4" />
@@ -261,44 +354,40 @@ export function UserMemoriesContent() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={editOpen}
-        onOpenChange={(open) => {
-          setEditOpen(open);
-          if (!open) setEditing(null);
-        }}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar hechos</DialogTitle>
-          </DialogHeader>
-          {editing && (
-            <div className="space-y-3 text-sm">
-              <p>
-                <span className="text-muted-foreground">Clave:</span>{" "}
-                <span className="font-mono text-xs break-all">{editing.userKey}</span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Rol:</span> {editing.role || "—"}
-              </p>
-              <div className="space-y-1">
-                <label className="text-muted-foreground" htmlFor="um-facts">
-                  Un hecho por línea (máx. 50; se normalizan duplicados al guardar en servidor)
-                </label>
-                <Textarea id="um-facts" rows={10} value={factsText} onChange={(e) => setFactsText(e.target.value)} className="font-mono text-xs" />
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button type="button" onClick={() => void saveFacts()} disabled={saving || !editing}>
-              {saving ? "Guardando…" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {canEdit ? (
+        <div className="hidden md:block w-full max-w-[33vw] shrink-0 overflow-y-auto">
+          {renderEditCard()}
+        </div>
+      ) : null}
+
+      <AnimatePresence>
+        {canEdit && mobileEditOpen ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Cerrar panel"
+              initial={{ opacity: prefersReducedMotion ? 1 : 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={mobilePanelTransition}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={closeEdit}
+            />
+            <motion.div
+              initial={{ x: prefersReducedMotion ? 0 : "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: prefersReducedMotion ? 0 : "100%" }}
+              transition={mobilePanelTransition}
+              className="fixed inset-y-0 right-0 z-50 w-full max-w-md md:hidden shadow-xl"
+            >
+              {renderEditCard({
+                className: "h-full rounded-none border-0 border-l",
+                onClose: closeEdit,
+              })}
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

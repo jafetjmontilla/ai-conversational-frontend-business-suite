@@ -107,8 +107,8 @@ export function PaymentSummaryContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full">
-      <Card className="flex flex-col w-full overflow-hidden">
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileBarChart className="h-5 w-5" />
@@ -116,7 +116,7 @@ export function PaymentSummaryContent() {
           </CardTitle>
           <CardDescription>Totales por método de pago (pagos completados)</CardDescription>
         </CardHeader>
-        <CardContent className="p-0 md:p-2 flex-1">
+        <CardContent className="flex min-w-0 flex-col flex-1 overflow-x-hidden p-0 md:p-2">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

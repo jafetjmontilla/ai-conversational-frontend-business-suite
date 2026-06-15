@@ -26,6 +26,7 @@ export default function KnowledgeLayout({
   return (
     <SectionTabLayout
       base={base}
+      variant="line"
       nav={
         <SectionTabNav>
           {KNOWLEDGE_SOURCE_TYPES.map(({ sourceId, label }) => (
@@ -42,7 +43,9 @@ export default function KnowledgeLayout({
         </SectionTabNav>
       }
     >
-      {children}
+      <div className="h-full h-full pt-1.5 overflow-y-auto">
+        {children}
+      </div>
     </SectionTabLayout>
   );
 }
