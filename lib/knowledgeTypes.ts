@@ -7,7 +7,7 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   { sourceId: "glossary", label: "Glosario", description: "Definiciones", priority: 5 },
   { sourceId: "faqs", label: "FAQs", description: "Preguntas comunes", priority: 4 },
   { sourceId: "policies", label: "Políticas", description: "Reglas NO romper", priority: 4 },
-  { sourceId: "tools", label: "Herramientas", description: "APIs reales", priority: 3 },
+  { sourceId: "tools", label: "Referencia de APIs", description: "Documentación indexada para el RAG (no ejecuta llamadas)", priority: 3 },
   { sourceId: "case_studies", label: "Casos de estudio", description: "Lecciones reales", priority: 3 },
   { sourceId: "products", label: "Productos", description: "Catálogo", priority: 2 },
 ] as const;

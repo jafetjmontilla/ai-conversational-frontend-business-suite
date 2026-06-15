@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { InputSearch } from "@/components/InputSearch";
 import { fetchKnowledgeAudit, type KnowledgeAuditResponse } from "@/lib/api";
 import { useBusiness } from "@/lib/hooks/useBusiness";
@@ -36,6 +43,10 @@ function resolveDebugMinScoreFromConfig(
     return String(minCosineSimilarity);
   }
   return "0";
+}
+
+function resolveRerankFromConfig(rerank: string | undefined): "none" | "mmr" {
+  return rerank === "mmr" ? "mmr" : "none";
 }
 
 function formatScore(score: number): string {
@@ -171,6 +182,17 @@ function DebugSearchResults({ debugSearch }: { debugSearch: DebugSearchResult })
         {debugSearch.min_score != null && (
           <Badge variant="outline">min_score ≥ {debugSearch.min_score}</Badge>
         )}
+        {debugSearch.rerank && (
+          <Badge variant="outline">
+            rerank: {debugSearch.rerank === "mmr" ? "MMR" : "ninguno"}
+          </Badge>
+        )}
+        {debugSearch.rerank === "mmr" && debugSearch.mmr_lambda != null && (
+          <Badge variant="outline">λ {debugSearch.mmr_lambda}</Badge>
+        )}
+        {debugSearch.candidate_multiplier != null && (
+          <Badge variant="outline">candidatos ×{debugSearch.candidate_multiplier}</Badge>
+        )}
         <Badge variant="secondary">{debugSearch.results.length} hits</Badge>
       </div>
 
@@ -207,22 +229,36 @@ export function KnowledgeAuditContent() {
   const businessId = params?.businessId as string;
   const prefersReducedMotion = useReducedMotion();
   const { business } = useBusiness(businessId);
-  const configMinCosineSimilarity = business?.config?.ragSearch?.minCosineSimilarity;
+  const ragSearch = business?.config?.ragSearch;
+  const configMinCosineSimilarity = ragSearch?.minCosineSimilarity;
 
   const [audit, setAudit] = useState<KnowledgeAuditResponse | null>(null);
   const [debugSearch, setDebugSearch] = useState<DebugSearchResult | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [debugQuery, setDebugQuery] = useState("");
   const [debugMinScore, setDebugMinScore] = useState("0");
+  const [debugRerank, setDebugRerank] = useState<"none" | "mmr">("none");
+  const [debugMmrLambda, setDebugMmrLambda] = useState("0.5");
+  const [debugCandidateMultiplier, setDebugCandidateMultiplier] = useState("10");
   const [debugLoading, setDebugLoading] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     if (!business) return;
-    setDebugMinScore(
-      resolveDebugMinScoreFromConfig(business.config?.ragSearch?.minCosineSimilarity)
+    setDebugMinScore(resolveDebugMinScoreFromConfig(ragSearch?.minCosineSimilarity));
+    setDebugRerank(resolveRerankFromConfig(ragSearch?.rerank));
+    setDebugMmrLambda(
+      typeof ragSearch?.mmrLambda === "number" && Number.isFinite(ragSearch.mmrLambda)
+        ? String(ragSearch.mmrLambda)
+        : "0.5"
     );
-  }, [business]);
+    setDebugCandidateMultiplier(
+      typeof ragSearch?.candidateMultiplier === "number" &&
+        Number.isFinite(ragSearch.candidateMultiplier)
+        ? String(ragSearch.candidateMultiplier)
+        : "10"
+    );
+  }, [business, ragSearch?.minCosineSimilarity, ragSearch?.rerank, ragSearch?.mmrLambda, ragSearch?.candidateMultiplier]);
 
   const loadAudit = useCallback(async () => {
     if (!businessId) return;
@@ -254,9 +290,30 @@ export function KnowledgeAuditContent() {
       toast.error("min_score debe ser un número entre 0 y 1");
       return;
     }
+    const mmrLambda = Number(debugMmrLambda);
+    if (!Number.isFinite(mmrLambda) || mmrLambda < 0 || mmrLambda > 1) {
+      toast.error("Lambda MMR debe ser un número entre 0 y 1");
+      return;
+    }
+    const candidateMultiplier = Number(debugCandidateMultiplier);
+    if (
+      !Number.isFinite(candidateMultiplier) ||
+      candidateMultiplier < 1 ||
+      candidateMultiplier > 20 ||
+      !Number.isInteger(candidateMultiplier)
+    ) {
+      toast.error("Multiplicador de candidatos debe ser un entero entre 1 y 20");
+      return;
+    }
     setDebugLoading(true);
     try {
-      const data = await fetchKnowledgeAudit(businessId, { query, minScore });
+      const data = await fetchKnowledgeAudit(businessId, {
+        query,
+        minScore,
+        rerank: debugRerank,
+        mmrLambda,
+        candidateMultiplier,
+      });
       setDebugSearch(data.debugSearch ?? null);
       if (!data.debugSearch?.results.length) {
         toast.info("Sin resultados por encima del umbral de similitud");
@@ -266,7 +323,7 @@ export function KnowledgeAuditContent() {
     } finally {
       setDebugLoading(false);
     }
-  }, [businessId, debugQuery, debugMinScore]);
+  }, [businessId, debugQuery, debugMinScore, debugRerank, debugMmrLambda, debugCandidateMultiplier]);
 
   const mobilePanelTransition = prefersReducedMotion
     ? { duration: 0 }
@@ -282,8 +339,8 @@ export function KnowledgeAuditContent() {
               Búsqueda de prueba
             </CardTitle>
             <CardDescription>
-              Simula una consulta RAG sobre el índice del negocio. Solo se muestran resultados con
-              similitud coseno ≥ min_score.
+              Simula una consulta RAG sobre el índice del negocio. Ajusta umbral, re-ranking MMR y
+              candidatos para probar sin guardar en Comportamiento.
             </CardDescription>
           </div>
           {options?.onClose ? (
@@ -317,9 +374,9 @@ export function KnowledgeAuditContent() {
           </div>
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label htmlFor="debug-min-score">Tets de similitud coseno mínima</Label>
+              <Label htmlFor="debug-min-score">Umbral de similitud coseno mínima</Label>
               <span className="text-xs text-muted-foreground">
-                Valor configurado:{" "}
+                Configurado:{" "}
                 {typeof configMinCosineSimilarity === "number" &&
                   Number.isFinite(configMinCosineSimilarity) ? (
                   <Badge variant="outline" className="font-mono text-xs">
@@ -343,22 +400,79 @@ export function KnowledgeAuditContent() {
               className="mt-1"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              Similitud coseno mínima (0–1; mayor = más parecido a la consulta). Solo se listan fragmentos
-              con score ≥ este valor. En producción el worker aplica el umbral de{" "}
-              <span className="font-medium">Conocimiento → Búsqueda RAG → Similitud coseno mínima (opcional)</span>
-              {typeof configMinCosineSimilarity === "number" &&
-                Number.isFinite(configMinCosineSimilarity) ? (
-                <>
-                  {" "}
-                  (<span className="font-mono">≥ {configMinCosineSimilarity}</span>); usa el mismo valor aquí
-                  para simular el comportamiento real del bot.
-                </>
-              ) : (
-                <>
-                  ; si está en <span className="font-medium">sin filtro</span>, el worker no descarta
-                  fragmentos por similitud (salvo variable global en el servidor).
-                </>
-              )}
+              Solo se listan fragmentos con score ≥ este valor. En producción el worker aplica el
+              umbral de{" "}
+              <span className="font-medium">Comportamiento → Búsqueda RAG</span>.
+            </p>
+          </div>
+
+          <div className="space-y-3 rounded-lg border p-3">
+            <p className="text-sm font-medium">Re-ranking y candidatos</p>
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label htmlFor="debug-rerank">Modo de re-ranking</Label>
+                <span className="text-xs text-muted-foreground">
+                  Configurado:{" "}
+                  <Badge variant="outline" className="text-xs">
+                    {resolveRerankFromConfig(ragSearch?.rerank) === "mmr" ? "MMR" : "ninguno"}
+                  </Badge>
+                </span>
+              </div>
+              <Select
+                value={debugRerank}
+                onValueChange={(value) => setDebugRerank(value as "none" | "mmr")}
+              >
+                <SelectTrigger id="debug-rerank" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ninguno (orden FAISS)</SelectItem>
+                  <SelectItem value="mmr">MMR (diversidad)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="debug-mmr-lambda">Lambda MMR (0–1)</Label>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    cfg: {ragSearch?.mmrLambda ?? 0.5}
+                  </span>
+                </div>
+                <Input
+                  id="debug-mmr-lambda"
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={debugMmrLambda}
+                  onChange={(e) => setDebugMmrLambda(e.target.value)}
+                  disabled={debugRerank !== "mmr"}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="debug-candidate-mult">Multiplicador de candidatos</Label>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    cfg: {ragSearch?.candidateMultiplier ?? 10}
+                  </span>
+                </div>
+                <Input
+                  id="debug-candidate-mult"
+                  type="number"
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={debugCandidateMultiplier}
+                  onChange={(e) => setDebugCandidateMultiplier(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Candidatos FAISS ≈ topK × multiplicador (máx. 100). MMR diversifica resultados antes del
+              filtro por min_score.
             </p>
           </div>
         </div>

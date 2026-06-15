@@ -426,7 +426,7 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
   };
 }
 
-export type BusinessConfigMode = "behavior" | "tools" | "knowledge-sources" | "knowledge-rag" | "memory-settings";
+export type BusinessConfigMode = "behavior" | "tools" | "memory-settings";
 
 const CONFIG_META: Record<
   BusinessConfigMode,
@@ -434,11 +434,12 @@ const CONFIG_META: Record<
 > = {
   behavior: {
     title: "Comportamiento del asistente",
-    description: "Conversación, personalidad, respuestas y motor IA.",
+    description: "Conversación, personalidad, respuestas, recuperación RAG y motor IA.",
     tabs: [
       { value: "general", label: "Conversación" },
       { value: "personality", label: "Personalidad" },
       { value: "responses", label: "Respuestas" },
+      { value: "rag-search", label: "Búsqueda RAG" },
       { value: "agent-llm", label: "Agente / LLM" },
     ],
     defaultTab: "general",
@@ -451,18 +452,6 @@ const CONFIG_META: Record<
       { value: "providers", label: "Proveedores" },
     ],
     defaultTab: "tools",
-  },
-  "knowledge-sources": {
-    title: "Configuración de fuentes",
-    description: "Mapeo de sourceIds del RAG y roles permitidos.",
-    tabs: [{ value: "sources", label: "Fuentes" }],
-    defaultTab: "sources",
-  },
-  "knowledge-rag": {
-    title: "Búsqueda RAG",
-    description: "Parámetros de recuperación en Knowledge-RAG.",
-    tabs: [{ value: "rag-search", label: "Búsqueda RAG" }],
-    defaultTab: "rag-search",
   },
   "memory-settings": {
     title: "Ajustes de memoria",
@@ -1102,77 +1091,6 @@ export function BusinessConfigForm({
                         )}
                       />
                     </div>
-                  </TabsContent>
-                )}
-
-                {showsSection(mode, "sources") && (
-                  <TabsContent value="sources" className="space-y-4 pt-4">
-                    <FormField
-                      control={form.control}
-                      name="knowledgeSources"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fuentes de conocimiento (RAG)</FormLabel>
-                          {field.value.map((_, i) => (
-                            <div key={i} className="flex flex-wrap gap-2 items-end rounded-lg border p-3 mb-2">
-                              <FormField
-                                control={form.control}
-                                name={`knowledgeSources.${i}.sourceId`}
-                                render={({ field: f }) => (
-                                  <FormItem className="flex-1 min-w-[120px]">
-                                    <FormLabel className="text-xs">sourceId</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="id" {...f} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`knowledgeSources.${i}.name`}
-                                render={({ field: f }) => (
-                                  <FormItem className="flex-1 min-w-[120px]">
-                                    <FormLabel className="text-xs">Nombre</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Nombre" {...f} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`knowledgeSources.${i}.roles`}
-                                render={({ field: f }) => (
-                                  <FormItem className="flex-1 min-w-[160px]">
-                                    <FormLabel className="text-xs">Roles (separados por coma)</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        placeholder="rol1, rol2"
-                                        {...f}
-                                        value={Array.isArray(f.value) ? f.value.join(", ") : ""}
-                                        onChange={(e) => f.onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => form.setValue("knowledgeSources", field.value.filter((_, j) => j !== i))}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => form.setValue("knowledgeSources", [...field.value, { sourceId: "", name: "", roles: [] }])}
-                          >
-                            <Plus className="h-4 w-4 mr-1" /> Añadir fuente
-                          </Button>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </TabsContent>
                 )}
 
@@ -1940,16 +1858,17 @@ export function BusinessConfigForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Modo de re-ranking</FormLabel>
-                            <FormControl>
-                              <select
-                                className="flex h-9 w-full max-w-md rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                value={field.value}
-                                onChange={(e) => field.onChange(e.target.value as "none" | "mmr")}
-                              >
-                                <option value="none">Ninguno (orden FAISS)</option>
-                                <option value="mmr">MMR (diversidad)</option>
-                              </select>
-                            </FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="max-w-md">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">Ninguno (orden FAISS)</SelectItem>
+                                <SelectItem value="mmr">MMR (diversidad)</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
