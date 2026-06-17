@@ -1,5 +1,6 @@
 import {
   CAPABILITY_REQUIRED_APPS,
+  canUseOfferingsCatalogProduct,
   getAppTitle,
   hasCapability,
   type BusinessInstalledApp,
@@ -40,6 +41,7 @@ export function getProductSellableFieldCopy(
 ): { label: string; hint?: string } {
   const canSell = hasCapability(installedApps, "product.sellable");
   const canRaw = hasCapability(installedApps, "product.rawMaterial");
+  const canCatalog = canUseOfferingsCatalogProduct(installedApps);
 
   const sellApps = CAPABILITY_REQUIRED_APPS["product.sellable"] ?? [];
   const rawApps = CAPABILITY_REQUIRED_APPS["product.rawMaterial"] ?? [];
@@ -54,6 +56,8 @@ export function getProductSellableFieldCopy(
   let rawPart: string;
   if (canRaw) {
     rawPart = "puede usarse como insumo/materia prima";
+  } else if (canCatalog) {
+    rawPart = "queda en tu catálogo interno (Productos y Servicios)";
   } else {
     rawPart = `como insumo/materia prima requiere ${formatAppList(rawApps).replace(/\*\*/g, "")}`;
   }
@@ -65,7 +69,7 @@ export function getProductSellableFieldCopy(
     hints.push(getCapabilityHintPlain("product.sellable"));
   }
   if (!canRaw) {
-    hints.push(getCapabilityHintPlain("product.rawMaterial"));
+    if (!canCatalog) hints.push(getCapabilityHintPlain("product.rawMaterial"));
   }
 
   return {

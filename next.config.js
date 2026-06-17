@@ -50,8 +50,43 @@ const nextConfig = {
         permanent: false,
       },
       {
+        source: '/:businessId/offerings',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/productos',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/productos/:path*',
+        destination: '/:businessId/offerings/products/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/servicios',
+        destination: '/:businessId/offerings/services',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/servicios/:path*',
+        destination: '/:businessId/offerings/services/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/atributos',
+        destination: '/:businessId/offerings/attributes',
+        permanent: false,
+      },
+      {
         source: '/:businessId/catalog',
-        destination: '/:businessId/catalog/productos',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/catalog/:path*',
+        destination: '/:businessId/offerings/:path*',
         permanent: false,
       },
       {

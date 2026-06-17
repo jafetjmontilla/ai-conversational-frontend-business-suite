@@ -48,6 +48,7 @@ export const APP_CAPABILITIES: Record<string, Capability[]> = {
   "gestion-insumos-materia-prima": [CAPABILITIES.PRODUCT_RAW_MATERIAL],
   "procesadora-alimentos": [CAPABILITIES.PRODUCT_RAW_MATERIAL, CAPABILITIES.RECIPE_BOM],
   "tienda-online": [CAPABILITIES.PRODUCT_SELLABLE, CAPABILITIES.CATALOG_PUBLISH],
+  "productos-servicios": [],
   "agente-atencion-cliente": [
     CAPABILITIES.AI_BEHAVIOR,
     CAPABILITIES.AI_KNOWLEDGE,
@@ -129,6 +130,13 @@ export function isAppInstalled(
 ): boolean {
   const record = findInstalledAppRecord(installedApps, appId);
   return record != null && isActiveInstalledApp(record);
+}
+
+/** Producto en catálogo interno (no vendible en tienda ni insumo de producción). */
+export function canUseOfferingsCatalogProduct(
+  installedApps: BusinessInstalledApp[] | null | undefined
+): boolean {
+  return isAppInstalled(installedApps, "productos-servicios");
 }
 
 export function getAppTitle(appId: string): string {

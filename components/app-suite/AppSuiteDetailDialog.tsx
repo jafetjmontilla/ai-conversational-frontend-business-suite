@@ -150,7 +150,7 @@ export function AppSuiteDetailDialog({
                   disabled={!canManageApps || installing}
                   onClick={() => onInstall(app)}
                 >
-                  {installing ? "Instalando…" : "Instalar módulo"}
+                  {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : "Instalar módulo"}
                 </Button>
               )}
             </div>

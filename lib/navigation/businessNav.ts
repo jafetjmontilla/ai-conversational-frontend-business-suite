@@ -181,14 +181,14 @@ export function buildBusinessNavGroups(
       label: "Catálogo y ventas",
       items: [
         {
-          id: "catalog",
-          href: `${base}/catalog/productos`,
-          activePrefix: `${base}/catalog`,
-          label: "Catálogo",
+          id: "offerings",
+          href: `${base}/offerings/products`,
+          activePrefix: `${base}/offerings`,
+          label: "Productos y servicios",
           icon: Package,
           permission: "negocio:ver",
           matchPrefix: true,
-          requiredAnyApps: ["catalogo-web", "tienda-online"],
+          requiredAnyApps: ["productos-servicios"],
         },
         {
           id: "billing",

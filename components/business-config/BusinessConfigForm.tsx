@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BusinessCacheTabContent } from "@/components/business-config/BusinessCacheTabContent";
 
 const defaultUserMemory = {
   enabled: false,
@@ -441,6 +442,7 @@ const CONFIG_META: Record<
       { value: "responses", label: "Respuestas" },
       { value: "rag-search", label: "Búsqueda RAG" },
       { value: "agent-llm", label: "Agente / LLM" },
+      { value: "cache", label: "Caché" },
     ],
     defaultTab: "general",
   },
@@ -487,8 +489,8 @@ export function BusinessConfigForm({
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [flushing, setFlushing] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
+  const [activeTab, setActiveTab] = useState(() => CONFIG_META[mode].defaultTab);
   /** Texto pegado por proveedor (solo UI; no se guarda en BD). */
   const [providerDocSnippets, setProviderDocSnippets] = useState<string[]>([]);
   const [parsingProviderIndex, setParsingProviderIndex] = useState<number | null>(null);
@@ -622,6 +624,10 @@ export function BusinessConfigForm({
     load();
   }, [businessId, meData?.business, applyBusinessToForm]);
 
+  useEffect(() => {
+    setActiveTab(CONFIG_META[mode].defaultTab);
+  }, [mode]);
+
   const onSubmit = async (values: FormValues) => {
     if (!business) return;
     setSaving(true);
@@ -739,36 +745,6 @@ export function BusinessConfigForm({
     }
   };
 
-  const FLUSH_CACHE_MUTATION = `mutation flushBusinessCache($businessDocId: ID!) {
-    flushBusinessCache(businessDocId: $businessDocId) {
-      success
-      keysDeleted
-      message
-    }
-  }`;
-
-  const handleFlushCache = async () => {
-    if (!business || flushing) return;
-    setFlushing(true);
-    try {
-      const result = await fetchApiV1({
-        query: FLUSH_CACHE_MUTATION,
-        type: "json",
-        variables: { businessDocId: business._id },
-      }) as { success: boolean; keysDeleted: number; message: string } | null;
-      if (result?.success) {
-        toast.success("Caché vaciado", { description: result.message });
-      } else {
-        toast.error("Error al vaciar el caché");
-      }
-    } catch (e: unknown) {
-      const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al vaciar el caché";
-      toast.error(msg);
-    } finally {
-      setFlushing(false);
-    }
-  };
-
   const onSubmitInvalid = (errors: FieldErrors<FormValues>) => {
     const msg =
       firstFieldErrorMessage(errors) ??
@@ -826,7 +802,7 @@ export function BusinessConfigForm({
         <CardContent>
           <Form {...form}>
             <form noValidate onSubmit={form.handleSubmit(onSubmit, onSubmitInvalid)} className="space-y-6">
-              <Tabs defaultValue={meta.defaultTab} className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="flex w-full flex-wrap gap-1 h-auto min-h-10">
                   {meta.tabs.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} className="flex-1 min-w-[5.5rem]">
@@ -2144,28 +2120,21 @@ export function BusinessConfigForm({
                     </div>
                   </TabsContent>
                 )}
+
+                {showsSection(mode, "cache") && business && (
+                  <TabsContent value="cache">
+                    <BusinessCacheTabContent businessDocId={business._id} />
+                  </TabsContent>
+                )}
               </Tabs>
 
-              <div className="flex items-center justify-between pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={flushing || saving}
-                  onClick={handleFlushCache}
-                >
-                  {flushing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Vaciando caché...
-                    </>
-                  ) : (
-                    "Vaciar caché IA"
-                  )}
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar configuración"}
-                </Button>
-              </div>
+              {activeTab !== "cache" && (
+                <div className="flex items-center justify-end pt-4">
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Guardando..." : "Guardar configuración"}
+                  </Button>
+                </div>
+              )}
             </form>
           </Form>
         </CardContent>

@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Package, Sparkles, Trash2, RotateCcw, History } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
-import { hasCapability } from "@/lib/app-suite/capabilities";
+import { hasCapability, canUseOfferingsCatalogProduct } from "@/lib/app-suite/capabilities";
 import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
 import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
 
@@ -145,7 +145,7 @@ export default function ProductDetailPage() {
       toast.error(getCapabilityHintPlain("product.sellable"));
       return;
     }
-    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial")) {
+    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial") && !canUseOfferingsCatalogProduct(installedApps)) {
       toast.error(getCapabilityHintPlain("product.rawMaterial"));
       return;
     }
@@ -378,7 +378,7 @@ export default function ProductDetailPage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para editar este producto.</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${businessId}/catalog/productos`}>Volver al inventario</Link>
+              <Link href={`/${businessId}/offerings/products`}>Volver al inventario</Link>
             </Button>
           </CardContent>
         </Card>
@@ -398,7 +398,7 @@ export default function ProductDetailPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-4xl">
       <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href={`/${businessId}/catalog/productos`}>
+        <Link href={`/${businessId}/offerings/products`}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al inventario
         </Link>

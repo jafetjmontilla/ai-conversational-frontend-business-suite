@@ -1,5 +1,7 @@
+"use client";
+
 import { ProductsCatalogContent } from "@/components/catalog/ProductsCatalogContent";
 
-export default function CatalogProductosPage() {
+export default function OfferingsProductsPage() {
   return <ProductsCatalogContent />;
 }

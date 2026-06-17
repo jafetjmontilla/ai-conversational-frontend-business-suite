@@ -1008,7 +1008,34 @@ export const queries = {
     flushBusinessCache(businessDocId: $businessDocId) {
       success
       keysDeleted
+      semanticEntriesPurged
       message
+    }
+  }`,
+  getBusinessCacheOverview: `query getBusinessCacheOverview($businessDocId: ID!) {
+    getBusinessCacheOverview(businessDocId: $businessDocId) {
+      redis {
+        responseKeys
+        sourceSets
+        personalitySets
+        defaultTtlSeconds
+        schemaVersion
+      }
+      semanticIndex {
+        entries
+        similarityThreshold
+        indexExists
+      }
+      contextCaching {
+        enabled
+        ttlSeconds
+      }
+      globalResponses {
+        hasGreeting
+        hasGoodbye
+        hasNoData
+        noReplyWithoutRag
+      }
     }
   }`,
   getBusinessMembers: `query getBusinessMembers($id: ID!) {
@@ -1304,6 +1331,12 @@ export const queries = {
   deleteProductCategory: `mutation deleteProductCategory($_id: ID!, $id: ID!) {
     deleteProductCategory(_id: $_id, id: $id)
   }`,
+  parseProductCategoriesFromText: `mutation parseProductCategoriesFromText($id: ID!, $rawText: String!) {
+    parseProductCategoriesFromText(id: $id, rawText: $rawText) {
+      categories { name description type }
+      warnings
+    }
+  }`,
   // Product (maestro) + Variants (SKUs)
   getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean, $includeNonSellable: Boolean) {
     getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive, includeNonSellable: $includeNonSellable) {
@@ -1586,6 +1619,9 @@ export const queries = {
       _id
       status
     }
+  }`,
+  deleteProtocolDraft: `mutation deleteProtocolDraft($id: ID!) {
+    deleteProtocolDraft(id: $id)
   }`,
   listKnowledgeDrafts: `query listKnowledgeDrafts($businessId: String!, $sourceId: String!, $status: String) {
     listKnowledgeDrafts(businessId: $businessId, sourceId: $sourceId, status: $status) {
@@ -2256,5 +2292,25 @@ export const queries = {
   }`,
   deleteStorage: `mutation($_id: ID!) {
     deleteStorage(_id: $_id)
+  }`,
+  parseOfferingsFromText: `mutation parseOfferingsFromText($id: ID!, $rawText: String!, $scope: OfferingsImportScope!) {
+    parseOfferingsFromText(id: $id, rawText: $rawText, scope: $scope) {
+      attributes { name values }
+      products { name description base_price brand category_hint is_sellable }
+      services {
+        name
+        description
+        unit_of_measure
+        options { name price durationMinutes }
+      }
+      warnings
+    }
+  }`,
+  confirmOfferingsImport: `mutation confirmOfferingsImport($id: ID!, $input: ConfirmOfferingsImportInput!) {
+    confirmOfferingsImport(id: $id, input: $input) {
+      created { kind name status message }
+      skipped { kind name status message }
+      errors { kind name status message }
+    }
   }`,
 }

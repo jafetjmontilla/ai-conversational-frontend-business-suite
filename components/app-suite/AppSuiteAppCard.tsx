@@ -124,7 +124,7 @@ export function AppSuiteAppCard({
               className="min-w-[100px] text-xs font-bold"
               onClick={() => onInstall(app)}
             >
-              {installing ? "Instalando…" : hasRoute ? "Instalar" : "Instalar (beta)"}
+              {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : hasRoute ? "Instalar" : "Instalar (beta)"}
             </Button>
           )}
         </div>

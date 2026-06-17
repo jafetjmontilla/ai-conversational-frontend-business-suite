@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { hasCapability, type BusinessInstalledApp } from "@/lib/app-suite/capabilities";
+import { hasCapability, canUseOfferingsCatalogProduct, type BusinessInstalledApp } from "@/lib/app-suite/capabilities";
 import { getProductSellableFieldCopy } from "@/lib/app-suite/featureCopy";
 
 type ProductSellableFieldProps = {
@@ -23,13 +23,14 @@ export function ProductSellableField({
 }: ProductSellableFieldProps) {
   const canSell = hasCapability(installedApps, "product.sellable");
   const canRaw = hasCapability(installedApps, "product.rawMaterial");
+  const canCatalog = canUseOfferingsCatalogProduct(installedApps);
   const { label, hint } = getProductSellableFieldCopy(installedApps, businessId);
 
-  const switchDisabled = checked ? !canRaw : !canSell;
+  const switchDisabled = checked ? !canRaw && !canCatalog : !canSell;
 
   const handleChange = (value: boolean) => {
     if (value && !canSell) return;
-    if (!value && !canRaw) return;
+    if (!value && !canRaw && !canCatalog) return;
     onCheckedChange(value);
   };
 

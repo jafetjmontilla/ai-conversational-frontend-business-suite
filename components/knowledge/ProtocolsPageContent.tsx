@@ -73,6 +73,7 @@ type ProtocolListRowProps = {
   onSaveDraft: (input: Record<string, unknown>) => Promise<void>;
   onPublish?: () => void;
   onReject?: () => void;
+  onDelete?: () => void;
 };
 
 function ProtocolListRow({
@@ -86,6 +87,7 @@ function ProtocolListRow({
   onSaveDraft,
   onPublish,
   onReject,
+  onDelete,
 }: ProtocolListRowProps) {
   if (isViewing && canEdit) {
     return (
@@ -121,6 +123,11 @@ function ProtocolListRow({
                 Rechazar
               </Button>
             )}
+            {onDelete && (
+              <Button variant="destructive" size="sm" onClick={onDelete} disabled={saving}>
+                Eliminar
+              </Button>
+            )}
           </>
         )}
       </div>
@@ -151,6 +158,7 @@ export function ProtocolsPageContent() {
   const [sortOrder, setSortOrder] = useState<ProtocolSortOrder>("desc");
   const [draftToReject, setDraftToReject] = useState<ProtocolDraftRecord | null>(null);
   const [draftToPublish, setDraftToPublish] = useState<ProtocolDraftRecord | null>(null);
+  const [draftToDelete, setDraftToDelete] = useState<ProtocolDraftRecord | null>(null);
 
   const loadLists = useCallback(async () => {
     if (!businessId) return;
@@ -293,6 +301,30 @@ export function ProtocolsPageContent() {
     }
   };
 
+  const handleDelete = async (draft: ProtocolDraftRecord) => {
+    setSaving(true);
+    try {
+      await fetchApiV1({
+        query: queries.deleteProtocolDraft,
+        type: "json",
+        variables: { id: draft._id },
+      });
+      toast.success(
+        draft.status === "approved"
+          ? "Protocolo eliminado del índice y de la base de datos."
+          : "Protocolo eliminado."
+      );
+      if (viewingPublishedId === draft._id) setViewingPublishedId(null);
+      if (viewingPendingId === draft._id) setViewingPendingId(null);
+      setDraftToDelete(null);
+      await loadLists();
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || "Error al eliminar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const canEdit = canEditCurrentBusiness();
 
   const sortedPublished = useMemo(() => {
@@ -383,6 +415,7 @@ export function ProtocolsPageContent() {
                 }}
                 onPublish={() => setDraftToPublish(d)}
                 onReject={() => setDraftToReject(d)}
+                onDelete={() => setDraftToDelete(d)}
               />
             ))}
           </div>
@@ -491,6 +524,7 @@ export function ProtocolsPageContent() {
                             throw e;
                           });
                         }}
+                        onDelete={() => setDraftToDelete(d)}
                       />
                     ))}
                   </div>
@@ -620,6 +654,32 @@ export function ProtocolsPageContent() {
         }}
         loading={saving}
         confirmButtonText="Publicar"
+      />
+
+      <ConfirmDeleteDialog
+        open={draftToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !saving) setDraftToDelete(null);
+        }}
+        title={draftToDelete?.status === "approved" ? "Eliminar protocolo publicado" : "Eliminar protocolo"}
+        description={
+          draftToDelete ? (
+            <span>
+              ¿Eliminar <strong>{draftToDelete.title}</strong>
+              {draftToDelete.status === "approved"
+                ? " del índice Knowledge-RAG, del clasificador y de la base de datos"
+                : " de la base de datos"}
+              ? Esta acción no se puede deshacer.
+            </span>
+          ) : (
+            ""
+          )
+        }
+        onConfirm={() => {
+          if (draftToDelete) void handleDelete(draftToDelete);
+        }}
+        loading={saving}
+        confirmButtonText="Eliminar"
       />
     </>
   );

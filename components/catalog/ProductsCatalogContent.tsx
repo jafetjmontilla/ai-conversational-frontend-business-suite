@@ -129,33 +129,33 @@ export function ProductsCatalogContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 w-full">
-      <Card className="flex flex-col w-full overflow-hidden">
+    <div className="flex min-w-0 gap-2 w-full h-full">
+      <Card id="card-left" className="flex min-w-0 flex-col w-full h-full border-none overflow-y-auto overflow-x-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Productos
-          </CardTitle>
-          <CardDescription>Productos (maestro) y variantes (SKU). Cada producto tiene al menos una variante.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0 md:p-2 flex-1 flex flex-col">
-          <div className="flex flex-col md:flex-row gap-2 p-2">
-            <div className="flex-1">
-              <InputSearch
-                placeholder="Buscar por nombre, descripción, marca o SKU"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full"
-              />
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Productos
             </div>
             {canEditCurrentBusiness?.() && (
-              <Button asChild size="sm" disabled={!businessIdDoc || loading}>
-                <Link href={`/${businessId}/catalog/productos/nuevo`}>
+              <Button asChild size="sm" className="shrink-0" disabled={!businessIdDoc || loading}>
+                <Link href={`/${businessId}/offerings/products/nuevo`}>
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar producto
                 </Link>
               </Button>
             )}
+          </CardTitle>
+          <CardDescription>Productos (maestro) y variantes (SKU). Cada producto tiene al menos una variante.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex min-w-0 flex-col flex-1 overflow-x-hidden p-0 md:p-2">
+          <div className="p-2">
+            <InputSearch
+              placeholder="Buscar por nombre, descripción, marca o SKU"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full"
+            />
           </div>
           {loading ? (
             <div className="flex justify-center py-12">
@@ -184,7 +184,7 @@ export function ProductsCatalogContent() {
                     <TableRow key={product._id}>
                       <TableCell>
                         <Link
-                          href={`/${businessId}/catalog/productos/${product._id}`}
+                          href={`/${businessId}/offerings/products/${product._id}`}
                           className="font-medium text-primary hover:underline"
                         >
                           {product.name}
@@ -198,7 +198,7 @@ export function ProductsCatalogContent() {
                       <TableCell>{product.variants?.length ?? 0}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/${businessId}/catalog/productos/${product._id}`}>
+                          <Link href={`/${businessId}/offerings/products/${product._id}`}>
                             <Settings2 className="h-3 w-3" />
                           </Link>
                         </Button>

@@ -23,6 +23,7 @@ import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed"
 import type { Business, ProductCategory } from "@/lib/interfases";
 import { Pencil, Sparkles, Tag, Trash2 } from "lucide-react";
 import { GenerateDescriptionInterviewDialog } from "@/components/business/GenerateDescriptionInterviewDialog";
+import { ProductCategoriesImportDialog } from "@/components/business/ProductCategoriesImportDialog";
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -159,6 +160,7 @@ function CategoriesTab({ businessId }: { businessId: string }) {
   const [catName, setCatName] = useState("");
   const [catDescription, setCatDescription] = useState("");
   const [catType, setCatType] = useState<"producto" | "servicio" | "ambos">("producto");
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchCategories = async () => {
     setLoadingCats(true);
@@ -257,7 +259,15 @@ function CategoriesTab({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Categorías para clasificar productos y servicios del inventario.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Categorías para clasificar productos y servicios del inventario.
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+          <Sparkles className="h-4 w-4 mr-2" />
+          Cargar con IA
+        </Button>
+      </div>
 
       {/* Form */}
       <div className="rounded-lg border p-4 bg-muted/30 space-y-3">
@@ -348,6 +358,12 @@ function CategoriesTab({ businessId }: { businessId: string }) {
           ))}
         </div>
       )}
+      <ProductCategoriesImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        businessId={businessId}
+        onImported={fetchCategories}
+      />
     </div>
   );
 }

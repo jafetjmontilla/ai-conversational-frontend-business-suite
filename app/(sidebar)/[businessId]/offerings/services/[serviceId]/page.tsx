@@ -348,7 +348,7 @@ export default function ServiceDetailPage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para editar este servicio.</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${businessId}/catalog/servicios`}>Volver al catálogo</Link>
+              <Link href={`/${businessId}/offerings/services`}>Volver al catálogo</Link>
             </Button>
           </CardContent>
         </Card>
@@ -366,7 +366,7 @@ export default function ServiceDetailPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-6xl">
       <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href={`/${businessId}/catalog/servicios`}>
+        <Link href={`/${businessId}/offerings/services`}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al catálogo
         </Link>

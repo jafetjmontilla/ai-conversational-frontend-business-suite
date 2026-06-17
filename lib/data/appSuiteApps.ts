@@ -12,6 +12,7 @@ import {
   Wallet,
   Truck,
   Boxes,
+  Package,
 } from "lucide-react";
 
 export type AppSuiteCategory = "All" | "IA" | "Negocios" | "Productividad" | "Finanzas";
@@ -31,6 +32,8 @@ export type AppSuiteModule = {
   iconGradient: string;
   /** Ruta relativa al negocio; undefined = próximamente */
   routePath?: string;
+  /** Muestra "Instalar Beta" en lugar de "Instalar" */
+  isBeta?: boolean;
 };
 
 export const APP_SUITE_CATEGORIES: { value: AppSuiteCategory; label: string }[] = [
@@ -183,7 +186,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 421,
     icon: ShoppingBag,
     iconGradient: "from-violet-500 to-fuchsia-600",
-    routePath: "/catalog/productos",
+    routePath: "/offerings/products",
     features: [
       "Pasarelas de pago listas para usar integradas",
       "Carrito auto-guardado para recuperar ventas perdidas",
@@ -257,6 +260,28 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     ],
   },
   {
+    id: "productos-servicios",
+    title: "Productos y Servicios",
+    tagline: "Organiza lo que ofreces a tus clientes.",
+    description:
+      "Centraliza el inventario de artículos y servicios de tu negocio. Define precios, variantes, atributos y disponibilidad en un solo lugar para alimentar catálogos, tiendas y asistentes de IA.",
+    audience:
+      "Cualquier negocio que vende productos físicos, servicios profesionales o una mezcla de ambos.",
+    category: "Negocios",
+    categoryLabel: "Negocios y Ventas",
+    rating: 4.8,
+    reviews: 278,
+    icon: Package,
+    iconGradient: "from-emerald-500 to-teal-600",
+    routePath: "/offerings/products",
+    features: [
+      "Gestión unificada de productos y servicios",
+      "Atributos y variantes configurables",
+      "Control de stock y precios por ítem",
+      "Base para catálogo web y tienda online",
+    ],
+  },
+  {
     id: "catalogo-web",
     title: "Catálogo Web",
     tagline: "Exhibe tus productos con elegancia.",
@@ -270,7 +295,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 215,
     icon: LayoutGrid,
     iconGradient: "from-sky-500 to-blue-600",
-    routePath: "/catalog/productos",
+    isBeta: true,
     features: [
       "Enlaces automáticos para iniciar chat de ventas en WhatsApp",
       "Clasificación ágil de productos y subida masiva CSV",

@@ -17,12 +17,14 @@ import {
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Product, ProductCategory } from "@/lib/interfases";
 import { toast } from "sonner";
-import { ArrowLeft, Package } from "lucide-react";
+import { ArrowLeft, Package, Sparkles } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
-import { hasCapability } from "@/lib/app-suite/capabilities";
+import { hasCapability, canUseOfferingsCatalogProduct } from "@/lib/app-suite/capabilities";
 import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
 import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
+import { OfferingsGenerateDialog } from "@/components/offerings/OfferingsGenerateDialog";
+import type { OfferingsImportDraft } from "@/lib/offerings/importTypes";
 
 const roundToTwo = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -42,6 +44,7 @@ export default function InventoryNuevoPage() {
   const [brand, setBrand] = useState("");
   const [isSellable, setIsSellable] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
 
   useEffect(() => {
     if (!businessIdDoc) return;
@@ -59,6 +62,26 @@ export default function InventoryNuevoPage() {
       .catch(() => { });
   }, [businessIdDoc]);
 
+  const handleGenerateResult = (draft: OfferingsImportDraft) => {
+    const prod = draft.products[0];
+    if (!prod) {
+      toast.warning("No se detectó un producto en el texto");
+      return;
+    }
+    setName(prod.name);
+    setDescription(prod.description ?? "");
+    setBrand(prod.brand ?? "");
+    if (prod.base_price != null) setBasePrice(String(prod.base_price));
+    if (prod.is_sellable != null) setIsSellable(prod.is_sellable);
+    if (prod.category_hint && categories.length) {
+      const match = categories.find(
+        (c) => c.name.toLowerCase() === prod.category_hint!.toLowerCase()
+      );
+      if (match) setCategoryId(match._id);
+    }
+    toast.success("Campos rellenados. Revisa antes de guardar.");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessIdDoc || !name.trim()) {
@@ -69,7 +92,7 @@ export default function InventoryNuevoPage() {
       toast.error(getCapabilityHintPlain("product.sellable"));
       return;
     }
-    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial")) {
+    if (!isSellable && !hasCapability(installedApps, "product.rawMaterial") && !canUseOfferingsCatalogProduct(installedApps)) {
       toast.error(getCapabilityHintPlain("product.rawMaterial"));
       return;
     }
@@ -91,7 +114,7 @@ export default function InventoryNuevoPage() {
         },
       })) as Product;
       toast.success("Producto creado con una variante por defecto");
-      router.push(`/${businessId}/catalog/productos/${product._id}`);
+      router.push(`/${businessId}/offerings/products/${product._id}`);
     } catch (e: unknown) {
       toast.error((e as { message?: string })?.message || "Error al crear producto");
     } finally {
@@ -107,7 +130,7 @@ export default function InventoryNuevoPage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground">No tienes permiso para agregar productos.</p>
             <Button asChild variant="outline" className="mt-4">
-              <Link href={`/${businessId}/catalog/productos`}>Volver al inventario</Link>
+              <Link href={`/${businessId}/offerings/products`}>Volver al inventario</Link>
             </Button>
           </CardContent>
         </Card>
@@ -118,20 +141,28 @@ export default function InventoryNuevoPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-2xl">
       <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href={`/${businessId}/catalog/productos`}>
+        <Link href={`/${businessId}/offerings/products`}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver al inventario
         </Link>
       </Button>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Nuevo producto
-          </CardTitle>
-          <CardDescription>
-            Crea el producto maestro. Se creará automáticamente una variante por defecto (SKU único). Luego puedes generar más variantes desde el detalle del producto.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Nuevo producto
+              </CardTitle>
+              <CardDescription>
+                Crea el producto maestro. Se creará automáticamente una variante por defecto (SKU único). Luego puedes generar más variantes desde el detalle del producto.
+              </CardDescription>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setGenerateOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generar con IA
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -200,12 +231,21 @@ export default function InventoryNuevoPage() {
                 {saving ? "Guardando…" : "Crear producto"}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href={`/${businessId}/catalog/productos`}>Cancelar</Link>
+                <Link href={`/${businessId}/offerings/products`}>Cancelar</Link>
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+      <OfferingsGenerateDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
+        businessIdDoc={businessIdDoc}
+        scope="PRODUCTS"
+        title="Generar producto con IA"
+        description="Describe el producto en lenguaje natural. Se rellenará el formulario con los datos detectados."
+        onResult={handleGenerateResult}
+      />
     </div>
   );
 }
