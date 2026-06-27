@@ -6,6 +6,23 @@ export type ParsedAttributeDraft = {
   selected?: boolean;
 };
 
+export type ParsedProductVariantAttributeDraft = {
+  name: string;
+  values: string[];
+};
+
+export type ParsedProductVariantAttributeValueDraft = {
+  attribute_name: string;
+  value: string;
+};
+
+export type ParsedProductVariantDraft = {
+  sku?: string | null;
+  attribute_values: ParsedProductVariantAttributeValueDraft[];
+  price_override?: number | null;
+  stock_quantity?: number | null;
+};
+
 export type ParsedProductDraft = {
   name: string;
   description?: string | null;
@@ -13,6 +30,9 @@ export type ParsedProductDraft = {
   brand?: string | null;
   category_hint?: string | null;
   is_sellable?: boolean | null;
+  needs_variants?: boolean | null;
+  variant_attributes?: ParsedProductVariantAttributeDraft[];
+  variants?: ParsedProductVariantDraft[];
   selected?: boolean;
 };
 
@@ -67,4 +87,6 @@ Peluquería:
 
 Productos:
 Camiseta básica algodón — $15 (tallas S, M, L, XL; colores rojo, azul, negro)
+Pizza Margarita — $10 (tamaños personal $10, mediana $14, familiar $18)
+Cerveza Corona 355ml — $2.50
 `;

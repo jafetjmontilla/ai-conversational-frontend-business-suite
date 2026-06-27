@@ -264,7 +264,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     title: "Productos y Servicios",
     tagline: "Organiza lo que ofreces a tus clientes.",
     description:
-      "Centraliza el inventario de artículos y servicios de tu negocio. Define precios, variantes, atributos y disponibilidad en un solo lugar para alimentar catálogos, tiendas y asistentes de IA.",
+      "Centraliza el inventario de artículos y servicios de tu negocio. Define precios, variantes, atributos y disponibilidad. El agente consulta el catálogo en tiempo real vía herramientas.",
     audience:
       "Cualquier negocio que vende productos físicos, servicios profesionales o una mezcla de ambos.",
     category: "Negocios",

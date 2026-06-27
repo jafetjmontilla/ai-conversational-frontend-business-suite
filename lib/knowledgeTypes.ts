@@ -9,7 +9,6 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   { sourceId: "policies", label: "Políticas", description: "Reglas NO romper", priority: 4 },
   { sourceId: "tools", label: "Referencia de APIs", description: "Documentación indexada para el RAG (no ejecuta llamadas)", priority: 3 },
   { sourceId: "case_studies", label: "Casos de estudio", description: "Lecciones reales", priority: 3 },
-  { sourceId: "products", label: "Productos", description: "Catálogo", priority: 2 },
 ] as const;
 
 export type KnowledgeSourceId = (typeof KNOWLEDGE_SOURCE_TYPES)[number]["sourceId"];
@@ -22,7 +21,6 @@ export const IMPLEMENTED_SOURCE_IDS: KnowledgeSourceId[] = [
   "policies",
   "tools",
   "case_studies",
-  "products",
 ];
 
 export function getKnowledgeType(sourceId: string) {

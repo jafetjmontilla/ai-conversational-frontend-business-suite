@@ -2318,7 +2318,17 @@ export const queries = {
   parseOfferingsFromText: `mutation parseOfferingsFromText($id: ID!, $rawText: String!, $scope: OfferingsImportScope!) {
     parseOfferingsFromText(id: $id, rawText: $rawText, scope: $scope) {
       attributes { name values }
-      products { name description base_price brand category_hint is_sellable }
+      products {
+        name description base_price brand category_hint is_sellable
+        needs_variants
+        variant_attributes { name values }
+        variants {
+          sku
+          attribute_values { attribute_name value }
+          price_override
+          stock_quantity
+        }
+      }
       services {
         name
         description

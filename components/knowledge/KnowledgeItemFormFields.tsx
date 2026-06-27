@@ -193,65 +193,7 @@ export function KnowledgeItemFormFields({ sourceId, value, onChange, disabled }:
     );
   }
 
-  if (sourceId === "products") {
-    return (
-      <div className="space-y-3">
-        <div>
-          <Label htmlFor="knowledge-product-name">Nombre</Label>
-          <Input
-            id="knowledge-product-name"
-            value={asString(value.name)}
-            onChange={(e) => set("name", e.target.value)}
-            disabled={disabled}
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="knowledge-product-desc">Descripción</Label>
-          <AutoResizeTextarea
-            id="knowledge-product-desc"
-            value={asString(value.description)}
-            onChange={(e) => set("description", e.target.value)}
-            disabled={disabled}
-            minRows={1}
-            className="mt-1"
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="knowledge-sku">SKU</Label>
-            <Input
-              id="knowledge-sku"
-              value={asString(value.sku)}
-              onChange={(e) => set("sku", e.target.value)}
-              disabled={disabled}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="knowledge-price">Precio</Label>
-            <Input
-              id="knowledge-price"
-              type="number"
-              value={value.price != null ? String(value.price) : ""}
-              onChange={(e) => set("price", e.target.value === "" ? undefined : Number(e.target.value))}
-              disabled={disabled}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="knowledge-currency">Moneda</Label>
-            <Input
-              id="knowledge-currency"
-              value={asString(value.currency || "USD")}
-              onChange={(e) => set("currency", e.target.value)}
-              disabled={disabled}
-              className="mt-1"
-            />
-          </div>
-        </div>
-      </div>
-    );
+  if (
   }
 
   if (sourceId === "case_studies") {

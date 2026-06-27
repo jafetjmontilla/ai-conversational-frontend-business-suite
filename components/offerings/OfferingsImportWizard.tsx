@@ -47,6 +47,28 @@ type OfferingsImportWizardProps = {
   onImported?: () => void;
 };
 
+function formatVariantSummary(prod: ParsedProductDraft): string | null {
+  if (!prod.needs_variants || !prod.variants?.length) return null;
+  const attrs =
+    prod.variant_attributes?.map((a) => `${a.name}: ${a.values.join(", ")}`).join(" · ") ?? "";
+  const count = prod.variants.length;
+  const samples = prod.variants
+    .slice(0, 3)
+    .map((v) => {
+      const label = v.attribute_values.map((av) => av.value).join(" / ");
+      const price =
+        v.price_override != null && v.price_override !== prod.base_price
+          ? ` $${v.price_override}`
+          : "";
+      return `${v.sku ?? label}${price}`;
+    })
+    .join(", ");
+  const more = count > 3 ? ` (+${count - 3} más)` : "";
+  return attrs
+    ? `${count} variantes (${attrs}) — ej: ${samples}${more}`
+    : `${count} variantes — ej: ${samples}${more}`;
+}
+
 function withSelected(draft: OfferingsImportDraft): OfferingsImportDraft {
   return {
     ...draft,
@@ -134,14 +156,29 @@ export function OfferingsImportWizard({
         .map(({ name, values }) => ({ name, values })),
       products: draft.products
         .filter((p) => p.selected !== false)
-        .map(({ name, description, base_price, brand, category_hint, is_sellable }) => ({
-          name,
-          description,
-          base_price,
-          brand,
-          category_hint,
-          is_sellable,
-        })),
+        .map(
+          ({
+            name,
+            description,
+            base_price,
+            brand,
+            category_hint,
+            is_sellable,
+            needs_variants,
+            variant_attributes,
+            variants,
+          }) => ({
+            name,
+            description,
+            base_price,
+            brand,
+            category_hint,
+            is_sellable,
+            needs_variants,
+            variant_attributes,
+            variants,
+          })
+        ),
       services: draft.services
         .filter((s) => s.selected !== false)
         .map(({ name, description, unit_of_measure, options }) => ({
@@ -327,7 +364,9 @@ export function OfferingsImportWizard({
               </TabsContent>
 
               <TabsContent value="products" className="mt-3 space-y-2 max-h-64 overflow-y-auto">
-                {draft.products.map((prod, i) => (
+                {draft.products.map((prod, i) => {
+                  const variantSummary = formatVariantSummary(prod);
+                  return (
                   <div
                     key={i}
                     className={cn(
@@ -373,9 +412,13 @@ export function OfferingsImportWizard({
                         className="h-8 sm:col-span-2"
                         placeholder="Descripción"
                       />
+                      {variantSummary && (
+                        <p className="text-xs text-primary sm:col-span-2">{variantSummary}</p>
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </TabsContent>
 
               <TabsContent value="services" className="mt-3 space-y-2 max-h-64 overflow-y-auto">
