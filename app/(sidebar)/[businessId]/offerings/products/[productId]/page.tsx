@@ -42,6 +42,12 @@ import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
 import { hasCapability, canUseOfferingsCatalogProduct } from "@/lib/app-suite/capabilities";
 import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
 import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
+import { ProductInventorySection } from "@/components/offerings/ProductInventorySection";
+import { InventoryScenarioHints } from "@/components/offerings/InventoryScenarioHints";
+import { CatalogAvailabilityPreview } from "@/components/offerings/CatalogAvailabilityPreview";
+import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
+import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
+import type { RequiredMaterial } from "@/lib/interfases";
 
 type AttributeWithValues = { _id: string; name: string; values?: { _id: string; attribute_id: string; value: string }[] };
 type ProductWithDetails = Product & {
@@ -149,6 +155,10 @@ export default function ProductDetailPage() {
       toast.error(getCapabilityHintPlain("product.rawMaterial"));
       return;
     }
+    if (product.hasBillOfMaterials && !(product.requiredMaterials?.length)) {
+      toast.error("Agrega al menos un insumo a la receta o desactiva «Receta / lista de materiales».");
+      return;
+    }
     setSaving(true);
     try {
       await fetchApiV1({
@@ -164,6 +174,16 @@ export default function ProductDetailPage() {
             base_price: product.base_price,
             brand: product.brand,
             is_sellable: product.is_sellable !== false,
+            trackInventory: product.is_sellable !== false ? (product.trackInventory ?? true) : undefined,
+            hasBillOfMaterials: product.hasBillOfMaterials ?? false,
+            requiredMaterials: product.hasBillOfMaterials
+              ? (product.requiredMaterials ?? []).map((m: RequiredMaterial) => ({
+                  materialVariantId: m.materialVariantId,
+                  sku: m.sku,
+                  quantity: m.quantity,
+                  unitOfMeasure: m.unitOfMeasure,
+                }))
+              : [],
           },
         },
       });
@@ -394,6 +414,12 @@ export default function ProductDetailPage() {
   }
 
   const basePrice = product.base_price ?? 0;
+  const inventoryMode = getProductInventoryMode(product);
+  const defaultVariant = (product.variants ?? []).find((v) => v.status !== false && !v.deleted_at)
+    ?? product.variants?.[0];
+  const showAvailabilityPreview =
+    product.is_sellable !== false &&
+    (inventoryMode.key === "direct_stock" || inventoryMode.key === "recipe");
 
   return (
     <div className="p-4 md:p-6 lg:p-8 w-full max-w-4xl">
@@ -406,9 +432,10 @@ export default function ProductDetailPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             <Package className="h-5 w-5" />
             {product.name}
+            <InventoryModeBadge mode={inventoryMode} className="ml-1" />
           </CardTitle>
           <CardDescription>Producto maestro. Edita y guarda. Las variantes heredan el precio base si no tienen override.</CardDescription>
         </CardHeader>
@@ -472,12 +499,60 @@ export default function ProductDetailPage() {
                 installedApps={installedApps}
                 checked={product.is_sellable !== false}
                 onCheckedChange={(checked) =>
-                  setProduct((p) => (p ? { ...p, is_sellable: checked } : null))
+                  setProduct((p) =>
+                    p
+                      ? {
+                          ...p,
+                          is_sellable: checked,
+                          ...(checked
+                            ? {}
+                            : {
+                                trackInventory: true,
+                                hasBillOfMaterials: false,
+                                requiredMaterials: [],
+                              }),
+                        }
+                      : null
+                  )
                 }
               />
             </div>
+            <div className="md:col-span-2">
+              <ProductInventorySection
+                businessIdDoc={businessIdDoc}
+                isSellable={product.is_sellable !== false}
+                trackInventory={product.trackInventory ?? true}
+                hasBillOfMaterials={product.hasBillOfMaterials ?? false}
+                requiredMaterials={product.requiredMaterials ?? []}
+                onTrackInventoryChange={(v) =>
+                  setProduct((p) => (p ? { ...p, trackInventory: v } : null))
+                }
+                onHasBillOfMaterialsChange={(v) =>
+                  setProduct((p) => (p ? { ...p, hasBillOfMaterials: v } : null))
+                }
+                onRequiredMaterialsChange={(materials) =>
+                  setProduct((p) => (p ? { ...p, requiredMaterials: materials } : null))
+                }
+                disabled={saving}
+              />
+              {product.is_sellable !== false && (
+                <div className="mt-3">
+                  <InventoryScenarioHints
+                    variant="product"
+                    hasBillOfMaterials={product.hasBillOfMaterials ?? false}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <Button onClick={handleSaveProduct} disabled={saving}>{saving ? "Guardando…" : "Guardar producto"}</Button>
+          {showAvailabilityPreview && defaultVariant && businessIdDoc && (
+            <CatalogAvailabilityPreview
+              businessIdDoc={businessIdDoc}
+              productVariantId={defaultVariant._id}
+              itemLabel={product.name}
+            />
+          )}
         </CardContent>
       </Card>
 

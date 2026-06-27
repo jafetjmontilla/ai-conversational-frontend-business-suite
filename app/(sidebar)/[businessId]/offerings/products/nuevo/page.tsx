@@ -23,8 +23,10 @@ import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
 import { hasCapability, canUseOfferingsCatalogProduct } from "@/lib/app-suite/capabilities";
 import { getCapabilityHintPlain } from "@/lib/app-suite/featureCopy";
 import { ProductSellableField } from "@/components/app-suite/ProductSellableField";
+import { ProductInventorySection } from "@/components/offerings/ProductInventorySection";
 import { OfferingsGenerateDialog } from "@/components/offerings/OfferingsGenerateDialog";
 import type { OfferingsImportDraft } from "@/lib/offerings/importTypes";
+import type { RequiredMaterial } from "@/lib/interfases";
 
 const roundToTwo = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -43,6 +45,9 @@ export default function InventoryNuevoPage() {
   const [basePrice, setBasePrice] = useState("");
   const [brand, setBrand] = useState("");
   const [isSellable, setIsSellable] = useState(false);
+  const [trackInventory, setTrackInventory] = useState(true);
+  const [hasBillOfMaterials, setHasBillOfMaterials] = useState(false);
+  const [requiredMaterials, setRequiredMaterials] = useState<RequiredMaterial[]>([]);
   const [saving, setSaving] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
 
@@ -96,6 +101,10 @@ export default function InventoryNuevoPage() {
       toast.error(getCapabilityHintPlain("product.rawMaterial"));
       return;
     }
+    if (isSellable && hasBillOfMaterials && requiredMaterials.length === 0) {
+      toast.error("Agrega al menos un insumo a la receta o desactiva «Receta / lista de materiales».");
+      return;
+    }
     setSaving(true);
     try {
       const product = (await fetchApiV1({
@@ -110,6 +119,16 @@ export default function InventoryNuevoPage() {
             base_price: basePrice ? roundToTwo(parseFloat(basePrice)) : 0,
             brand: brand.trim() || undefined,
             is_sellable: isSellable,
+            trackInventory: isSellable ? trackInventory : undefined,
+            hasBillOfMaterials: isSellable ? hasBillOfMaterials : false,
+            requiredMaterials: isSellable && hasBillOfMaterials
+              ? requiredMaterials.map((m) => ({
+                  materialVariantId: m.materialVariantId,
+                  sku: m.sku,
+                  quantity: m.quantity,
+                  unitOfMeasure: m.unitOfMeasure,
+                }))
+              : [],
           },
         },
       })) as Product;
@@ -224,7 +243,25 @@ export default function InventoryNuevoPage() {
               businessId={businessId}
               installedApps={installedApps}
               checked={isSellable}
-              onCheckedChange={setIsSellable}
+              onCheckedChange={(checked) => {
+                setIsSellable(checked);
+                if (!checked) {
+                  setTrackInventory(true);
+                  setHasBillOfMaterials(false);
+                  setRequiredMaterials([]);
+                }
+              }}
+            />
+            <ProductInventorySection
+              businessIdDoc={businessIdDoc}
+              isSellable={isSellable}
+              trackInventory={trackInventory}
+              hasBillOfMaterials={hasBillOfMaterials}
+              requiredMaterials={requiredMaterials}
+              onTrackInventoryChange={setTrackInventory}
+              onHasBillOfMaterialsChange={setHasBillOfMaterials}
+              onRequiredMaterialsChange={setRequiredMaterials}
+              disabled={saving}
             />
             <div className="flex gap-2 pt-4">
               <Button type="submit" disabled={saving}>

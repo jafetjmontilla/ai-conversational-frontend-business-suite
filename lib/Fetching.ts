@@ -1340,14 +1340,19 @@ export const queries = {
   // Product (maestro) + Variants (SKUs)
   getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean, $includeNonSellable: Boolean) {
     getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive, includeNonSellable: $includeNonSellable) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      status createdBy createdAt updatedAt
       category { _id name }
       variants { _id sku stock_quantity price_override }
     }
   }`,
   getProduct: `query getProduct($_id: ID!, $id: ID!) {
     getProduct(_id: $_id, id: $id) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      status createdBy createdAt updatedAt
       category { _id name }
       variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
         attribute_values { attribute_value_id }
@@ -1390,6 +1395,12 @@ export const queries = {
       found sku variantId stock_quantity
     }
   }`,
+  checkCatalogAvailability: `query checkCatalogAvailability($id: ID!, $productVariantId: ID, $serviceOptionId: ID, $quantity: Float!) {
+    checkCatalogAvailability(id: $id, productVariantId: $productVariantId, serviceOptionId: $serviceOptionId, quantity: $quantity) {
+      available
+      reasons
+    }
+  }`,
   generateVariantsPreview: `query generateVariantsPreview($id: ID!, $input: GenerateVariantsPreviewInput!) {
     generateVariantsPreview(id: $id, input: $input) {
       combinations { sku attributeValues { attributeName value attributeValueId } attribute_value_ids price_override stock_quantity }
@@ -1397,12 +1408,18 @@ export const queries = {
   }`,
   createProduct: `mutation createProduct($id: ID!, $args: CreateProductInput!) {
     createProduct(id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      status createdBy createdAt updatedAt
     }
   }`,
   updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
     updateProduct(_id: $_id, id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      status createdBy createdAt updatedAt
     }
   }`,
   deleteProduct: `mutation deleteProduct($_id: ID!, $id: ID!) {
@@ -1468,13 +1485,18 @@ export const queries = {
   // Servicios (catálogo independiente de productos)
   getServices: `query getServices($id: ID!, $includeInactive: Boolean) {
     getServices(id: $id, includeInactive: $includeInactive) {
-      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      _id business_id name description is_available unit_of_measure
+      hasBillOfMaterials cost_review_pending status createdBy createdAt updatedAt
       options { _id name price durationMinutes status }
+      materials { _id }
     }
   }`,
   getService: `query getService($id: ID!, $_id: ID!) {
     getService(id: $id, _id: $_id) {
-      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      _id business_id name description is_available unit_of_measure
+      hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      cost_review_pending status createdBy createdAt updatedAt
       options { _id service_id name price durationMinutes status }
       materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure } }
     }

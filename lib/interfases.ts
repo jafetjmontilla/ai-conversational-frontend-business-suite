@@ -562,6 +562,14 @@ export interface ProductCategory {
 }
 
 // ——— Product (maestro) + Variants (SKUs) ———
+
+export interface RequiredMaterial {
+  materialVariantId: string;
+  sku: string;
+  quantity: number;
+  unitOfMeasure?: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -569,8 +577,13 @@ export interface Product {
   category_id: string | null;
   base_price: number;
   brand: string;
-  /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas (Service_Materials). Default true. */
+  /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas. Default true. */
   is_sellable?: boolean;
+  /** Si true, al vender se descuenta stock del SKU del producto. */
+  trackInventory?: boolean;
+  /** Si true, al vender se descuentan insumos de requiredMaterials. */
+  hasBillOfMaterials?: boolean;
+  requiredMaterials?: RequiredMaterial[];
   status: boolean;
   createdBy: string;
   createdAt?: string;
@@ -688,7 +701,7 @@ export interface ProductVariantForMaterial {
   product?: { _id: string; name: string } | null;
 }
 
-/** Servicio padre (catálogo independiente de productos). */
+/** Servicio padre (catálogo independiente de productos). trackInventory siempre false en backend. */
 export interface Service {
   _id: string;
   business_id: string;
@@ -696,6 +709,8 @@ export interface Service {
   description: string;
   is_available?: boolean;
   unit_of_measure?: string;
+  hasBillOfMaterials?: boolean;
+  requiredMaterials?: RequiredMaterial[];
   cost_review_pending?: boolean;
   status: boolean;
   options?: ServiceOption[];

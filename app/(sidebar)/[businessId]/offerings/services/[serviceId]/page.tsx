@@ -30,6 +30,19 @@ function allowsDecimalQuantity(unit: string | undefined): boolean {
   return ["kg", "g", "litro", "l", "ml", "resma", "m", "cm"].includes(u);
 }
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { FieldHelpText } from "@/components/offerings/FieldHelpText";
+import { InventoryScenarioHints } from "@/components/offerings/InventoryScenarioHints";
+import { CatalogAvailabilityPreview } from "@/components/offerings/CatalogAvailabilityPreview";
+import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
+import { getServiceInventoryMode } from "@/lib/offerings/inventoryModeLabels";
+import { INVENTORY_HELP } from "@/lib/offerings/inventoryHelpCopy";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ServiceDetailPage() {
   const params = useParams();
@@ -57,6 +70,7 @@ export default function ServiceDetailPage() {
   const [productionCost, setProductionCost] = useState<ProductionCostResult | null>(null);
   const [variantsForMaterial, setVariantsForMaterial] = useState<ProductVariantForMaterial[]>([]);
   const [materialSearchQuery, setMaterialSearchQuery] = useState("");
+  const [previewOptionId, setPreviewOptionId] = useState<string>("");
 
   const businessIdDoc = business?._id;
 
@@ -310,6 +324,15 @@ export default function ServiceDetailPage() {
 
   const options = service?.options ?? [];
   const materials = service?.materials ?? [];
+  const inventoryMode = service ? getServiceInventoryMode(service) : null;
+  const activeOptions = options.filter((o) => o.status !== false);
+  const previewOption = activeOptions.find((o) => o._id === previewOptionId) ?? activeOptions[0];
+
+  useEffect(() => {
+    if (!service?.options?.length || previewOptionId) return;
+    const first = service.options.find((o) => o.status !== false);
+    if (first) setPreviewOptionId(first._id);
+  }, [service?.options, previewOptionId]);
   const totalCost = productionCost?.totalProductionCost ?? 0;
   const minOptionPrice = options.length > 0 ? Math.min(...options.map((o) => o.price ?? 0)) : 0;
   const grossProfit = minOptionPrice - totalCost;
@@ -405,13 +428,17 @@ export default function ServiceDetailPage() {
         <main className="flex-1 min-w-0">
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             <Briefcase className="h-5 w-5" />
             {service.name}
+            {inventoryMode && <InventoryModeBadge mode={inventoryMode} className="ml-1" />}
           </CardTitle>
-          <CardDescription>Servicio padre. Las opciones (ej. 1 hora, 4 horas) se usan en facturas.</CardDescription>
+          <CardDescription>
+            Servicio padre. Las opciones (ej. 1 hora, básico) se usan en facturas. Los servicios no tienen stock propio.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <FieldHelpText>{INVENTORY_HELP.serviceNoTrackInventory}</FieldHelpText>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Nombre</Label>
@@ -437,11 +464,12 @@ export default function ServiceDetailPage() {
                 placeholder="Ej. Página, Plato, Hora, Copia"
                 className="mt-1"
               />
+              <FieldHelpText className="mt-1">{INVENTORY_HELP.unitOfMeasureHelp}</FieldHelpText>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <Label>Disponible para venta</Label>
-                <p className="text-xs text-muted-foreground">Desactiva si se agotan recursos.</p>
+              <div className="space-y-1">
+                <Label>{INVENTORY_HELP.availabilityLabel}</Label>
+                <FieldHelpText>{INVENTORY_HELP.availabilityHelp}</FieldHelpText>
               </div>
               <Switch
                 checked={service.is_available !== false}
@@ -449,11 +477,36 @@ export default function ServiceDetailPage() {
               />
             </div>
           </div>
+          <InventoryScenarioHints variant="service" hasBillOfMaterials={materials.length > 0} />
           <Button onClick={handleSaveService} disabled={saving || costExceedsPrice}>
             {saving ? "Guardando…" : "Guardar servicio"}
           </Button>
           {costExceedsPrice && (
             <p className="text-sm text-destructive">Ajusta los precios de las opciones (deben ser mayores al costo de producción) para poder guardar.</p>
+          )}
+          {activeOptions.length > 0 && businessIdDoc && (
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-xs text-muted-foreground">Opción para simular venta</Label>
+              <Select value={previewOption?._id ?? ""} onValueChange={setPreviewOptionId}>
+                <SelectTrigger className="max-w-xs h-9">
+                  <SelectValue placeholder="Elige una opción" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeOptions.map((o) => (
+                    <SelectItem key={o._id} value={o._id}>
+                      {o.name} — ${(o.price ?? 0).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {previewOption && (
+                <CatalogAvailabilityPreview
+                  businessIdDoc={businessIdDoc}
+                  serviceOptionId={previewOption._id}
+                  itemLabel={`${service.name} (${previewOption.name})`}
+                />
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -495,11 +548,14 @@ export default function ServiceDetailPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                Insumos del servicio
+                {INVENTORY_HELP.serviceBomTitle}
               </CardTitle>
-              <CardDescription>
-                Opcional. Si agregas insumos, al vender este servicio se descontará inventario de estas variantes.
-              </CardDescription>
+              <CardDescription>{INVENTORY_HELP.serviceBomDescription}</CardDescription>
+              <FieldHelpText className="mt-2">
+                {materials.length > 0
+                  ? INVENTORY_HELP.serviceWithMaterialsHelp
+                  : INVENTORY_HELP.servicePureHelp}
+              </FieldHelpText>
             </div>
             <Button onClick={openAddMaterial} size="sm">
               <Plus className="h-4 w-4 mr-2" />
@@ -509,7 +565,7 @@ export default function ServiceDetailPage() {
         </CardHeader>
         <CardContent>
           {materials.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">Sin insumos. Modo &quot;solo servicio&quot; (no se descuenta inventario).</p>
+            <FieldHelpText className="py-4 block">{INVENTORY_HELP.servicePureHelp}</FieldHelpText>
           ) : (
             <Table>
               <TableHeader>
@@ -724,7 +780,8 @@ export default function ServiceDetailPage() {
           <DialogHeader>
             <DialogTitle>{materialEditId ? "Editar cantidad de insumo" : "Agregar insumo"}</DialogTitle>
             <DialogDescription>
-              Busca un producto físico y define la cantidad consumida por unidad de servicio. La cantidad se adapta a la unidad (ej. kg = decimales, unidad = enteros).
+              Busca una variante de materia prima e indica cuánto se consume por cada unidad de servicio facturada.
+              {INVENTORY_HELP.requiredMaterialsHelp}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 flex-1 min-h-0 flex flex-col">

@@ -12,6 +12,8 @@ import type { Business, Service } from "@/lib/interfases";
 import { toast } from "sonner";
 import { Plus, Briefcase, Trash2, Settings2 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
+import { getServiceInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 
 export function ServicesCatalogContent() {
   const params = useParams();
@@ -160,6 +162,7 @@ export function ServicesCatalogContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[180px]">Servicio</TableHead>
+                  <TableHead className="min-w-[100px]">Inventario</TableHead>
                   <TableHead className="min-w-[80px]">Opciones</TableHead>
                   <TableHead className="min-w-[80px]">Acciones</TableHead>
                 </TableRow>
@@ -167,12 +170,14 @@ export function ServicesCatalogContent() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                       {query ? "Sin resultados con el filtro." : "No hay servicios. Agrega uno."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((service) => (
+                  filtered.map((service) => {
+                    const mode = getServiceInventoryMode(service);
+                    return (
                     <TableRow key={service._id}>
                       <TableCell>
                         <Link
@@ -196,6 +201,9 @@ export function ServicesCatalogContent() {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <InventoryModeBadge mode={mode} />
+                      </TableCell>
                       <TableCell>{service.options?.length ?? 0}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button asChild size="sm" variant="outline">
@@ -215,7 +223,8 @@ export function ServicesCatalogContent() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

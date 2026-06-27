@@ -12,6 +12,8 @@ import type { Business, Product } from "@/lib/interfases";
 import { toast } from "sonner";
 import { Plus, Package, Trash2, Settings2 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
+import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 
 type ProductWithVariants = Product & {
   category?: { _id: string; name: string } | null;
@@ -166,6 +168,7 @@ export function ProductsCatalogContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[180px]">Producto</TableHead>
+                  <TableHead className="min-w-[100px]">Inventario</TableHead>
                   <TableHead className="min-w-[120px]">Categoría</TableHead>
                   <TableHead className="min-w-[90px]">Precio base</TableHead>
                   <TableHead className="min-w-[80px]">Variantes</TableHead>
@@ -175,12 +178,18 @@ export function ProductsCatalogContent() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {query ? "Sin resultados con el filtro." : "No hay productos. Agrega uno."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((product) => (
+                  filtered.map((product) => {
+                    const mode = getProductInventoryMode(product);
+                    const totalStock = (product.variants ?? []).reduce(
+                      (sum, v) => sum + (v.stock_quantity ?? 0),
+                      0
+                    );
+                    return (
                     <TableRow key={product._id}>
                       <TableCell>
                         <Link
@@ -192,6 +201,16 @@ export function ProductsCatalogContent() {
                         {product.description && (
                           <p className="text-xs text-muted-foreground truncate max-w-[200px]">{product.description}</p>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          <InventoryModeBadge mode={mode} />
+                          {mode.key === "direct_stock" && (
+                            <span className="text-xs text-muted-foreground" title="Suma de stock en variantes">
+                              Stock: {totalStock}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{product.category?.name ?? "—"}</TableCell>
                       <TableCell>${(product.base_price ?? 0).toFixed(2)}</TableCell>
@@ -214,7 +233,8 @@ export function ProductsCatalogContent() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
