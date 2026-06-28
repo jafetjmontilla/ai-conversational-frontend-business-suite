@@ -1298,6 +1298,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1310,6 +1311,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1322,6 +1324,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1352,9 +1355,9 @@ export const queries = {
       _id name description category_id base_price brand is_sellable
       trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
-      modifierGroupIds
+      modifierGroupIds pricingAttributeId
       status createdBy createdAt updatedAt
-      category { _id name }
+      category { _id name pricingAttributeId }
       variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
         attribute_values { attribute_value_id }
       }
@@ -1363,7 +1366,7 @@ export const queries = {
   getAttributes: `query getAttributes($id: ID!) {
     getAttributes(id: $id) {
       _id name createdAt updatedAt
-      values { _id attribute_id value }
+      values { _id attribute_id value code }
     }
   }`,
   getAttributeValues: `query getAttributeValues($id: ID!, $attribute_id: ID) {
@@ -1418,7 +1421,7 @@ export const queries = {
   updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
     updateProduct(_id: $_id, id: $id, args: $args) {
       _id name description category_id base_price brand is_sellable
-      trackInventory hasBillOfMaterials
+      trackInventory hasBillOfMaterials pricingAttributeId
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       status createdBy createdAt updatedAt
     }
@@ -1433,7 +1436,12 @@ export const queries = {
   }`,
   createAttributeValue: `mutation createAttributeValue($id: ID!, $args: CreateAttributeValueInput!) {
     createAttributeValue(id: $id, args: $args) {
-      _id attribute_id value createdAt updatedAt
+      _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  updateAttributeValue: `mutation updateAttributeValue($_id: ID!, $id: ID!, $args: UpdateAttributeValueInput!) {
+    updateAttributeValue(_id: $_id, id: $id, args: $args) {
+      _id attribute_id value code createdAt updatedAt
     }
   }`,
   createProductVariant: `mutation createProductVariant($id: ID!, $args: CreateProductVariantInput!) {
@@ -2320,8 +2328,9 @@ export const queries = {
   parseOfferingsFromText: `mutation parseOfferingsFromText($id: ID!, $rawText: String!, $scope: OfferingsImportScope!) {
     parseOfferingsFromText(id: $id, rawText: $rawText, scope: $scope) {
       attributes { name values }
+      categoryPricing { category_name pricing_attribute_hint }
       products {
-        name description base_price brand category_hint is_sellable
+        name description base_price brand category_hint pricing_attribute_hint is_sellable
         needs_variants
         variant_attributes { name values }
         variants {
@@ -2341,7 +2350,7 @@ export const queries = {
         name isRequired selectionType minSelections maxSelections
         priceBehavior includedQuantity
         product_hints service_hints
-        options { name price displayName isDefault }
+        options { name price displayName isDefault price_matrix { priceKey price } }
       }
       warnings
     }
@@ -2359,7 +2368,8 @@ export const queries = {
       priceBehavior includedQuantity status createdBy createdAt updatedAt
       options {
         catalogItemId displayName priceOverride sortOrder isDefault
-        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier }
+        priceMatrix { priceKey price }
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
       }
     }
   }`,
@@ -2369,13 +2379,15 @@ export const queries = {
       priceBehavior includedQuantity status createdBy createdAt updatedAt
       options {
         catalogItemId displayName priceOverride sortOrder isDefault
-        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure }
+        priceMatrix { priceKey price }
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
       }
     }
   }`,
   getModifierCatalogItems: `query getModifierCatalogItems($id: ID!, $includeInactive: Boolean) {
     getModifierCatalogItems(id: $id, includeInactive: $includeInactive) {
-      _id sku name type price trackInventory hasBillOfMaterials
+      _id sku name type price priceMatrix { priceKey price }
+      trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       isModifier isAvailable unitOfMeasure variantId status
     }
@@ -2396,7 +2408,7 @@ export const queries = {
   }`,
   updateModifierCatalogItem: `mutation updateModifierCatalogItem($_id: ID!, $id: ID!, $args: UpdateModifierCatalogItemInput!) {
     updateModifierCatalogItem(_id: $_id, id: $id, args: $args) {
-      _id sku name price type trackInventory hasBillOfMaterials isModifier status
+      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials isModifier status
     }
   }`,
   setProductModifierGroups: `mutation setProductModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {

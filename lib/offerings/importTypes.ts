@@ -29,11 +29,22 @@ export type ParsedProductDraft = {
   base_price?: number | null;
   brand?: string | null;
   category_hint?: string | null;
+  pricing_attribute_hint?: string | null;
   is_sellable?: boolean | null;
   needs_variants?: boolean | null;
   variant_attributes?: ParsedProductVariantAttributeDraft[];
   variants?: ParsedProductVariantDraft[];
   selected?: boolean;
+};
+
+export type PriceMatrixEntry = {
+  priceKey: string;
+  price: number;
+};
+
+export type ParsedCategoryPricingDraft = {
+  category_name: string;
+  pricing_attribute_hint: string;
 };
 
 export type ParsedServiceOptionDraft = {
@@ -53,6 +64,7 @@ export type ParsedServiceDraft = {
 export type ParsedModifierOptionDraft = {
   name: string;
   price: number;
+  price_matrix?: PriceMatrixEntry[];
   displayName?: string | null;
   isDefault?: boolean | null;
 };
@@ -76,6 +88,7 @@ export type OfferingsImportDraft = {
   products: ParsedProductDraft[];
   services: ParsedServiceDraft[];
   modifierGroups: ParsedModifierGroupDraft[];
+  categoryPricing: ParsedCategoryPricingDraft[];
   warnings: string[];
 };
 
@@ -100,17 +113,20 @@ export const OFFERINGS_IMPORT_SCOPE_OPTIONS: { value: OfferingsImportScope; labe
   { value: "MODIFIERS", label: "Solo modificadores / adicionales" },
 ];
 
-export const OFFERINGS_IMPORT_PLACEHOLDER = `Ejemplo — menú / tarifario:
+export const OFFERINGS_IMPORT_PLACEHOLDER = `Ejemplo — menú pizzería:
 
-Peluquería:
-- Corte hombre $12
-- Corte mujer $18
-- Barba $8
-- Tintura desde $35
+Categoría: Pizzas (atributo de precio: Tamaño)
 
-Productos:
-Camiseta básica algodón — $15 (tallas S, M, L, XL; colores rojo, azul, negro)
-Pizza Margarita — $10 (tamaños personal $10, mediana $14, familiar $18)
-Extras pizza: BBQ $1.50, Ranch $1.50, Queso extra $2 (aplica a Pizza Margarita)
-Cerveza Corona 355ml — $2.50
+Pizzas — sabores: 4 Estaciones, Primavera, Jamón, Especial, Chorizo ahumado
+Tamaños y precios base (4 Estaciones): Personal $8, Mediana $12, Familiar $18, Extra Grande $22
+
+Adicionales (precio según tamaño):
+- Extra jamón: Personal $1, Mediana $1.50, Familiar $2, Extra Grande $2.50
+- Extra cebolla: Personal $0.80, Mediana $1, Familiar $1.50, Extra Grande $2
+- Borde de queso: Personal $2, Mediana $3, Familiar $4, Extra Grande $5
+(Aplican a todas las pizzas)
+
+Otros ejemplos:
+Camiseta básica — $15 (tallas S, M, L, XL; colores rojo, azul, negro)
+Corte hombre $12 · Corte mujer $18
 `;

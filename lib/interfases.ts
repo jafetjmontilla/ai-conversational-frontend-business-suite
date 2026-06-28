@@ -555,6 +555,8 @@ export interface ProductCategory {
   name: string;
   description?: string;
   type: "producto" | "servicio" | "ambos";
+  /** Atributo cuyos valores definen priceKey para extras (ej. Tamaño). */
+  pricingAttributeId?: string | null;
   active: boolean;
   createdBy: string;
   createdAt?: string;
@@ -585,6 +587,8 @@ export interface Product {
   hasBillOfMaterials?: boolean;
   requiredMaterials?: RequiredMaterial[];
   modifierGroupIds?: string[];
+  /** Override del atributo de priceKey (hereda de categoría si null). */
+  pricingAttributeId?: string | null;
   status: boolean;
   createdBy: string;
   createdAt?: string;
@@ -602,6 +606,8 @@ export interface AttributeValue {
   _id: string;
   attribute_id: string;
   value: string;
+  /** Slug estable para priceKey (ej. mediana, 128gb). */
+  code?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -742,12 +748,18 @@ export interface InventoryLog {
 export type ModifierSelectionType = "SINGLE" | "MULTIPLE";
 export type ModifierPriceBehavior = "ADDITIONAL" | "INCLUDED";
 
+export interface PriceMatrixEntry {
+  priceKey: string;
+  price: number;
+}
+
 export interface ModifierCatalogItem {
   _id: string;
   sku: string;
   name: string;
   type: string;
   price: number;
+  priceMatrix?: PriceMatrixEntry[];
   trackInventory: boolean;
   hasBillOfMaterials: boolean;
   requiredMaterials?: RequiredMaterial[];
@@ -762,6 +774,7 @@ export interface ModifierGroupOption {
   catalogItemId: string;
   displayName?: string | null;
   priceOverride?: number | null;
+  priceMatrix?: PriceMatrixEntry[];
   sortOrder: number;
   isDefault: boolean;
   catalogItem?: ModifierCatalogItem | null;

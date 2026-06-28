@@ -68,6 +68,7 @@ export function OfferingsGenerateDialog({
       }
       onResult({
         ...draft,
+        categoryPricing: draft.categoryPricing ?? [],
         attributes: draft.attributes.map((a) => ({ ...a, selected: true })),
         products: draft.products.map((p) => ({ ...p, selected: true })),
         services: draft.services.map((s) => ({ ...s, selected: true })),

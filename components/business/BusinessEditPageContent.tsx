@@ -20,7 +20,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import type { Business, ProductCategory } from "@/lib/interfases";
+import type { Business, ProductCategory, Attribute } from "@/lib/interfases";
 import { Pencil, Sparkles, Tag, Trash2 } from "lucide-react";
 import { GenerateDescriptionInterviewDialog } from "@/components/business/GenerateDescriptionInterviewDialog";
 import { ProductCategoriesImportDialog } from "@/components/business/ProductCategoriesImportDialog";
@@ -154,12 +154,14 @@ const categoryTypes = [
 
 function CategoriesTab({ businessId }: { businessId: string }) {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
   const [savingCat, setSavingCat] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [catName, setCatName] = useState("");
   const [catDescription, setCatDescription] = useState("");
   const [catType, setCatType] = useState<"producto" | "servicio" | "ambos">("producto");
+  const [catPricingAttributeId, setCatPricingAttributeId] = useState<string>("__none__");
   const [importOpen, setImportOpen] = useState(false);
 
   const fetchCategories = async () => {
@@ -182,11 +184,23 @@ function CategoriesTab({ businessId }: { businessId: string }) {
     if (businessId) fetchCategories();
   }, [businessId]);
 
+  useEffect(() => {
+    if (!businessId) return;
+    fetchApiV1({
+      query: queries.getAttributes,
+      type: "json",
+      variables: { id: businessId },
+    })
+      .then((res: Attribute[] | null) => setAttributes(Array.isArray(res) ? res : []))
+      .catch(() => setAttributes([]));
+  }, [businessId]);
+
   const resetForm = () => {
     setEditingId(null);
     setCatName("");
     setCatDescription("");
     setCatType("producto");
+    setCatPricingAttributeId("__none__");
   };
 
   const startEdit = (cat: ProductCategory) => {
@@ -194,6 +208,7 @@ function CategoriesTab({ businessId }: { businessId: string }) {
     setCatName(cat.name);
     setCatDescription(cat.description || "");
     setCatType(cat.type);
+    setCatPricingAttributeId(cat.pricingAttributeId ?? "__none__");
   };
 
   const handleSave = async () => {
@@ -214,6 +229,8 @@ function CategoriesTab({ businessId }: { businessId: string }) {
               name: catName.trim(),
               description: catDescription.trim() || undefined,
               type: catType,
+              pricingAttributeId:
+                catPricingAttributeId === "__none__" ? null : catPricingAttributeId,
             },
           },
         });
@@ -228,6 +245,8 @@ function CategoriesTab({ businessId }: { businessId: string }) {
               name: catName.trim(),
               description: catDescription.trim() || undefined,
               type: catType,
+              pricingAttributeId:
+                catPricingAttributeId === "__none__" ? null : catPricingAttributeId,
             },
           },
         });
@@ -296,6 +315,21 @@ function CategoriesTab({ businessId }: { businessId: string }) {
               <SelectContent>
                 {categoryTypes.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 md:col-span-3">
+            <label className="text-sm font-medium">Atributo de precio para extras</label>
+            <p className="text-xs text-muted-foreground">
+              Ej. Tamaño en pizzas — los adicionales indexan precio por priceKey de sus valores.
+            </p>
+            <Select value={catPricingAttributeId} onValueChange={setCatPricingAttributeId}>
+              <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Ninguno</SelectItem>
+                {attributes.map((a) => (
+                  <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

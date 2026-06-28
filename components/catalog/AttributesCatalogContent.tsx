@@ -326,8 +326,11 @@ export function AttributesCatalogContent() {
                       <span>Sin valores</span>
                     ) : (
                       (attr.values || []).map((v) => (
-                        <span key={v._id} className="bg-muted px-2 py-0.5 rounded">
+                        <span key={v._id} className="bg-muted px-2 py-0.5 rounded" title={v.code ? `priceKey: ${v.code}` : undefined}>
                           {v.value}
+                          {v.code && v.code !== v.value.toLowerCase().replace(/\s+/g, "_") ? (
+                            <span className="text-muted-foreground ml-1 text-xs">({v.code})</span>
+                          ) : null}
                         </span>
                       ))
                     )}

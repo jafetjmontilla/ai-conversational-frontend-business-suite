@@ -172,6 +172,7 @@ export default function ProductDetailPage() {
             name: product.name,
             description: product.description,
             category_id: product.category_id ?? null,
+            pricingAttributeId: product.pricingAttributeId ?? null,
             base_price: product.base_price,
             brand: product.brand,
             is_sellable: product.is_sellable !== false,
@@ -471,6 +472,37 @@ export default function ProductDetailPage() {
                   <SelectItem value="__none__">Sin categoría</SelectItem>
                   {categories.map((c) => (
                     <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Atributo de precio (extras)</Label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Define qué variante usa cada adicional. Hereda de la categoría si no se elige.
+              </p>
+              <Select
+                value={product.pricingAttributeId ?? "__inherit__"}
+                onValueChange={(v) =>
+                  setProduct((p) =>
+                    p
+                      ? {
+                          ...p,
+                          pricingAttributeId: v === "__inherit__" ? null : v,
+                        }
+                      : null
+                  )
+                }
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Heredar de categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__inherit__">Heredar de categoría</SelectItem>
+                  {attributes.map((a) => (
+                    <SelectItem key={a._id} value={a._id}>
+                      {a.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

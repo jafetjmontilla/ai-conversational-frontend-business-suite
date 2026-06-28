@@ -71,7 +71,14 @@ function formatVariantSummary(prod: ParsedProductDraft): string | null {
 }
 
 function formatModifierGroupSummary(group: ParsedModifierGroupDraft): string {
-  const opts = group.options.map((o) => `${o.name} ($${o.price})`).join(" · ");
+  const opts = group.options
+    .map((o) => {
+      const matrix = o.price_matrix?.length
+        ? ` [${o.price_matrix.map((m) => `${m.priceKey}: $${m.price}`).join(", ")}]`
+        : "";
+      return `${o.name} ($${o.price})${matrix}`;
+    })
+    .join(" · ");
   const rules =
     group.selectionType === "SINGLE"
       ? "una opción"
@@ -91,6 +98,7 @@ function withSelected(draft: OfferingsImportDraft): OfferingsImportDraft {
     products: draft.products.map((p) => ({ ...p, selected: true })),
     services: draft.services.map((s) => ({ ...s, selected: true })),
     modifierGroups: (draft.modifierGroups ?? []).map((g) => ({ ...g, selected: true })),
+    categoryPricing: draft.categoryPricing ?? [],
   };
 }
 
@@ -152,6 +160,7 @@ export function OfferingsImportWizard({
       const enriched = withSelected({
         ...parsed,
         modifierGroups: parsed.modifierGroups ?? [],
+        categoryPricing: parsed.categoryPricing ?? [],
       });
       const total =
         enriched.attributes.length +
@@ -177,6 +186,12 @@ export function OfferingsImportWizard({
       attributes: draft.attributes
         .filter((a) => a.selected !== false)
         .map(({ name, values }) => ({ name, values })),
+      categoryPricing: (draft.categoryPricing ?? []).map(
+        ({ category_name, pricing_attribute_hint }) => ({
+          category_name,
+          pricing_attribute_hint,
+        })
+      ),
       products: draft.products
         .filter((p) => p.selected !== false)
         .map(
@@ -186,6 +201,7 @@ export function OfferingsImportWizard({
             base_price,
             brand,
             category_hint,
+            pricing_attribute_hint,
             is_sellable,
             needs_variants,
             variant_attributes,
@@ -196,6 +212,7 @@ export function OfferingsImportWizard({
             base_price,
             brand,
             category_hint,
+            pricing_attribute_hint,
             is_sellable,
             needs_variants,
             variant_attributes,
@@ -232,7 +249,13 @@ export function OfferingsImportWizard({
             maxSelections,
             priceBehavior,
             includedQuantity,
-            options,
+            options: options.map((o) => ({
+              name: o.name,
+              price: o.price,
+              displayName: o.displayName,
+              isDefault: o.isDefault,
+              price_matrix: (o.price_matrix ?? []).filter((m) => m.priceKey.trim()),
+            })),
             product_hints: product_hints ?? [],
             service_hints: service_hints ?? [],
           })
@@ -387,6 +410,19 @@ export function OfferingsImportWizard({
                 <ul className="mt-2 list-disc pl-5 text-muted-foreground space-y-0.5">
                   {draft.warnings.map((w, i) => (
                     <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(draft.categoryPricing ?? []).length > 0 && (
+              <div className="rounded-lg border p-3 text-sm">
+                <p className="font-medium">Atributo de precio por categoría</p>
+                <ul className="mt-1 text-muted-foreground space-y-0.5">
+                  {(draft.categoryPricing ?? []).map((cp, i) => (
+                    <li key={i}>
+                      {cp.category_name} → {cp.pricing_attribute_hint} (priceKey para extras)
+                    </li>
                   ))}
                 </ul>
               </div>

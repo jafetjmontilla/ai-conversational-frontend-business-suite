@@ -30,13 +30,15 @@ import type {
   ModifierGroup,
   ModifierPriceBehavior,
   ModifierSelectionType,
+  PriceMatrixEntry,
 } from "@/lib/interfases";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Grid3X3 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
 import { RequiredMaterialsEditor } from "@/components/offerings/RequiredMaterialsEditor";
 import type { RequiredMaterial } from "@/lib/interfases";
+import { PriceMatrixEditor, priceMatrixToInput } from "@/components/offerings/PriceMatrixEditor";
 
 type OptionDraft = {
   catalogItemId: string;
@@ -79,6 +81,12 @@ export default function ModifierGroupDetailPage() {
 
   const [addOptionOpen, setAddOptionOpen] = useState(false);
   const [pickItemId, setPickItemId] = useState("");
+
+  const [matrixOpen, setMatrixOpen] = useState(false);
+  const [matrixItemId, setMatrixItemId] = useState<string | null>(null);
+  const [matrixEntries, setMatrixEntries] = useState<PriceMatrixEntry[]>([]);
+  const [matrixSaving, setMatrixSaving] = useState(false);
+  const [suggestedPriceKeys, setSuggestedPriceKeys] = useState<string[]>([]);
 
   const load = async () => {
     if (!businessIdDoc) return;
@@ -210,6 +218,61 @@ export default function ModifierGroupDetailPage() {
     const fromList = modifierItems.find((i) => i._id === catalogItemId);
     const item = fromGroup ?? fromList;
     return item ? `${item.name} (${item.sku})` : catalogItemId;
+  };
+
+  const openMatrixEditor = async (catalogItemId: string) => {
+    const item =
+      modifierItems.find((i) => i._id === catalogItemId) ??
+      group?.options?.find((o) => o.catalogItemId === catalogItemId)?.catalogItem;
+    setMatrixItemId(catalogItemId);
+    setMatrixEntries(priceMatrixToInput(item?.priceMatrix));
+    setMatrixOpen(true);
+    if (businessIdDoc) {
+      try {
+        const attrs = (await fetchApiV1({
+          query: queries.getAttributes,
+          type: "json",
+          variables: { id: businessIdDoc },
+        })) as Array<{ values?: Array<{ code?: string; value: string }> }>;
+        const keys = new Set<string>();
+        for (const a of attrs ?? []) {
+          for (const v of a.values ?? []) {
+            if (v.code) keys.add(v.code);
+          }
+        }
+        setSuggestedPriceKeys(Array.from(keys));
+      } catch {
+        setSuggestedPriceKeys([]);
+      }
+    }
+  };
+
+  const handleSaveMatrix = async () => {
+    if (!businessIdDoc || !matrixItemId) return;
+    setMatrixSaving(true);
+    try {
+      const updated = (await fetchApiV1({
+        query: queries.updateModifierCatalogItem,
+        type: "json",
+        variables: {
+          id: businessIdDoc,
+          _id: matrixItemId,
+          args: {
+            priceMatrix: matrixEntries.filter((e) => e.priceKey.trim()),
+          },
+        },
+      })) as ModifierCatalogItem;
+      setModifierItems((prev) =>
+        prev.map((i) => (i._id === matrixItemId ? { ...i, ...updated } : i))
+      );
+      toast.success("Matriz de precios actualizada");
+      setMatrixOpen(false);
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Error al guardar matriz");
+    } finally {
+      setMatrixSaving(false);
+    }
   };
 
   if (loading) {
@@ -365,6 +428,7 @@ export default function ModifierGroupDetailPage() {
                   <TableHead>Ítem</TableHead>
                   <TableHead>Etiqueta</TableHead>
                   <TableHead>Precio override</TableHead>
+                  <TableHead>Matriz</TableHead>
                   <TableHead>Default</TableHead>
                   <TableHead />
                 </TableRow>
@@ -399,6 +463,27 @@ export default function ModifierGroupDetailPage() {
                         disabled={!canEdit}
                         className="h-8 w-24"
                       />
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const item =
+                          modifierItems.find((i) => i._id === o.catalogItemId) ??
+                          group?.options?.find((x) => x.catalogItemId === o.catalogItemId)?.catalogItem;
+                        const count = item?.priceMatrix?.length ?? 0;
+                        return (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            disabled={!canEdit}
+                            onClick={() => openMatrixEditor(o.catalogItemId)}
+                          >
+                            <Grid3X3 className="h-3 w-3 mr-1" />
+                            {count ? `${count} keys` : "Fija"}
+                          </Button>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -520,6 +605,33 @@ export default function ModifierGroupDetailPage() {
             >
               Añadir
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={matrixOpen} onOpenChange={setMatrixOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Matriz de precios</DialogTitle>
+            <DialogDescription>
+              {matrixItemId ? itemLabel(matrixItemId) : ""} — precios según priceKey de la variante elegida.
+            </DialogDescription>
+          </DialogHeader>
+          <PriceMatrixEditor
+            value={matrixEntries}
+            onChange={setMatrixEntries}
+            disabled={!canEdit || matrixSaving}
+            suggestedKeys={suggestedPriceKeys}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMatrixOpen(false)}>
+              Cancelar
+            </Button>
+            {canEdit && (
+              <Button onClick={handleSaveMatrix} disabled={matrixSaving}>
+                {matrixSaving ? "Guardando…" : "Guardar matriz"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
