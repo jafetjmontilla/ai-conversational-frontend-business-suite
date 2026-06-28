@@ -1,4 +1,4 @@
-export type OfferingsImportScope = "ALL" | "ATTRIBUTES" | "PRODUCTS" | "SERVICES";
+export type OfferingsImportScope = "ALL" | "ATTRIBUTES" | "PRODUCTS" | "SERVICES" | "MODIFIERS";
 
 export type ParsedAttributeDraft = {
   name: string;
@@ -50,10 +50,32 @@ export type ParsedServiceDraft = {
   selected?: boolean;
 };
 
+export type ParsedModifierOptionDraft = {
+  name: string;
+  price: number;
+  displayName?: string | null;
+  isDefault?: boolean | null;
+};
+
+export type ParsedModifierGroupDraft = {
+  name: string;
+  isRequired?: boolean | null;
+  selectionType?: "SINGLE" | "MULTIPLE" | null;
+  minSelections?: number | null;
+  maxSelections?: number | null;
+  priceBehavior?: "ADDITIONAL" | "INCLUDED" | null;
+  includedQuantity?: number | null;
+  options: ParsedModifierOptionDraft[];
+  product_hints?: string[] | null;
+  service_hints?: string[] | null;
+  selected?: boolean;
+};
+
 export type OfferingsImportDraft = {
   attributes: ParsedAttributeDraft[];
   products: ParsedProductDraft[];
   services: ParsedServiceDraft[];
+  modifierGroups: ParsedModifierGroupDraft[];
   warnings: string[];
 };
 
@@ -71,10 +93,11 @@ export type OfferingsImportResult = {
 };
 
 export const OFFERINGS_IMPORT_SCOPE_OPTIONS: { value: OfferingsImportScope; label: string }[] = [
-  { value: "ALL", label: "Todo (atributos, productos y servicios)" },
+  { value: "ALL", label: "Todo (atributos, productos, servicios y modificadores)" },
   { value: "ATTRIBUTES", label: "Solo atributos" },
   { value: "PRODUCTS", label: "Solo productos" },
   { value: "SERVICES", label: "Solo servicios" },
+  { value: "MODIFIERS", label: "Solo modificadores / adicionales" },
 ];
 
 export const OFFERINGS_IMPORT_PLACEHOLDER = `Ejemplo — menú / tarifario:
@@ -88,5 +111,6 @@ Peluquería:
 Productos:
 Camiseta básica algodón — $15 (tallas S, M, L, XL; colores rojo, azul, negro)
 Pizza Margarita — $10 (tamaños personal $10, mediana $14, familiar $18)
+Extras pizza: BBQ $1.50, Ranch $1.50, Queso extra $2 (aplica a Pizza Margarita)
 Cerveza Corona 355ml — $2.50
 `;

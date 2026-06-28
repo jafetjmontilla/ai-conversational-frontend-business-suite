@@ -193,8 +193,6 @@ export function KnowledgeItemFormFields({ sourceId, value, onChange, disabled }:
     );
   }
 
-  if (
-  }
 
   if (sourceId === "case_studies") {
     return (

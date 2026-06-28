@@ -32,6 +32,7 @@ import {
   type ParsedAttributeDraft,
   type ParsedProductDraft,
   type ParsedServiceDraft,
+  type ParsedModifierGroupDraft,
 } from "@/lib/offerings/importTypes";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
@@ -69,12 +70,27 @@ function formatVariantSummary(prod: ParsedProductDraft): string | null {
     : `${count} variantes — ej: ${samples}${more}`;
 }
 
+function formatModifierGroupSummary(group: ParsedModifierGroupDraft): string {
+  const opts = group.options.map((o) => `${o.name} ($${o.price})`).join(" · ");
+  const rules =
+    group.selectionType === "SINGLE"
+      ? "una opción"
+      : `hasta ${group.maxSelections ?? group.options.length}`;
+  const required = group.isRequired ? " · obligatorio" : "";
+  const hints = [
+    ...(group.product_hints ?? []).length ? [`productos: ${(group.product_hints ?? []).join(", ")}`] : [],
+    ...(group.service_hints ?? []).length ? [`servicios: ${(group.service_hints ?? []).join(", ")}`] : [],
+  ];
+  return `${rules}${required} — ${opts}${hints.length ? ` · vincular a ${hints.join("; ")}` : ""}`;
+}
+
 function withSelected(draft: OfferingsImportDraft): OfferingsImportDraft {
   return {
     ...draft,
     attributes: draft.attributes.map((a) => ({ ...a, selected: true })),
     products: draft.products.map((p) => ({ ...p, selected: true })),
     services: draft.services.map((s) => ({ ...s, selected: true })),
+    modifierGroups: (draft.modifierGroups ?? []).map((g) => ({ ...g, selected: true })),
   };
 }
 
@@ -108,11 +124,12 @@ export function OfferingsImportWizard({
   };
 
   const selectedCounts = useMemo(() => {
-    if (!draft) return { attributes: 0, products: 0, services: 0 };
+    if (!draft) return { attributes: 0, products: 0, services: 0, modifierGroups: 0 };
     return {
       attributes: draft.attributes.filter((a) => a.selected !== false).length,
       products: draft.products.filter((p) => p.selected !== false).length,
       services: draft.services.filter((s) => s.selected !== false).length,
+      modifierGroups: (draft.modifierGroups ?? []).filter((g) => g.selected !== false).length,
     };
   }, [draft]);
 
@@ -132,9 +149,15 @@ export function OfferingsImportWizard({
         type: "json",
         variables: { id: businessIdDoc, rawText: rawText.trim(), scope },
       })) as OfferingsImportDraft;
-      const enriched = withSelected(parsed);
+      const enriched = withSelected({
+        ...parsed,
+        modifierGroups: parsed.modifierGroups ?? [],
+      });
       const total =
-        enriched.attributes.length + enriched.products.length + enriched.services.length;
+        enriched.attributes.length +
+        enriched.products.length +
+        enriched.services.length +
+        enriched.modifierGroups.length;
       if (total === 0) {
         toast.warning("No se detectaron elementos. Prueba con más detalle.");
         return;
@@ -187,8 +210,39 @@ export function OfferingsImportWizard({
           unit_of_measure,
           options,
         })),
+      modifierGroups: (draft.modifierGroups ?? [])
+        .filter((g) => g.selected !== false)
+        .map(
+          ({
+            name,
+            isRequired,
+            selectionType,
+            minSelections,
+            maxSelections,
+            priceBehavior,
+            includedQuantity,
+            options,
+            product_hints,
+            service_hints,
+          }) => ({
+            name,
+            isRequired,
+            selectionType,
+            minSelections,
+            maxSelections,
+            priceBehavior,
+            includedQuantity,
+            options,
+            product_hints: product_hints ?? [],
+            service_hints: service_hints ?? [],
+          })
+        ),
     };
-    const total = input.attributes.length + input.products.length + input.services.length;
+    const total =
+      input.attributes.length +
+      input.products.length +
+      input.services.length +
+      input.modifierGroups.length;
     if (total === 0) {
       toast.error("Selecciona al menos un ítem para importar");
       return;
@@ -252,11 +306,26 @@ export function OfferingsImportWizard({
     );
   };
 
+  const updateModifierGroup = (index: number, patch: Partial<ParsedModifierGroupDraft>) => {
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            modifierGroups: (d.modifierGroups ?? []).map((g, i) =>
+              i === index ? { ...g, ...patch } : g
+            ),
+          }
+        : d
+    );
+  };
+
   const previewTabs = useMemo(() => {
     const tabs: { id: string; label: string; count: number }[] = [];
     if (draft?.attributes.length) tabs.push({ id: "attributes", label: "Atributos", count: draft.attributes.length });
     if (draft?.products.length) tabs.push({ id: "products", label: "Productos", count: draft.products.length });
     if (draft?.services.length) tabs.push({ id: "services", label: "Servicios", count: draft.services.length });
+    if (draft?.modifierGroups?.length)
+      tabs.push({ id: "modifiers", label: "Modificadores", count: draft.modifierGroups.length });
     return tabs;
   }, [draft]);
 
@@ -445,11 +514,35 @@ export function OfferingsImportWizard({
                   </div>
                 ))}
               </TabsContent>
+
+              <TabsContent value="modifiers" className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                {(draft.modifierGroups ?? []).map((grp, i) => (
+                  <div key={i} className="flex gap-2 items-start rounded-lg border p-2">
+                    <input
+                      type="checkbox"
+                      checked={grp.selected !== false}
+                      onChange={(e) => updateModifierGroup(i, { selected: e.target.checked })}
+                      className="mt-2"
+                      aria-label="Importar grupo de modificadores"
+                    />
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <Input
+                        value={grp.name}
+                        onChange={(e) => updateModifierGroup(i, { name: e.target.value })}
+                        className="h-8"
+                        placeholder="Nombre del grupo"
+                      />
+                      <p className="text-xs text-muted-foreground">{formatModifierGroupSummary(grp)}</p>
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
             </Tabs>
 
             <p className="text-sm text-muted-foreground">
               Se importarán {selectedCounts.attributes} atributo(s), {selectedCounts.products}{" "}
-              producto(s) y {selectedCounts.services} servicio(s).
+              producto(s), {selectedCounts.services} servicio(s) y {selectedCounts.modifierGroups}{" "}
+              grupo(s) de modificadores.
             </p>
           </div>
         )}

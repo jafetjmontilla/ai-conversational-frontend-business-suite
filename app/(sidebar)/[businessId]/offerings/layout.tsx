@@ -11,6 +11,7 @@ import { OfferingsLayoutToolbar } from "@/components/offerings/OfferingsLayoutTo
 const OFFERINGS_TABS = [
   { id: "products", label: "Productos" },
   { id: "services", label: "Servicios" },
+  { id: "modifiers", label: "Modificadores" },
   { id: "attributes", label: "Atributos" },
 ] as const;
 

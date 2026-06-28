@@ -35,7 +35,7 @@ export function extractDraftItems(sourceId: KnowledgeSourceId, payload: Record<s
       if (sourceId === "faqs") label = String(i.question ?? "FAQ");
       else if (sourceId === "policies") label = String(i.rule ?? "Política");
       else if (sourceId === "tools") label = String(i.name ?? "API");
-      else if (sourceId === "products") label = String(i.name ?? "Producto");
+      else if (sourceId === "protocols") label = String(i.title ?? i.name ?? "Protocolo");
       return { itemId: String(i.itemId), label, data: i };
     });
 }

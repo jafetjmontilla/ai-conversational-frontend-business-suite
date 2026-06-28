@@ -1352,6 +1352,7 @@ export const queries = {
       _id name description category_id base_price brand is_sellable
       trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      modifierGroupIds
       status createdBy createdAt updatedAt
       category { _id name }
       variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
@@ -1496,6 +1497,7 @@ export const queries = {
       _id business_id name description is_available unit_of_measure
       hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      modifierGroupIds
       cost_review_pending status createdBy createdAt updatedAt
       options { _id service_id name price durationMinutes status }
       materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure } }
@@ -2335,6 +2337,12 @@ export const queries = {
         unit_of_measure
         options { name price durationMinutes }
       }
+      modifierGroups {
+        name isRequired selectionType minSelections maxSelections
+        priceBehavior includedQuantity
+        product_hints service_hints
+        options { name price displayName isDefault }
+      }
       warnings
     }
   }`,
@@ -2343,6 +2351,80 @@ export const queries = {
       created { kind name status message }
       skipped { kind name status message }
       errors { kind name status message }
+    }
+  }`,
+  getModifierGroups: `query getModifierGroups($id: ID!, $includeInactive: Boolean) {
+    getModifierGroups(id: $id, includeInactive: $includeInactive) {
+      _id business_id name isRequired selectionType minSelections maxSelections
+      priceBehavior includedQuantity status createdBy createdAt updatedAt
+      options {
+        catalogItemId displayName priceOverride sortOrder isDefault
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier }
+      }
+    }
+  }`,
+  getModifierGroup: `query getModifierGroup($_id: ID!, $id: ID!) {
+    getModifierGroup(_id: $_id, id: $id) {
+      _id business_id name isRequired selectionType minSelections maxSelections
+      priceBehavior includedQuantity status createdBy createdAt updatedAt
+      options {
+        catalogItemId displayName priceOverride sortOrder isDefault
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure }
+      }
+    }
+  }`,
+  getModifierCatalogItems: `query getModifierCatalogItems($id: ID!, $includeInactive: Boolean) {
+    getModifierCatalogItems(id: $id, includeInactive: $includeInactive) {
+      _id sku name type price trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      isModifier isAvailable unitOfMeasure variantId status
+    }
+  }`,
+  createModifierGroup: `mutation createModifierGroup($id: ID!, $args: CreateModifierGroupInput!) {
+    createModifierGroup(id: $id, args: $args) { _id name status }
+  }`,
+  updateModifierGroup: `mutation updateModifierGroup($_id: ID!, $id: ID!, $args: UpdateModifierGroupInput!) {
+    updateModifierGroup(_id: $_id, id: $id, args: $args) { _id name status }
+  }`,
+  deleteModifierGroup: `mutation deleteModifierGroup($_id: ID!, $id: ID!) {
+    deleteModifierGroup(_id: $_id, id: $id)
+  }`,
+  createModifierCatalogItem: `mutation createModifierCatalogItem($id: ID!, $args: CreateModifierCatalogItemInput!) {
+    createModifierCatalogItem(id: $id, args: $args) {
+      _id sku name price type trackInventory hasBillOfMaterials isModifier status
+    }
+  }`,
+  updateModifierCatalogItem: `mutation updateModifierCatalogItem($_id: ID!, $id: ID!, $args: UpdateModifierCatalogItemInput!) {
+    updateModifierCatalogItem(_id: $_id, id: $id, args: $args) {
+      _id sku name price type trackInventory hasBillOfMaterials isModifier status
+    }
+  }`,
+  setProductModifierGroups: `mutation setProductModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {
+    setProductModifierGroups(_id: $_id, id: $id, modifierGroupIds: $modifierGroupIds) {
+      _id modifierGroupIds
+    }
+  }`,
+  setServiceModifierGroups: `mutation setServiceModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {
+    setServiceModifierGroups(_id: $_id, id: $id, modifierGroupIds: $modifierGroupIds) {
+      _id modifierGroupIds
+    }
+  }`,
+  previewModifierPricing: `query previewModifierPricing(
+    $id: ID!
+    $productVariantId: ID
+    $serviceOptionId: ID
+    $quantity: Float!
+    $selectedModifiers: [SelectedModifierInput!]!
+  ) {
+    previewModifierPricing(
+      id: $id
+      productVariantId: $productVariantId
+      serviceOptionId: $serviceOptionId
+      quantity: $quantity
+      selectedModifiers: $selectedModifiers
+    ) {
+      additionalTotal
+      lines { modifierGroupId catalogItemId quantity unitPrice total }
     }
   }`,
 }

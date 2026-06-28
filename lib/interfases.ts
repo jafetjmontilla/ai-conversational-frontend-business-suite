@@ -584,6 +584,7 @@ export interface Product {
   /** Si true, al vender se descuentan insumos de requiredMaterials. */
   hasBillOfMaterials?: boolean;
   requiredMaterials?: RequiredMaterial[];
+  modifierGroupIds?: string[];
   status: boolean;
   createdBy: string;
   createdAt?: string;
@@ -715,6 +716,7 @@ export interface Service {
   status: boolean;
   options?: ServiceOption[];
   materials?: ServiceMaterial[];
+  modifierGroupIds?: string[];
 }
 
 /** Resultado del costo de producción dinámico de un servicio. */
@@ -735,4 +737,62 @@ export interface InventoryLog {
   concept: string;
   userId: string;
   createdAt: string;
+}
+
+export type ModifierSelectionType = "SINGLE" | "MULTIPLE";
+export type ModifierPriceBehavior = "ADDITIONAL" | "INCLUDED";
+
+export interface ModifierCatalogItem {
+  _id: string;
+  sku: string;
+  name: string;
+  type: string;
+  price: number;
+  trackInventory: boolean;
+  hasBillOfMaterials: boolean;
+  requiredMaterials?: RequiredMaterial[];
+  isModifier: boolean;
+  isAvailable: boolean;
+  unitOfMeasure: string;
+  variantId?: string | null;
+  status: boolean;
+}
+
+export interface ModifierGroupOption {
+  catalogItemId: string;
+  displayName?: string | null;
+  priceOverride?: number | null;
+  sortOrder: number;
+  isDefault: boolean;
+  catalogItem?: ModifierCatalogItem | null;
+}
+
+export interface ModifierGroup {
+  _id: string;
+  business_id: string;
+  name: string;
+  isRequired: boolean;
+  selectionType: ModifierSelectionType;
+  minSelections: number;
+  maxSelections: number;
+  priceBehavior: ModifierPriceBehavior;
+  includedQuantity: number;
+  options: ModifierGroupOption[];
+  status: boolean;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ModifierPriceLine {
+  modifierGroupId: string;
+  catalogItemId: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface ModifierPricingResult {
+  lines: ModifierPriceLine[];
+  additionalTotal: number;
 }

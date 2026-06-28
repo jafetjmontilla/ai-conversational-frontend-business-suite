@@ -48,6 +48,7 @@ import { CatalogAvailabilityPreview } from "@/components/offerings/CatalogAvaila
 import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 import type { RequiredMaterial } from "@/lib/interfases";
+import { ModifierGroupsLinker } from "@/components/offerings/ModifierGroupsLinker";
 
 type AttributeWithValues = { _id: string; name: string; values?: { _id: string; attribute_id: string; value: string }[] };
 type ProductWithDetails = Product & {
@@ -555,6 +556,17 @@ export default function ProductDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {product.is_sellable !== false && businessIdDoc && (
+        <ModifierGroupsLinker
+          businessId={businessIdDoc}
+          entityId={productId}
+          entityType="product"
+          selectedGroupIds={product.modifierGroupIds ?? []}
+          disabled={!canEditCurrentBusiness}
+          onSaved={(ids) => setProduct((p) => (p ? { ...p, modifierGroupIds: ids } : p))}
+        />
+      )}
 
       <Card>
         <CardHeader>

@@ -36,6 +36,7 @@ import { CatalogAvailabilityPreview } from "@/components/offerings/CatalogAvaila
 import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getServiceInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 import { INVENTORY_HELP } from "@/lib/offerings/inventoryHelpCopy";
+import { ModifierGroupsLinker } from "@/components/offerings/ModifierGroupsLinker";
 import {
   Select,
   SelectContent,
@@ -510,6 +511,17 @@ export default function ServiceDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {businessIdDoc && (
+        <ModifierGroupsLinker
+          businessId={businessIdDoc}
+          entityId={serviceId}
+          entityType="service"
+          selectedGroupIds={service?.modifierGroupIds ?? []}
+          disabled={!canEditCurrentBusiness}
+          onSaved={(ids) => setService((s) => (s ? { ...s, modifierGroupIds: ids } : s))}
+        />
+      )}
 
       {productionCost && productionCost.breakdown.length > 0 && (
         <Card className="mb-6">
