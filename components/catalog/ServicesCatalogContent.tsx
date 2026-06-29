@@ -14,6 +14,8 @@ import { Plus, Briefcase, Trash2, Settings2 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getServiceInventoryMode } from "@/lib/offerings/inventoryModeLabels";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { OfferingArchivedSection, offeringDeleteToast } from "@/components/offerings/OfferingArchivedSection";
 
 export function ServicesCatalogContent() {
   const params = useParams();
@@ -24,8 +26,15 @@ export function ServicesCatalogContent() {
 
   const [business, setBusiness] = useState<Business | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [archivedServices, setArchivedServices] = useState<Service[]>([]);
+  const [archivedOptions, setArchivedOptions] = useState<
+    { _id: string; serviceName: string; name: string }[]
+  >([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const businessIdDoc = business?._id;
 
@@ -62,13 +71,29 @@ export function ServicesCatalogContent() {
     }
     let cancelled = false;
     setLoading(true);
-    fetchApiV1({
-      query: queries.getServices,
-      type: "json",
-      variables: { id: businessIdDoc, includeInactive: true },
-    })
-      .then((res: Service[] | null) => {
-        if (!cancelled) setServices(Array.isArray(res) ? res : []);
+    Promise.all([
+      fetchApiV1({
+        query: queries.getServices,
+        type: "json",
+        variables: { id: businessIdDoc, includeInactive: false },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedServices,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedServiceOptions,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ])
+      .then(([activeRes, archivedRes, archivedOptsRes]) => {
+        if (!cancelled) {
+          setServices(Array.isArray(activeRes) ? activeRes : []);
+          setArchivedServices(Array.isArray(archivedRes) ? archivedRes : []);
+          setArchivedOptions(Array.isArray(archivedOptsRes) ? archivedOptsRes : []);
+        }
       })
       .catch(() => {
         if (!cancelled) toast.error("Error al cargar servicios");
@@ -90,21 +115,91 @@ export function ServicesCatalogContent() {
     );
   }, [services, query]);
 
-  const handleDelete = async (service: Service) => {
-    if (!confirm(`¿Desactivar servicio "${service.name}"?`)) return;
+  const reloadCatalog = async () => {
     if (!businessIdDoc) return;
+    const [activeRes, archivedRes, archivedOptsRes] = await Promise.all([
+      fetchApiV1({
+        query: queries.getServices,
+        type: "json",
+        variables: { id: businessIdDoc, includeInactive: false },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedServices,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedServiceOptions,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ]);
+    setServices(Array.isArray(activeRes) ? activeRes : []);
+    setArchivedServices(Array.isArray(archivedRes) ? archivedRes : []);
+    setArchivedOptions(Array.isArray(archivedOptsRes) ? archivedOptsRes : []);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!businessIdDoc || !deleteTarget) return;
+    setDeleting(true);
     try {
-      await fetchApiV1({
+      const result = (await fetchApiV1({
         query: queries.deleteService,
         type: "json",
-        variables: { id: businessIdDoc, _id: service._id },
-      });
-      setServices((prev) => prev.filter((s) => s._id !== service._id));
-      toast.success("Servicio desactivado");
+        variables: { id: businessIdDoc, _id: deleteTarget._id },
+      })) as { mode: "HARD" | "SOFT"; referenceCount: number };
+      setServices((prev) => prev.filter((s) => s._id !== deleteTarget._id));
+      offeringDeleteToast(`Servicio «${deleteTarget.name}»`, result, toast);
+      await reloadCatalog();
+      setDeleteTarget(null);
     } catch (e: unknown) {
-      toast.error((e as { message?: string })?.message || "Error al desactivar");
+      toast.error((e as { message?: string })?.message || "Error al eliminar");
+    } finally {
+      setDeleting(false);
     }
   };
+
+  const handleRestoreService = async (serviceId: string, name: string) => {
+    if (!businessIdDoc) return;
+    setRestoring(true);
+    try {
+      const result = (await fetchApiV1({
+        query: queries.restoreService,
+        type: "json",
+        variables: { id: businessIdDoc, _id: serviceId },
+      })) as { optionsRestored: number };
+      await reloadCatalog();
+      toast.success(
+        result.optionsRestored > 0
+          ? `Servicio «${name}» restaurado con ${result.optionsRestored} opción(es)`
+          : `Servicio «${name}» restaurado`
+      );
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleRestoreOption = async (optionId: string, name: string) => {
+    if (!businessIdDoc) return;
+    setRestoring(true);
+    try {
+      await fetchApiV1({
+        query: queries.restoreServiceOption,
+        type: "json",
+        variables: { id: businessIdDoc, _id: optionId },
+      });
+      await reloadCatalog();
+      toast.success(`Opción «${name}» restaurada`);
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const canEdit = !!canEditCurrentBusiness?.();
 
   if (!businessId) return null;
   if (!canViewCurrentBusiness?.()) {
@@ -211,12 +306,13 @@ export function ServicesCatalogContent() {
                             <Settings2 className="h-3 w-3" />
                           </Link>
                         </Button>
-                        {canEditCurrentBusiness?.() && service.status && (
+                        {canEdit && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDelete(service)}
+                            onClick={() => setDeleteTarget(service)}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            disabled={deleting || restoring}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -234,8 +330,41 @@ export function ServicesCatalogContent() {
               Mostrando {filtered.length} servicios
             </div>
           )}
+          <div className="px-2 pb-4">
+            <OfferingArchivedSection
+              canEdit={canEdit}
+              restoring={restoring}
+              groups={archivedServices.map((s) => ({
+                id: s._id,
+                title: s.name,
+                values: (s.options ?? []).map((o) => o.name),
+                onRestore: () => void handleRestoreService(s._id, s.name),
+              }))}
+              items={archivedOptions.map((o) => ({
+                id: o._id,
+                title: o.name,
+                subtitle: o.serviceName,
+                onRestore: () => void handleRestoreOption(o._id, o.name),
+              }))}
+            />
+          </div>
         </CardContent>
       </Card>
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+        onConfirm={() => void handleConfirmDelete()}
+        loading={deleting}
+        title={`Eliminar servicio «${deleteTarget?.name ?? ""}»`}
+        description={
+          <>
+            Si no está en uso en facturas, se eliminará permanentemente con sus opciones. Si hay ventas registradas,
+            se archivará y dejará de aparecer en el catálogo activo.
+          </>
+        }
+      />
     </div>
   );
 }

@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Business, Service, ServiceOption, ServiceMaterial, ProductionCostResult, ProductVariantForMaterial } from "@/lib/interfases";
 import { toast } from "sonner";
+import { OfferingArchivedSection, offeringDeleteToast } from "@/components/offerings/OfferingArchivedSection";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ArrowLeft, Briefcase, Plus, Trash2, AlertTriangle, Package, DollarSign, TrendingUp } from "lucide-react";
 import { InputSearch } from "@/components/InputSearch";
 import { useMemo } from "react";
@@ -62,6 +64,11 @@ export default function ServiceDetailPage() {
   const [newOptionDuration, setNewOptionDuration] = useState("");
   const [addingOption, setAddingOption] = useState(false);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
+  const [deleteOptionTarget, setDeleteOptionTarget] = useState<ServiceOption | null>(null);
+  const [archivedOptions, setArchivedOptions] = useState<
+    { _id: string; name: string; price: number }[]
+  >([]);
+  const [restoringOptionId, setRestoringOptionId] = useState<string | null>(null);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [materialEditId, setMaterialEditId] = useState<string | null>(null);
   const [materialVariantId, setMaterialVariantId] = useState("");
@@ -96,12 +103,25 @@ export default function ServiceDetailPage() {
   const loadService = () => {
     if (!businessIdDoc || !serviceId) return;
     setLoading(true);
-    fetchApiV1({
-      query: queries.getService,
-      type: "json",
-      variables: { id: businessIdDoc, _id: serviceId },
-    })
-      .then((res: Service | null) => setService(res || null))
+    Promise.all([
+      fetchApiV1({
+        query: queries.getService,
+        type: "json",
+        variables: { id: businessIdDoc, _id: serviceId },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedServiceOptions,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ])
+      .then(([res, archivedRes]) => {
+        setService((res as Service) || null);
+        const archived = Array.isArray(archivedRes) ? archivedRes : [];
+        setArchivedOptions(
+          archived.filter((o: { service_id: string }) => String(o.service_id) === serviceId)
+        );
+      })
       .catch(() => toast.error("Error al cargar el servicio"))
       .finally(() => setLoading(false));
   };
@@ -304,22 +324,40 @@ export default function ServiceDetailPage() {
     }
   };
 
-  const handleDeleteOption = async (option: ServiceOption) => {
-    if (!confirm(`¿Desactivar opción "${option.name}"?`)) return;
-    if (!businessIdDoc) return;
-    setDeletingOptionId(option._id);
+  const handleDeleteOption = async () => {
+    if (!deleteOptionTarget || !businessIdDoc) return;
+    setDeletingOptionId(deleteOptionTarget._id);
     try {
-      await fetchApiV1({
+      const result = (await fetchApiV1({
         query: queries.deleteServiceOption,
         type: "json",
-        variables: { id: businessIdDoc, _id: option._id },
-      });
-      toast.success("Opción desactivada");
+        variables: { id: businessIdDoc, _id: deleteOptionTarget._id },
+      })) as { mode: "HARD" | "SOFT"; referenceCount: number };
+      offeringDeleteToast(`Opción «${deleteOptionTarget.name}»`, result, toast);
+      setDeleteOptionTarget(null);
       loadService();
     } catch (e: unknown) {
-      toast.error((e as { message?: string })?.message || "Error al desactivar");
+      toast.error((e as { message?: string })?.message || "Error al eliminar");
     } finally {
       setDeletingOptionId(null);
+    }
+  };
+
+  const handleRestoreOption = async (optionId: string, name: string) => {
+    if (!businessIdDoc) return;
+    setRestoringOptionId(optionId);
+    try {
+      await fetchApiV1({
+        query: queries.restoreServiceOption,
+        type: "json",
+        variables: { id: businessIdDoc, _id: optionId },
+      });
+      toast.success(`Opción «${name}» restaurada`);
+      loadService();
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar");
+    } finally {
+      setRestoringOptionId(null);
     }
   };
 
@@ -666,7 +704,7 @@ export default function ServiceDetailPage() {
                           size="sm"
                           variant="ghost"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteOption(opt)}
+                          onClick={() => setDeleteOptionTarget(opt)}
                           disabled={deletingOptionId === opt._id}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -679,6 +717,17 @@ export default function ServiceDetailPage() {
               )}
             </TableBody>
           </Table>
+          <OfferingArchivedSection
+            canEdit={!!canEditCurrentBusiness?.()}
+            restoring={restoringOptionId !== null}
+            items={archivedOptions.map((o) => ({
+              id: o._id,
+              title: o.name,
+              subtitle: `$${(o.price ?? 0).toFixed(2)}`,
+              onRestore: () => void handleRestoreOption(o._id, o.name),
+            }))}
+            description="Opciones archivadas por estar en facturas. Puedes restaurarlas para volver a venderlas."
+          />
         </CardContent>
       </Card>
         </main>
@@ -901,6 +950,21 @@ export default function ServiceDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDeleteDialog
+        open={deleteOptionTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingOptionId) setDeleteOptionTarget(null);
+        }}
+        onConfirm={() => void handleDeleteOption()}
+        loading={deletingOptionId !== null}
+        title={`Eliminar opción «${deleteOptionTarget?.name ?? ""}»`}
+        description={
+          <>
+            Si no está en facturas, se eliminará permanentemente. Si hay ventas registradas con esta opción, se
+            archivará y dejará de estar disponible para nuevas ventas.
+          </>
+        }
+      />
     </div>
   );
 }

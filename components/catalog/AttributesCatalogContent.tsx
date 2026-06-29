@@ -11,13 +11,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Business, Attribute, AttributeValue } from "@/lib/interfases";
 import { toast } from "sonner";
-import { Layers, Plus, X, Sparkles } from "lucide-react";
+import { Layers, Plus, X, Sparkles, Trash2, RotateCcw } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { cn } from "@/lib/utils";
 import { OfferingsGenerateDialog } from "@/components/offerings/OfferingsGenerateDialog";
 import type { OfferingsImportDraft } from "@/lib/offerings/importTypes";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 type AttributeWithValues = Attribute & { values?: AttributeValue[] };
+
+type DeleteTarget =
+  | { type: "attribute"; attributeId: string; name: string }
+  | { type: "value"; attributeId: string; valueId: string; name: string };
+
+type DeleteAttributeValueResult = { _id: string; mode: "HARD" | "SOFT"; variantCount: number };
+type DeleteAttributeResult = {
+  _id: string;
+  mode: "HARD" | "SOFT";
+  variantCount: number;
+  pricingReferenceCount: number;
+  valuesAffected: number;
+};
+
+type ArchivedAttributeValue = {
+  _id: string;
+  attribute_id: string;
+  attributeName: string;
+  value: string;
+  code?: string;
+  deleted_at?: string;
+};
+
+type RestoreAttributeResult = { _id: string; name: string; valuesRestored: number };
 
 export function AttributesCatalogContent() {
   const params = useParams();
@@ -29,6 +54,8 @@ export function AttributesCatalogContent() {
 
   const [business, setBusiness] = useState<Business | null>(null);
   const [attributes, setAttributes] = useState<AttributeWithValues[]>([]);
+  const [archivedAttributes, setArchivedAttributes] = useState<AttributeWithValues[]>([]);
+  const [archivedValues, setArchivedValues] = useState<ArchivedAttributeValue[]>([]);
   const [loading, setLoading] = useState(true);
   const businessIdDoc = business?._id;
   const [newAttrName, setNewAttrName] = useState("");
@@ -38,6 +65,9 @@ export function AttributesCatalogContent() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<string[]>([]);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     if (!businessId) return;
@@ -68,19 +98,35 @@ export function AttributesCatalogContent() {
   useEffect(() => {
     if (!businessIdDoc) {
       setAttributes([]);
+      setArchivedAttributes([]);
+      setArchivedValues([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    fetchApiV1({
-      query: queries.getAttributes,
-      type: "json",
-      variables: { id: businessIdDoc },
-    })
-      .then((res: AttributeWithValues[] | null) => {
+    Promise.all([
+      fetchApiV1({
+        query: queries.getAttributes,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedAttributes,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedAttributeValues,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ])
+      .then(([activeRes, archivedAttrsRes, archivedValsRes]) => {
         if (cancelled) return;
-        setAttributes(Array.isArray(res) ? res : []);
+        setAttributes(Array.isArray(activeRes) ? activeRes : []);
+        setArchivedAttributes(Array.isArray(archivedAttrsRes) ? archivedAttrsRes : []);
+        setArchivedValues(Array.isArray(archivedValsRes) ? archivedValsRes : []);
       })
       .catch(() => {
         if (!cancelled) toast.error("Error al cargar atributos");
@@ -90,6 +136,30 @@ export function AttributesCatalogContent() {
       });
     return () => { cancelled = true; };
   }, [businessIdDoc]);
+
+  const reloadAttributes = async () => {
+    if (!businessIdDoc) return;
+    const [activeRes, archivedAttrsRes, archivedValsRes] = await Promise.all([
+      fetchApiV1({
+        query: queries.getAttributes,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedAttributes,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedAttributeValues,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ]);
+    setAttributes(Array.isArray(activeRes) ? activeRes : []);
+    setArchivedAttributes(Array.isArray(archivedAttrsRes) ? archivedAttrsRes : []);
+    setArchivedValues(Array.isArray(archivedValsRes) ? archivedValsRes : []);
+  };
 
   const handleGenerateResult = (draft: OfferingsImportDraft) => {
     if (draft.attributes.length === 0) {
@@ -183,6 +253,113 @@ export function AttributesCatalogContent() {
       setSaving(false);
     }
   };
+
+  const handleConfirmDelete = async () => {
+    if (!businessIdDoc || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      if (deleteTarget.type === "value") {
+        const result = (await fetchApiV1({
+          query: queries.deleteAttributeValue,
+          type: "json",
+          variables: { _id: deleteTarget.valueId, id: businessIdDoc },
+        })) as DeleteAttributeValueResult;
+        setAttributes((prev) =>
+          prev.map((a) =>
+            a._id === deleteTarget.attributeId
+              ? { ...a, values: (a.values || []).filter((v) => v._id !== deleteTarget.valueId) }
+              : a
+          )
+        );
+        if (result.mode === "SOFT") {
+          toast.info(
+            `Valor archivado (en uso por ${result.variantCount} variante${result.variantCount === 1 ? "" : "s"}). Las variantes existentes conservan la referencia.`
+          );
+          await reloadAttributes();
+        } else {
+          toast.success("Valor eliminado permanentemente");
+        }
+      } else {
+        const result = (await fetchApiV1({
+          query: queries.deleteAttribute,
+          type: "json",
+          variables: { _id: deleteTarget.attributeId, id: businessIdDoc },
+        })) as DeleteAttributeResult;
+        setAttributes((prev) => prev.filter((a) => a._id !== deleteTarget.attributeId));
+        if (newValueAttrId === deleteTarget.attributeId) {
+          setNewValueAttrId("");
+        }
+        if (result.mode === "SOFT") {
+          const parts: string[] = [];
+          if (result.variantCount > 0) {
+            parts.push(`${result.variantCount} variante${result.variantCount === 1 ? "" : "s"}`);
+          }
+          if (result.pricingReferenceCount > 0) {
+            parts.push(
+              `${result.pricingReferenceCount} referencia${result.pricingReferenceCount === 1 ? "" : "s"} de precio`
+            );
+          }
+          toast.info(
+            `Atributo archivado${parts.length ? ` (en uso: ${parts.join(", ")})` : ""}. Las referencias existentes se conservan.`
+          );
+          await reloadAttributes();
+        } else {
+          toast.success(
+            result.valuesAffected > 0
+              ? `Atributo y ${result.valuesAffected} valor(es) eliminados permanentemente`
+              : "Atributo eliminado permanentemente"
+          );
+        }
+      }
+      setDeleteTarget(null);
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al eliminar");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestoreAttribute = async (attributeId: string, name: string) => {
+    if (!businessIdDoc) return;
+    setRestoring(true);
+    try {
+      const result = (await fetchApiV1({
+        query: queries.restoreAttribute,
+        type: "json",
+        variables: { _id: attributeId, id: businessIdDoc },
+      })) as RestoreAttributeResult;
+      await reloadAttributes();
+      toast.success(
+        result.valuesRestored > 0
+          ? `Atributo «${name}» restaurado con ${result.valuesRestored} valor(es)`
+          : `Atributo «${name}» restaurado`
+      );
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar atributo");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleRestoreValue = async (valueId: string, valueName: string) => {
+    if (!businessIdDoc) return;
+    setRestoring(true);
+    try {
+      await fetchApiV1({
+        query: queries.restoreAttributeValue,
+        type: "json",
+        variables: { _id: valueId, id: businessIdDoc },
+      });
+      await reloadAttributes();
+      toast.success(`Valor «${valueName}» restaurado`);
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar valor");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const hasArchived = archivedAttributes.length > 0 || archivedValues.length > 0;
 
   if (!businessId) return null;
   if (!canViewCurrentBusiness?.()) {
@@ -312,24 +489,65 @@ export function AttributesCatalogContent() {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : attributes.length === 0 ? (
+          ) : attributes.length === 0 && !hasArchived ? (
             <p className="text-muted-foreground py-6">
               No hay atributos{canEdit ? ". Crea uno en el panel derecho." : " definidos."}
             </p>
           ) : (
+            <>
+            {attributes.length > 0 ? (
             <ul className="space-y-4">
               {attributes.map((attr) => (
                 <li key={attr._id} className="border rounded-lg p-4">
-                  <div className="font-medium">{attr.name}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium">{attr.name}</div>
+                    {canEdit ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label={`Eliminar atributo ${attr.name}`}
+                        disabled={saving || deleting || restoring}
+                        onClick={() =>
+                          setDeleteTarget({ type: "attribute", attributeId: attr._id, name: attr.name })
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
                   <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-2">
                     {(attr.values || []).length === 0 ? (
                       <span>Sin valores</span>
                     ) : (
                       (attr.values || []).map((v) => (
-                        <span key={v._id} className="bg-muted px-2 py-0.5 rounded" title={v.code ? `priceKey: ${v.code}` : undefined}>
+                        <span
+                          key={v._id}
+                          className="bg-muted px-2 py-0.5 rounded inline-flex items-center gap-1"
+                          title={v.code ? `priceKey: ${v.code}` : undefined}
+                        >
                           {v.value}
                           {v.code && v.code !== v.value.toLowerCase().replace(/\s+/g, "_") ? (
                             <span className="text-muted-foreground ml-1 text-xs">({v.code})</span>
+                          ) : null}
+                          {canEdit ? (
+                            <button
+                              type="button"
+                              className="ml-0.5 rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-background/80"
+                              aria-label={`Eliminar valor ${v.value}`}
+                              disabled={saving || deleting || restoring}
+                              onClick={() =>
+                                setDeleteTarget({
+                                  type: "value",
+                                  attributeId: attr._id,
+                                  valueId: v._id,
+                                  name: v.value,
+                                })
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           ) : null}
                         </span>
                       ))
@@ -338,6 +556,87 @@ export function AttributesCatalogContent() {
                 </li>
               ))}
             </ul>
+            ) : (
+              <p className="text-muted-foreground py-4 text-sm">No hay atributos activos.</p>
+            )}
+
+            {hasArchived ? (
+              <div className="mt-8 border-t pt-6 space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">Archivados</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Elementos en uso que fueron ocultados. Puedes restaurarlos para usarlos de nuevo al crear variantes.
+                  </p>
+                </div>
+
+                {archivedAttributes.length > 0 ? (
+                  <ul className="space-y-3">
+                    {archivedAttributes.map((attr) => (
+                      <li key={attr._id} className="border border-dashed rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-medium">{attr.name}</div>
+                            <p className="text-xs text-muted-foreground mt-0.5">Atributo archivado</p>
+                          </div>
+                          {canEdit ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0"
+                              disabled={saving || deleting || restoring}
+                              onClick={() => void handleRestoreAttribute(attr._id, attr.name)}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                              Restaurar
+                            </Button>
+                          ) : null}
+                        </div>
+                        {(attr.values || []).length > 0 ? (
+                          <div className="text-sm text-muted-foreground mt-2 flex flex-wrap gap-2">
+                            {(attr.values || []).map((v) => (
+                              <span key={v._id} className="bg-muted px-2 py-0.5 rounded text-xs">
+                                {v.value}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {archivedValues.length > 0 ? (
+                  <ul className="space-y-2">
+                    {archivedValues.map((v) => (
+                      <li
+                        key={v._id}
+                        className="flex items-center justify-between gap-2 border border-dashed rounded-lg px-3 py-2 bg-muted/30"
+                      >
+                        <div className="text-sm min-w-0">
+                          <span className="font-medium">{v.value}</span>
+                          <span className="text-muted-foreground"> · {v.attributeName}</span>
+                        </div>
+                        {canEdit ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0"
+                            disabled={saving || deleting || restoring}
+                            onClick={() => void handleRestoreValue(v._id, v.value)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                            Restaurar
+                          </Button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            </>
           )}
         </CardContent>
       </Card>
@@ -387,6 +686,32 @@ export function AttributesCatalogContent() {
           onResult={handleGenerateResult}
         />
       )}
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+        onConfirm={() => void handleConfirmDelete()}
+        loading={deleting}
+        title={
+          deleteTarget?.type === "attribute"
+            ? `Eliminar atributo «${deleteTarget.name}»`
+            : `Eliminar valor «${deleteTarget?.name ?? ""}»`
+        }
+        description={
+          deleteTarget?.type === "attribute" ? (
+            <>
+              Si no está en uso, se eliminará permanentemente junto con sus valores. Si hay variantes o
+              referencias de precio de extras, se archivará y dejará de aparecer al crear nuevas variantes.
+            </>
+          ) : (
+            <>
+              Si no está en uso en ninguna variante, se eliminará permanentemente. Si hay variantes que lo
+              usan, se archivará y dejará de estar disponible para nuevas combinaciones.
+            </>
+          )
+        }
+      />
     </div>
   );
 }

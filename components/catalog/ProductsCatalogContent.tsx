@@ -17,11 +17,14 @@ import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 import { ProductEditPanel } from "@/components/catalog/ProductEditPanel";
 import { cn } from "@/lib/utils";
+import { OfferingArchivedSection } from "@/components/offerings/OfferingArchivedSection";
 
 type ProductWithVariants = Product & {
   category?: { _id: string; name: string } | null;
   variants?: { _id: string; sku: string; stock_quantity: number; price_override: number | null }[];
 };
+
+type ArchivedProduct = ProductWithVariants & { deleted_at?: string };
 
 export function ProductsCatalogContent() {
   const params = useParams();
@@ -33,8 +36,10 @@ export function ProductsCatalogContent() {
 
   const [business, setBusiness] = useState<Business | null>(null);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [archivedProducts, setArchivedProducts] = useState<ArchivedProduct[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [restoring, setRestoring] = useState(false);
   const [selected, setSelected] = useState<ProductWithVariants | null>(null);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
@@ -75,14 +80,22 @@ export function ProductsCatalogContent() {
     }
     let cancelled = false;
     setLoading(true);
-    fetchApiV1({
-      query: queries.getProducts,
-      type: "json",
-      variables: { id: businessIdDoc, limit: 500, includeNonSellable: true },
-    })
-      .then((res: ProductWithVariants[] | null) => {
+    Promise.all([
+      fetchApiV1({
+        query: queries.getProducts,
+        type: "json",
+        variables: { id: businessIdDoc, limit: 500, includeNonSellable: true },
+      }),
+      fetchApiV1({
+        query: queries.getArchivedProducts,
+        type: "json",
+        variables: { id: businessIdDoc },
+      }),
+    ])
+      .then(([activeRes, archivedRes]) => {
         if (cancelled) return;
-        setProducts(Array.isArray(res) ? res : []);
+        setProducts(Array.isArray(activeRes) ? activeRes : []);
+        setArchivedProducts(Array.isArray(archivedRes) ? archivedRes : []);
       })
       .catch(() => {
         if (!cancelled) toast.error("Error al cargar productos");
@@ -115,10 +128,56 @@ export function ProductsCatalogContent() {
     setSelected((prev) => (prev?._id === updated._id ? { ...prev, ...updated } : prev));
   };
 
-  const handleProductDeleted = (productId: string) => {
+  const handleProductDeleted = async (productId: string) => {
     setProducts((prev) => prev.filter((p) => p._id !== productId));
     setSelected(null);
     setMobilePanelOpen(false);
+    if (!businessIdDoc) return;
+    try {
+      const archivedRes = await fetchApiV1({
+        query: queries.getArchivedProducts,
+        type: "json",
+        variables: { id: businessIdDoc },
+      });
+      setArchivedProducts(Array.isArray(archivedRes) ? archivedRes : []);
+    } catch {
+      // ignore refresh errors
+    }
+  };
+
+  const handleRestoreProduct = async (productId: string, name: string) => {
+    if (!businessIdDoc) return;
+    setRestoring(true);
+    try {
+      const result = (await fetchApiV1({
+        query: queries.restoreProduct,
+        type: "json",
+        variables: { id: businessIdDoc, _id: productId },
+      })) as { variantsRestored: number };
+      const [activeRes, archivedRes] = await Promise.all([
+        fetchApiV1({
+          query: queries.getProducts,
+          type: "json",
+          variables: { id: businessIdDoc, limit: 500, includeNonSellable: true },
+        }),
+        fetchApiV1({
+          query: queries.getArchivedProducts,
+          type: "json",
+          variables: { id: businessIdDoc },
+        }),
+      ]);
+      setProducts(Array.isArray(activeRes) ? activeRes : []);
+      setArchivedProducts(Array.isArray(archivedRes) ? archivedRes : []);
+      toast.success(
+        result.variantsRestored > 0
+          ? `Producto «${name}» restaurado con ${result.variantsRestored} variante(s)`
+          : `Producto «${name}» restaurado`
+      );
+    } catch (e: unknown) {
+      toast.error((e as { message?: string })?.message || "Error al restaurar");
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const mobilePanelTransition = prefersReducedMotion
@@ -275,6 +334,18 @@ export function ProductsCatalogContent() {
               Mostrando {filtered.length} productos
             </div>
           )}
+          <div className="px-2 pb-4">
+            <OfferingArchivedSection
+              canEdit={canEdit}
+              restoring={restoring}
+              groups={archivedProducts.map((p) => ({
+                id: p._id,
+                title: p.name,
+                values: (p.variants ?? []).map((v) => v.sku),
+                onRestore: () => void handleRestoreProduct(p._id, p.name),
+              }))}
+            />
+          </div>
         </CardContent>
       </Card>
 

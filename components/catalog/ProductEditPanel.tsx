@@ -43,6 +43,8 @@ import { ProductSellableField } from "@/components/app-suite/ProductSellableFiel
 import { ProductInventorySection } from "@/components/offerings/ProductInventorySection";
 import { InventoryScenarioHints } from "@/components/offerings/InventoryScenarioHints";
 import { CatalogAvailabilityPreview } from "@/components/offerings/CatalogAvailabilityPreview";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { offeringDeleteToast } from "@/components/offerings/OfferingArchivedSection";
 import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 import type { RequiredMaterial } from "@/lib/interfases";
@@ -88,6 +90,8 @@ export function ProductEditPanel({
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [attributes, setAttributes] = useState<AttributeWithValues[]>([]);
   /** IDs de atributos que el usuario eligió para este artículo (solo con estos se generan variantes). */
@@ -239,17 +243,20 @@ export function ProductEditPanel({
 
   const handleDeleteProduct = async () => {
     if (!businessIdDoc || !product) return;
-    if (!confirm(`¿Desactivar producto "${product.name}"?`)) return;
+    setDeleting(true);
     try {
-      await fetchApiV1({
+      const result = (await fetchApiV1({
         query: queries.deleteProduct,
         type: "json",
         variables: { id: businessIdDoc, _id: product._id },
-      });
-      toast.success("Producto desactivado");
+      })) as { mode: "HARD" | "SOFT"; referenceCount: number };
+      offeringDeleteToast(`Producto «${product.name}»`, result, toast);
       onProductDeleted?.(product._id);
+      setDeleteConfirmOpen(false);
     } catch (e: unknown) {
-      toast.error((e as { message?: string })?.message || "Error al desactivar");
+      toast.error((e as { message?: string })?.message || "Error al eliminar");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -649,13 +656,29 @@ export function ProductEditPanel({
             <Button
               type="button"
               variant="outline"
-              onClick={handleDeleteProduct}
+              onClick={() => setDeleteConfirmOpen(true)}
               className="text-red-600 hover:text-red-700"
+              disabled={deleting}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Desactivar
+              Eliminar
             </Button>
           </div>
+          <ConfirmDeleteDialog
+            open={deleteConfirmOpen}
+            onOpenChange={(open) => {
+              if (!deleting) setDeleteConfirmOpen(open);
+            }}
+            onConfirm={() => void handleDeleteProduct()}
+            loading={deleting}
+            title={`Eliminar producto «${product?.name ?? ""}»`}
+            description={
+              <>
+                Si no está en uso, se eliminará permanentemente con sus variantes. Si hay facturas o referencias en
+                recetas, se archivará y dejará de aparecer en el catálogo activo.
+              </>
+            }
+          />
           {showAvailabilityPreview && defaultVariant && businessIdDoc && (
             <CatalogAvailabilityPreview
               businessIdDoc={businessIdDoc}

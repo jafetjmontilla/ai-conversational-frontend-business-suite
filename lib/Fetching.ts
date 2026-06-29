@@ -1369,6 +1369,17 @@ export const queries = {
       values { _id attribute_id value code }
     }
   }`,
+  getArchivedAttributes: `query getArchivedAttributes($id: ID!) {
+    getArchivedAttributes(id: $id) {
+      _id name deleted_at createdAt updatedAt
+      values { _id attribute_id value code deleted_at }
+    }
+  }`,
+  getArchivedAttributeValues: `query getArchivedAttributeValues($id: ID!) {
+    getArchivedAttributeValues(id: $id) {
+      _id attribute_id attributeName value code deleted_at
+    }
+  }`,
   getAttributeValues: `query getAttributeValues($id: ID!, $attribute_id: ID) {
     getAttributeValues(id: $id, attribute_id: $attribute_id) {
       _id attribute_id value createdAt updatedAt
@@ -1427,7 +1438,16 @@ export const queries = {
     }
   }`,
   deleteProduct: `mutation deleteProduct($_id: ID!, $id: ID!) {
-    deleteProduct(_id: $_id, id: $id)
+    deleteProduct(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreProduct: `mutation restoreProduct($_id: ID!, $id: ID!) {
+    restoreProduct(_id: $_id, id: $id) { _id name variantsRestored }
+  }`,
+  getArchivedProducts: `query getArchivedProducts($id: ID!) {
+    getArchivedProducts(id: $id) {
+      _id name description base_price brand deleted_at
+      variants { _id sku }
+    }
   }`,
   createAttribute: `mutation createAttribute($id: ID!, $args: CreateAttributeInput!) {
     createAttribute(id: $id, args: $args) {
@@ -1442,6 +1462,26 @@ export const queries = {
   updateAttributeValue: `mutation updateAttributeValue($_id: ID!, $id: ID!, $args: UpdateAttributeValueInput!) {
     updateAttributeValue(_id: $_id, id: $id, args: $args) {
       _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  deleteAttributeValue: `mutation deleteAttributeValue($_id: ID!, $id: ID!) {
+    deleteAttributeValue(_id: $_id, id: $id) {
+      _id mode variantCount
+    }
+  }`,
+  deleteAttribute: `mutation deleteAttribute($_id: ID!, $id: ID!) {
+    deleteAttribute(_id: $_id, id: $id) {
+      _id mode variantCount pricingReferenceCount valuesAffected
+    }
+  }`,
+  restoreAttributeValue: `mutation restoreAttributeValue($_id: ID!, $id: ID!) {
+    restoreAttributeValue(_id: $_id, id: $id) {
+      _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  restoreAttribute: `mutation restoreAttribute($_id: ID!, $id: ID!) {
+    restoreAttribute(_id: $_id, id: $id) {
+      _id name valuesRestored
     }
   }`,
   createProductVariant: `mutation createProductVariant($id: ID!, $args: CreateProductVariantInput!) {
@@ -1527,7 +1567,21 @@ export const queries = {
     }
   }`,
   deleteService: `mutation deleteService($id: ID!, $_id: ID!) {
-    deleteService(id: $id, _id: $_id)
+    deleteService(id: $id, _id: $_id) { _id mode referenceCount }
+  }`,
+  restoreService: `mutation restoreService($id: ID!, $_id: ID!) {
+    restoreService(id: $id, _id: $_id) { _id name optionsRestored }
+  }`,
+  getArchivedServices: `query getArchivedServices($id: ID!) {
+    getArchivedServices(id: $id) {
+      _id name description deleted_at
+      options { _id name }
+    }
+  }`,
+  getArchivedServiceOptions: `query getArchivedServiceOptions($id: ID!) {
+    getArchivedServiceOptions(id: $id) {
+      _id service_id serviceName name price deleted_at
+    }
   }`,
   getServiceMaterials: `query getServiceMaterials($id: ID!, $service_id: ID) {
     getServiceMaterials(id: $id, service_id: $service_id) {
@@ -1573,7 +1627,10 @@ export const queries = {
     }
   }`,
   deleteServiceOption: `mutation deleteServiceOption($id: ID!, $_id: ID!) {
-    deleteServiceOption(id: $id, _id: $_id)
+    deleteServiceOption(id: $id, _id: $_id) { _id mode referenceCount }
+  }`,
+  restoreServiceOption: `mutation restoreServiceOption($id: ID!, $_id: ID!) {
+    restoreServiceOption(id: $id, _id: $_id) { _id name }
   }`,
   // Protocol drafts (De Charla a Protocolo)
   listProtocolDrafts: `query listProtocolDrafts($businessId: String!, $status: String) {
@@ -2399,7 +2456,26 @@ export const queries = {
     updateModifierGroup(_id: $_id, id: $id, args: $args) { _id name status }
   }`,
   deleteModifierGroup: `mutation deleteModifierGroup($_id: ID!, $id: ID!) {
-    deleteModifierGroup(_id: $_id, id: $id)
+    deleteModifierGroup(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreModifierGroup: `mutation restoreModifierGroup($_id: ID!, $id: ID!) {
+    restoreModifierGroup(_id: $_id, id: $id) { _id name }
+  }`,
+  getArchivedModifierGroups: `query getArchivedModifierGroups($id: ID!) {
+    getArchivedModifierGroups(id: $id) {
+      _id name deleted_at options { catalogItemId catalogItem { name } }
+    }
+  }`,
+  getArchivedModifierCatalogItems: `query getArchivedModifierCatalogItems($id: ID!) {
+    getArchivedModifierCatalogItems(id: $id) {
+      _id sku name price deleted_at
+    }
+  }`,
+  deleteModifierCatalogItem: `mutation deleteModifierCatalogItem($_id: ID!, $id: ID!) {
+    deleteModifierCatalogItem(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreModifierCatalogItem: `mutation restoreModifierCatalogItem($_id: ID!, $id: ID!) {
+    restoreModifierCatalogItem(_id: $_id, id: $id) { _id name }
   }`,
   createModifierCatalogItem: `mutation createModifierCatalogItem($id: ID!, $args: CreateModifierCatalogItemInput!) {
     createModifierCatalogItem(id: $id, args: $args) {
