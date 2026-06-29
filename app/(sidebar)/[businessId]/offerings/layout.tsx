@@ -25,7 +25,7 @@ export default function OfferingsLayout({ children }: { children: React.ReactNod
       base={base}
       variant="line"
       nav={
-        <>
+        <div className="flex items-center justify-between">
           <SectionTabNav>
             {OFFERINGS_TABS.map(({ id, label }) => (
               <SectionTabLink key={id} href={`${base}/${id}`}>
@@ -34,7 +34,7 @@ export default function OfferingsLayout({ children }: { children: React.ReactNod
             ))}
           </SectionTabNav>
           <OfferingsLayoutToolbar businessId={businessId} />
-        </>
+        </div>
       }
     >
       <div className="h-full pt-1.5 overflow-y-auto">{children}</div>

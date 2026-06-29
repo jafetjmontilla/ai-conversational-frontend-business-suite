@@ -772,7 +772,6 @@ export interface ModifierCatalogItem {
 
 export interface ModifierGroupOption {
   catalogItemId: string;
-  displayName?: string | null;
   priceOverride?: number | null;
   priceMatrix?: PriceMatrixEntry[];
   sortOrder: number;

@@ -65,7 +65,6 @@ export type ParsedModifierOptionDraft = {
   name: string;
   price: number;
   price_matrix?: PriceMatrixEntry[];
-  displayName?: string | null;
   isDefault?: boolean | null;
 };
 

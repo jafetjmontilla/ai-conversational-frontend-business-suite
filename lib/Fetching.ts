@@ -2350,7 +2350,7 @@ export const queries = {
         name isRequired selectionType minSelections maxSelections
         priceBehavior includedQuantity
         product_hints service_hints
-        options { name price displayName isDefault price_matrix { priceKey price } }
+        options { name price isDefault price_matrix { priceKey price } }
       }
       warnings
     }
@@ -2367,7 +2367,7 @@ export const queries = {
       _id business_id name isRequired selectionType minSelections maxSelections
       priceBehavior includedQuantity status createdBy createdAt updatedAt
       options {
-        catalogItemId displayName priceOverride sortOrder isDefault
+        catalogItemId priceOverride sortOrder isDefault
         priceMatrix { priceKey price }
         catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
       }
@@ -2378,7 +2378,7 @@ export const queries = {
       _id business_id name isRequired selectionType minSelections maxSelections
       priceBehavior includedQuantity status createdBy createdAt updatedAt
       options {
-        catalogItemId displayName priceOverride sortOrder isDefault
+        catalogItemId priceOverride sortOrder isDefault
         priceMatrix { priceKey price }
         catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
       }

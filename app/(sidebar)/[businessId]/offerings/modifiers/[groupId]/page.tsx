@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,15 +42,25 @@ import { PriceMatrixEditor, priceMatrixToInput } from "@/components/offerings/Pr
 
 type OptionDraft = {
   catalogItemId: string;
-  displayName: string;
+  itemName: string;
+  itemSku: string;
   priceOverride: string;
   sortOrder: number;
   isDefault: boolean;
 };
 
+function resolveCatalogItem(
+  catalogItemId: string,
+  group: ModifierGroup | null,
+  modifierItems: ModifierCatalogItem[]
+): ModifierCatalogItem | undefined {
+  const fromGroup = group?.options?.find((o) => o.catalogItemId === catalogItemId)?.catalogItem;
+  const fromList = modifierItems.find((i) => i._id === catalogItemId);
+  return fromGroup ?? fromList ?? undefined;
+}
+
 export default function ModifierGroupDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const businessId = params?.businessId as string;
   const groupId = params?.groupId as string;
   const { businessRole } = useBusinessRole(businessId);
@@ -92,7 +102,7 @@ export default function ModifierGroupDetailPage() {
     if (!businessIdDoc) return;
     setLoading(true);
     try {
-      const [g, items] = await Promise.all([
+      const [g, catalogItems] = await Promise.all([
         fetchApiV1({
           query: queries.getModifierGroup,
           type: "json",
@@ -105,8 +115,9 @@ export default function ModifierGroupDetailPage() {
         }),
       ]);
       const grp = g as ModifierGroup;
+      const items = Array.isArray(catalogItems) ? catalogItems : [];
       setGroup(grp);
-      setModifierItems(Array.isArray(items) ? items : []);
+      setModifierItems(items);
       setName(grp.name);
       setIsRequired(grp.isRequired);
       setSelectionType(grp.selectionType);
@@ -115,13 +126,17 @@ export default function ModifierGroupDetailPage() {
       setPriceBehavior(grp.priceBehavior);
       setIncludedQuantity(String(grp.includedQuantity ?? 0));
       setOptions(
-        (grp.options ?? []).map((o, idx) => ({
-          catalogItemId: o.catalogItemId,
-          displayName: o.displayName ?? "",
-          priceOverride: o.priceOverride != null ? String(o.priceOverride) : "",
-          sortOrder: o.sortOrder ?? idx,
-          isDefault: o.isDefault ?? false,
-        }))
+        (grp.options ?? []).map((o, idx) => {
+          const item = o.catalogItem ?? items.find((i) => i._id === o.catalogItemId);
+          return {
+            catalogItemId: o.catalogItemId,
+            itemName: item?.name ?? "",
+            itemSku: item?.sku ?? "",
+            priceOverride: o.priceOverride != null ? String(o.priceOverride) : "",
+            sortOrder: o.sortOrder ?? idx,
+            isDefault: o.isDefault ?? false,
+          };
+        })
       );
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Error al cargar");
@@ -138,6 +153,32 @@ export default function ModifierGroupDetailPage() {
     if (!businessIdDoc) return;
     setSaving(true);
     try {
+      const nameUpdates = options
+        .map((o) => {
+          const trimmed = o.itemName.trim();
+          if (!trimmed) return null;
+          const current = resolveCatalogItem(o.catalogItemId, group, modifierItems);
+          if (current?.name === trimmed) return null;
+          return { catalogItemId: o.catalogItemId, name: trimmed };
+        })
+        .filter((u): u is { catalogItemId: string; name: string } => u != null);
+
+      if (nameUpdates.length) {
+        await Promise.all(
+          nameUpdates.map(({ catalogItemId, name: itemName }) =>
+            fetchApiV1({
+              query: queries.updateModifierCatalogItem,
+              type: "json",
+              variables: {
+                id: businessIdDoc,
+                _id: catalogItemId,
+                args: { name: itemName },
+              },
+            })
+          )
+        );
+      }
+
       await fetchApiV1({
         query: queries.updateModifierGroup,
         type: "json",
@@ -154,7 +195,6 @@ export default function ModifierGroupDetailPage() {
             includedQuantity: parseInt(includedQuantity, 10) || 0,
             options: options.map((o, idx) => ({
               catalogItemId: o.catalogItemId,
-              displayName: o.displayName.trim() || undefined,
               priceOverride: o.priceOverride ? parseFloat(o.priceOverride) : undefined,
               sortOrder: idx,
               isDefault: o.isDefault,
@@ -194,7 +234,8 @@ export default function ModifierGroupDetailPage() {
         ...prev,
         {
           catalogItemId: item._id,
-          displayName: "",
+          itemName: item.name,
+          itemSku: item.sku,
           priceOverride: "",
           sortOrder: prev.length,
           isDefault: false,
@@ -214,10 +255,9 @@ export default function ModifierGroupDetailPage() {
   };
 
   const itemLabel = (catalogItemId: string) => {
-    const fromGroup = group?.options?.find((o) => o.catalogItemId === catalogItemId)?.catalogItem;
-    const fromList = modifierItems.find((i) => i._id === catalogItemId);
-    const item = fromGroup ?? fromList;
-    return item ? `${item.name} (${item.sku})` : catalogItemId;
+    const item = resolveCatalogItem(catalogItemId, group, modifierItems);
+    if (!item) return catalogItemId;
+    return `${item.name} · ${item.sku}`;
   };
 
   const openMatrixEditor = async (catalogItemId: string) => {
@@ -284,7 +324,7 @@ export default function ModifierGroupDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-1 max-w-3xl">
+    <div className="space-y-6 p-1 max-w-4xl">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href={`/${businessId}/offerings/modifiers`}>
@@ -425,8 +465,8 @@ export default function ModifierGroupDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ítem</TableHead>
-                  <TableHead>Etiqueta</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>SKU</TableHead>
                   <TableHead>Precio override</TableHead>
                   <TableHead>Matriz</TableHead>
                   <TableHead>Default</TableHead>
@@ -436,19 +476,26 @@ export default function ModifierGroupDetailPage() {
               <TableBody>
                 {options.map((o, idx) => (
                   <TableRow key={`${o.catalogItemId}-${idx}`}>
-                    <TableCell className="text-sm">{itemLabel(o.catalogItemId)}</TableCell>
                     <TableCell>
                       <Input
-                        value={o.displayName}
-                        onChange={(e) =>
+                        value={o.itemName}
+                        onChange={(e) => {
+                          const value = e.target.value;
                           setOptions((prev) =>
-                            prev.map((x, i) => (i === idx ? { ...x, displayName: e.target.value } : x))
-                          )
-                        }
-                        placeholder="Opcional"
+                            prev.map((x, i) => (i === idx ? { ...x, itemName: value } : x))
+                          );
+                          setModifierItems((prev) =>
+                            prev.map((i) =>
+                              i._id === o.catalogItemId ? { ...i, name: value } : i
+                            )
+                          );
+                        }}
                         disabled={!canEdit}
                         className="h-8"
                       />
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+                      {o.itemSku || "—"}
                     </TableCell>
                     <TableCell>
                       <Input
@@ -580,7 +627,8 @@ export default function ModifierGroupDetailPage() {
                 .filter((i) => !options.some((o) => o.catalogItemId === i._id))
                 .map((i) => (
                   <SelectItem key={i._id} value={i._id}>
-                    {i.name} ({i.sku})
+                    <span>{i.name}</span>
+                    <span className="ml-2 font-mono text-xs text-muted-foreground">{i.sku}</span>
                   </SelectItem>
                 ))}
             </SelectContent>
@@ -589,16 +637,20 @@ export default function ModifierGroupDetailPage() {
             <Button
               onClick={() => {
                 if (!pickItemId) return;
-                setOptions((prev) => [
-                  ...prev,
-                  {
-                    catalogItemId: pickItemId,
-                    displayName: "",
-                    priceOverride: "",
-                    sortOrder: prev.length,
-                    isDefault: false,
-                  },
-                ]);
+                setOptions((prev) => {
+                  const picked = modifierItems.find((i) => i._id === pickItemId);
+                  return [
+                    ...prev,
+                    {
+                      catalogItemId: pickItemId,
+                      itemName: picked?.name ?? "",
+                      itemSku: picked?.sku ?? "",
+                      priceOverride: "",
+                      sortOrder: prev.length,
+                      isDefault: false,
+                    },
+                  ];
+                });
                 setPickItemId("");
                 setAddOptionOpen(false);
               }}

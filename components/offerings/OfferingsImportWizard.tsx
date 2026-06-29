@@ -252,7 +252,6 @@ export function OfferingsImportWizard({
             options: options.map((o) => ({
               name: o.name,
               price: o.price,
-              displayName: o.displayName,
               isDefault: o.isDefault,
               price_matrix: (o.price_matrix ?? []).filter((m) => m.priceKey.trim()),
             })),
