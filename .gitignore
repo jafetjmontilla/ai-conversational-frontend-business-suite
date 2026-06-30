@@ -14,8 +14,8 @@ build/
 dist/
 *.tsbuildinfo
 
-# Logs
-logs/
+# Logs de runtime (solo carpeta en la raíz del frontend)
+/logs/
 *.log
 
 # Variables de entorno

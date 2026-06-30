@@ -402,6 +402,7 @@ export const queries = {
         country
       }
       currency
+      country
       timezone
       language
       businessCategory
@@ -440,6 +441,7 @@ export const queries = {
         country
       }
       currency
+      country
       timezone
       language
       businessCategory
@@ -558,23 +560,160 @@ export const queries = {
           }
         }
       }
-      whatsapps {
-        metaCloudApiNumbers {
-          phoneNumberId
-          phoneNumber
-          accessToken
-          verifyToken
-        }
-        baileysApiNumbers {
-          sessionId
-          phoneNumber
-          active
-        }
-        whatsapp_allowed_phone_numbers
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        accessToken
+        verifyToken
+        callbackUrl
+        webhookSecret
       }
-      callbackUrl
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
       createdAt
       updatedAt
+    }
+  }`,
+  installBusinessApp: `mutation installBusinessApp($id: ID!, $appId: String!) {
+    installBusinessApp(id: $id, appId: $appId) {
+      _id
+      businessId
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
+    }
+  }`,
+  uninstallBusinessApp: `mutation uninstallBusinessApp($id: ID!, $appId: String!) {
+    uninstallBusinessApp(id: $id, appId: $appId) {
+      _id
+      businessId
+      installedApps {
+        app_id
+        status
+        limits {
+          max_records
+          current_usage
+          features_enabled
+        }
+        installed_at
+        updated_at
+        uninstalled_at
+        billing_cycle_ends
+      }
+    }
+  }`,
+  listPaeEpisodes: `query listPaeEpisodes($businessDocId: ID!, $role: String, $skip: Int, $limit: Int, $userIdContains: String) {
+    listPaeEpisodes(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit, userIdContains: $userIdContains) {
+      totalCount
+      items {
+        id
+        userId
+        role
+        conversationId
+        summary
+        userMessage
+        assistantReply
+        openQuestions
+        createdAt
+      }
+    }
+  }`,
+  listPaeSkills: `query listPaeSkills($businessDocId: ID!, $role: String, $skip: Int, $limit: Int) {
+    listPaeSkills(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit) {
+      totalCount
+      items {
+        id
+        name
+        description
+        template
+        triggerHints
+        usageCount
+        userId
+        role
+        updatedAt
+      }
+    }
+  }`,
+  listPaeWorkflowRuns: `query listPaeWorkflowRuns($businessDocId: ID!, $status: String, $skip: Int, $limit: Int) {
+    listPaeWorkflowRuns(businessDocId: $businessDocId, status: $status, skip: $skip, limit: $limit) {
+      totalCount
+      items {
+        id
+        runId
+        userId
+        goal
+        status
+        resultText
+        errorMessage
+        conversationId
+        createdAt
+        completedAt
+      }
+    }
+  }`,
+  upsertPaeSkill: `mutation upsertPaeSkill($businessDocId: ID!, $input: PaeSkillMutationInput!) {
+    upsertPaeSkill(businessDocId: $businessDocId, input: $input) {
+      id
+      name
+      description
+      template
+      triggerHints
+      usageCount
+    }
+  }`,
+  deletePaeSkill: `mutation deletePaeSkill($businessDocId: ID!, $skillId: ID!) {
+    deletePaeSkill(businessDocId: $businessDocId, skillId: $skillId)
+  }`,
+  getPaeProactiveSettings: `query getPaeProactiveSettings($businessDocId: ID!) {
+    getPaeProactiveSettings(businessDocId: $businessDocId) {
+      defaultEngine
+      usesDefaultRoutine
+      defaultRoutineCron
+      routines {
+        cron
+        prompt
+        enabled
+      }
+    }
+  }`,
+  updatePaeProactiveRoutines: `mutation updatePaeProactiveRoutines($businessDocId: ID!, $routines: [PaeProactiveRoutineInput!]!) {
+    updatePaeProactiveRoutines(businessDocId: $businessDocId, routines: $routines) {
+      defaultEngine
+      usesDefaultRoutine
+      defaultRoutineCron
+      routines {
+        cron
+        prompt
+        enabled
+      }
     }
   }`,
   listUserMemories: `query listUserMemories($businessDocId: ID!, $skip: Int, $limit: Int, $userKeyContains: String) {
@@ -721,6 +860,7 @@ export const queries = {
       phone
       address { street number sector city stateProvince postalCode country }
       currency
+      country
       timezone
       language
       businessCategory
@@ -732,12 +872,10 @@ export const queries = {
       billingDisplayCurrency
       billingExchangeRateSource
       billingCustomExchangeRate
-      whatsapps {
-        metaCloudApiNumbers { phoneNumberId phoneNumber accessToken verifyToken }
-        baileysApiNumbers { sessionId phoneNumber active }
-        whatsapp_allowed_phone_numbers
+      channels {
+        channelId name type active agentEngine allowedPhoneNumbers
+        sessionId phoneNumber phoneNumberId accessToken verifyToken callbackUrl webhookSecret
       }
-      callbackUrl
       createdAt
       updatedAt
     }
@@ -759,6 +897,23 @@ export const queries = {
       description
       params
       warnings
+    }
+  }`,
+  generateBusinessDescription: `mutation generateBusinessDescription($input: GenerateBusinessDescriptionInput!) {
+    generateBusinessDescription(input: $input) {
+      description
+    }
+  }`,
+  runBusinessDescriptionInterview: `mutation runBusinessDescriptionInterview($input: BusinessDescriptionInterviewInput!) {
+    runBusinessDescriptionInterview(input: $input) {
+      status
+      turnCount
+      description
+      questions {
+        question
+        typeQuestion
+        optionsList
+      }
     }
   }`,
   testBusinessTool: `mutation testBusinessTool($businessDocId: ID!, $toolName: String!, $paramsJson: String) {
@@ -793,8 +948,8 @@ export const queries = {
       lastActivity
     }
   }`,
-  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String) {
-    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber) {
+  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String, $agentEngine: String) {
+    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber, agentEngine: $agentEngine) {
       success
       qrCode
       error
@@ -809,6 +964,43 @@ export const queries = {
   removeBaileysNumber: `mutation removeBaileysNumber($id: ID!, $sessionId: String!, $disconnect: Boolean) {
     removeBaileysNumber(id: $id, sessionId: $sessionId, disconnect: $disconnect)
   }`,
+  upsertBusinessChannel: `mutation upsertBusinessChannel($id: ID!, $input: BusinessChannelInput!) {
+    upsertBusinessChannel(id: $id, input: $input) {
+      _id
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        accessToken
+        verifyToken
+        callbackUrl
+        webhookSecret
+      }
+    }
+  }`,
+  deleteBusinessChannel: `mutation deleteBusinessChannel($id: ID!, $channelId: String!) {
+    deleteBusinessChannel(id: $id, channelId: $channelId) {
+      _id
+      channels {
+        channelId
+        name
+        type
+        active
+        agentEngine
+        allowedPhoneNumbers
+        sessionId
+        phoneNumber
+        phoneNumberId
+        callbackUrl
+      }
+    }
+  }`,
   deleteBusiness: `mutation deleteBusiness($id: ID!) {
     deleteBusiness(id: $id)
   }`,
@@ -816,7 +1008,34 @@ export const queries = {
     flushBusinessCache(businessDocId: $businessDocId) {
       success
       keysDeleted
+      semanticEntriesPurged
       message
+    }
+  }`,
+  getBusinessCacheOverview: `query getBusinessCacheOverview($businessDocId: ID!) {
+    getBusinessCacheOverview(businessDocId: $businessDocId) {
+      redis {
+        responseKeys
+        sourceSets
+        personalitySets
+        defaultTtlSeconds
+        schemaVersion
+      }
+      semanticIndex {
+        entries
+        similarityThreshold
+        indexExists
+      }
+      contextCaching {
+        enabled
+        ttlSeconds
+      }
+      globalResponses {
+        hasGreeting
+        hasGoodbye
+        hasNoData
+        noReplyWithoutRag
+      }
     }
   }`,
   getBusinessMembers: `query getBusinessMembers($id: ID!) {
@@ -826,6 +1045,7 @@ export const queries = {
       role
       name
       email
+      phone
     }
   }`,
   setBusinessMember: `mutation setBusinessMember($args: SetBusinessMemberInput!) {
@@ -1078,6 +1298,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1090,6 +1311,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1102,6 +1324,7 @@ export const queries = {
       name
       description
       type
+      pricingAttributeId
       active
       createdBy
       createdAt
@@ -1111,18 +1334,30 @@ export const queries = {
   deleteProductCategory: `mutation deleteProductCategory($_id: ID!, $id: ID!) {
     deleteProductCategory(_id: $_id, id: $id)
   }`,
+  parseProductCategoriesFromText: `mutation parseProductCategoriesFromText($id: ID!, $rawText: String!) {
+    parseProductCategoriesFromText(id: $id, rawText: $rawText) {
+      categories { name description type }
+      warnings
+    }
+  }`,
   // Product (maestro) + Variants (SKUs)
   getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean, $includeNonSellable: Boolean) {
     getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive, includeNonSellable: $includeNonSellable) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      status createdBy createdAt updatedAt
       category { _id name }
       variants { _id sku stock_quantity price_override }
     }
   }`,
   getProduct: `query getProduct($_id: ID!, $id: ID!) {
     getProduct(_id: $_id, id: $id) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
-      category { _id name }
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      modifierGroupIds pricingAttributeId
+      status createdBy createdAt updatedAt
+      category { _id name pricingAttributeId }
       variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
         attribute_values { attribute_value_id }
       }
@@ -1131,7 +1366,18 @@ export const queries = {
   getAttributes: `query getAttributes($id: ID!) {
     getAttributes(id: $id) {
       _id name createdAt updatedAt
-      values { _id attribute_id value }
+      values { _id attribute_id value code }
+    }
+  }`,
+  getArchivedAttributes: `query getArchivedAttributes($id: ID!) {
+    getArchivedAttributes(id: $id) {
+      _id name deleted_at createdAt updatedAt
+      values { _id attribute_id value code deleted_at }
+    }
+  }`,
+  getArchivedAttributeValues: `query getArchivedAttributeValues($id: ID!) {
+    getArchivedAttributeValues(id: $id) {
+      _id attribute_id attributeName value code deleted_at
     }
   }`,
   getAttributeValues: `query getAttributeValues($id: ID!, $attribute_id: ID) {
@@ -1164,6 +1410,12 @@ export const queries = {
       found sku variantId stock_quantity
     }
   }`,
+  checkCatalogAvailability: `query checkCatalogAvailability($id: ID!, $productVariantId: ID, $serviceOptionId: ID, $quantity: Float!) {
+    checkCatalogAvailability(id: $id, productVariantId: $productVariantId, serviceOptionId: $serviceOptionId, quantity: $quantity) {
+      available
+      reasons
+    }
+  }`,
   generateVariantsPreview: `query generateVariantsPreview($id: ID!, $input: GenerateVariantsPreviewInput!) {
     generateVariantsPreview(id: $id, input: $input) {
       combinations { sku attributeValues { attributeName value attributeValueId } attribute_value_ids price_override stock_quantity }
@@ -1171,16 +1423,31 @@ export const queries = {
   }`,
   createProduct: `mutation createProduct($id: ID!, $args: CreateProductInput!) {
     createProduct(id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      status createdBy createdAt updatedAt
     }
   }`,
   updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
     updateProduct(_id: $_id, id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable status createdBy createdAt updatedAt
+      _id name description category_id base_price brand is_sellable
+      trackInventory hasBillOfMaterials pricingAttributeId
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      status createdBy createdAt updatedAt
     }
   }`,
   deleteProduct: `mutation deleteProduct($_id: ID!, $id: ID!) {
-    deleteProduct(_id: $_id, id: $id)
+    deleteProduct(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreProduct: `mutation restoreProduct($_id: ID!, $id: ID!) {
+    restoreProduct(_id: $_id, id: $id) { _id name variantsRestored }
+  }`,
+  getArchivedProducts: `query getArchivedProducts($id: ID!) {
+    getArchivedProducts(id: $id) {
+      _id name description base_price brand deleted_at
+      variants { _id sku }
+    }
   }`,
   createAttribute: `mutation createAttribute($id: ID!, $args: CreateAttributeInput!) {
     createAttribute(id: $id, args: $args) {
@@ -1189,7 +1456,32 @@ export const queries = {
   }`,
   createAttributeValue: `mutation createAttributeValue($id: ID!, $args: CreateAttributeValueInput!) {
     createAttributeValue(id: $id, args: $args) {
-      _id attribute_id value createdAt updatedAt
+      _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  updateAttributeValue: `mutation updateAttributeValue($_id: ID!, $id: ID!, $args: UpdateAttributeValueInput!) {
+    updateAttributeValue(_id: $_id, id: $id, args: $args) {
+      _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  deleteAttributeValue: `mutation deleteAttributeValue($_id: ID!, $id: ID!) {
+    deleteAttributeValue(_id: $_id, id: $id) {
+      _id mode variantCount
+    }
+  }`,
+  deleteAttribute: `mutation deleteAttribute($_id: ID!, $id: ID!) {
+    deleteAttribute(_id: $_id, id: $id) {
+      _id mode variantCount pricingReferenceCount valuesAffected
+    }
+  }`,
+  restoreAttributeValue: `mutation restoreAttributeValue($_id: ID!, $id: ID!) {
+    restoreAttributeValue(_id: $_id, id: $id) {
+      _id attribute_id value code createdAt updatedAt
+    }
+  }`,
+  restoreAttribute: `mutation restoreAttribute($_id: ID!, $id: ID!) {
+    restoreAttribute(_id: $_id, id: $id) {
+      _id name valuesRestored
     }
   }`,
   createProductVariant: `mutation createProductVariant($id: ID!, $args: CreateProductVariantInput!) {
@@ -1242,13 +1534,19 @@ export const queries = {
   // Servicios (catálogo independiente de productos)
   getServices: `query getServices($id: ID!, $includeInactive: Boolean) {
     getServices(id: $id, includeInactive: $includeInactive) {
-      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      _id business_id name description is_available unit_of_measure
+      hasBillOfMaterials cost_review_pending status createdBy createdAt updatedAt
       options { _id name price durationMinutes status }
+      materials { _id }
     }
   }`,
   getService: `query getService($id: ID!, $_id: ID!) {
     getService(id: $id, _id: $_id) {
-      _id business_id name description is_available unit_of_measure cost_review_pending status createdBy createdAt updatedAt
+      _id business_id name description is_available unit_of_measure
+      hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      modifierGroupIds
+      cost_review_pending status createdBy createdAt updatedAt
       options { _id service_id name price durationMinutes status }
       materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure } }
     }
@@ -1269,7 +1567,21 @@ export const queries = {
     }
   }`,
   deleteService: `mutation deleteService($id: ID!, $_id: ID!) {
-    deleteService(id: $id, _id: $_id)
+    deleteService(id: $id, _id: $_id) { _id mode referenceCount }
+  }`,
+  restoreService: `mutation restoreService($id: ID!, $_id: ID!) {
+    restoreService(id: $id, _id: $_id) { _id name optionsRestored }
+  }`,
+  getArchivedServices: `query getArchivedServices($id: ID!) {
+    getArchivedServices(id: $id) {
+      _id name description deleted_at
+      options { _id name }
+    }
+  }`,
+  getArchivedServiceOptions: `query getArchivedServiceOptions($id: ID!) {
+    getArchivedServiceOptions(id: $id) {
+      _id service_id serviceName name price deleted_at
+    }
   }`,
   getServiceMaterials: `query getServiceMaterials($id: ID!, $service_id: ID) {
     getServiceMaterials(id: $id, service_id: $service_id) {
@@ -1315,7 +1627,10 @@ export const queries = {
     }
   }`,
   deleteServiceOption: `mutation deleteServiceOption($id: ID!, $_id: ID!) {
-    deleteServiceOption(id: $id, _id: $_id)
+    deleteServiceOption(id: $id, _id: $_id) { _id mode referenceCount }
+  }`,
+  restoreServiceOption: `mutation restoreServiceOption($id: ID!, $_id: ID!) {
+    restoreServiceOption(id: $id, _id: $_id) { _id name }
   }`,
   // Protocol drafts (De Charla a Protocolo)
   listProtocolDrafts: `query listProtocolDrafts($businessId: String!, $status: String) {
@@ -1361,12 +1676,26 @@ export const queries = {
   sendProtocolNarrative: `mutation sendProtocolNarrative($businessId: String!, $content: String!) {
     sendProtocolNarrative(businessId: $businessId, content: $content)
   }`,
+  generateProtocolSuggestions: `mutation generateProtocolSuggestions($businessId: String!, $instructions: String) {
+    generateProtocolSuggestions(businessId: $businessId, instructions: $instructions)
+  }`,
   updateProtocolDraft: `mutation updateProtocolDraft($id: ID!, $input: UpdateProtocolDraftInput!) {
     updateProtocolDraft(id: $id, input: $input) {
       _id
+      businessId
       protocolId
+      version
+      category
       title
+      content { summary steps raw_markdown }
+      retrieval_hints { semantic_intents tags }
+      tools { tool_name required_params }
+      metadata { priority author last_updated requires_human_handoff }
       status
+      createdBy
+      conversationId
+      approvedAt
+      createdAt
       updatedAt
     }
   }`,
@@ -1383,6 +1712,9 @@ export const queries = {
       status
     }
   }`,
+  deleteProtocolDraft: `mutation deleteProtocolDraft($id: ID!) {
+    deleteProtocolDraft(id: $id)
+  }`,
   listKnowledgeDrafts: `query listKnowledgeDrafts($businessId: String!, $sourceId: String!, $status: String) {
     listKnowledgeDrafts(businessId: $businessId, sourceId: $sourceId, status: $status) {
       _id
@@ -1393,7 +1725,21 @@ export const queries = {
       payload
       createdBy
       conversationId
+      createdAt
+      updatedAt
+    }
+  }`,
+  listKnowledgeItems: `query listKnowledgeItems($businessId: String!, $sourceId: String!) {
+    listKnowledgeItems(businessId: $businessId, sourceId: $sourceId) {
+      _id
+      businessId
+      sourceId
+      itemId
+      label
+      payload
+      createdBy
       approvedAt
+      originDraftId
       createdAt
       updatedAt
     }
@@ -1401,11 +1747,19 @@ export const queries = {
   sendKnowledgeNarrative: `mutation sendKnowledgeNarrative($businessId: String!, $sourceId: String!, $content: String!) {
     sendKnowledgeNarrative(businessId: $businessId, sourceId: $sourceId, content: $content)
   }`,
-  approveKnowledgeDraft: `mutation approveKnowledgeDraft($id: ID!, $sourceId: String!) {
-    approveKnowledgeDraft(id: $id, sourceId: $sourceId) {
+  approveKnowledgeDraftItem: `mutation approveKnowledgeDraftItem($id: ID!, $sourceId: String!, $itemId: String!) {
+    approveKnowledgeDraftItem(id: $id, sourceId: $sourceId, itemId: $itemId) {
+      _id
+      itemId
+      label
+      approvedAt
+    }
+  }`,
+  rejectKnowledgeDraftItem: `mutation rejectKnowledgeDraftItem($id: ID!, $sourceId: String!, $itemId: String!) {
+    rejectKnowledgeDraftItem(id: $id, sourceId: $sourceId, itemId: $itemId) {
       _id
       status
-      approvedAt
+      payload
     }
   }`,
   rejectKnowledgeDraft: `mutation rejectKnowledgeDraft($id: ID!, $sourceId: String!) {
@@ -1423,6 +1777,16 @@ export const queries = {
   }`,
   deleteKnowledgeDraft: `mutation deleteKnowledgeDraft($id: ID!, $sourceId: String!) {
     deleteKnowledgeDraft(id: $id, sourceId: $sourceId)
+  }`,
+  updateKnowledgeItem: `mutation updateKnowledgeItem($id: ID!, $sourceId: String!, $payload: String!) {
+    updateKnowledgeItem(id: $id, sourceId: $sourceId, payload: $payload) {
+      _id
+      label
+      updatedAt
+    }
+  }`,
+  deleteKnowledgeItem: `mutation deleteKnowledgeItem($id: ID!, $sourceId: String!) {
+    deleteKnowledgeItem(id: $id, sourceId: $sourceId)
   }`,
   // Queries para streaming
   getChannels: `query getChannels($status: String) {
@@ -2020,5 +2384,138 @@ export const queries = {
   }`,
   deleteStorage: `mutation($_id: ID!) {
     deleteStorage(_id: $_id)
+  }`,
+  parseOfferingsFromText: `mutation parseOfferingsFromText($id: ID!, $rawText: String!, $scope: OfferingsImportScope!) {
+    parseOfferingsFromText(id: $id, rawText: $rawText, scope: $scope) {
+      attributes { name values }
+      categoryPricing { category_name pricing_attribute_hint }
+      products {
+        name description base_price brand category_hint pricing_attribute_hint is_sellable
+        needs_variants
+        variant_attributes { name values }
+        variants {
+          sku
+          attribute_values { attribute_name value }
+          price_override
+          stock_quantity
+        }
+      }
+      services {
+        name
+        description
+        unit_of_measure
+        options { name price durationMinutes }
+      }
+      modifierGroups {
+        name isRequired selectionType minSelections maxSelections
+        priceBehavior includedQuantity
+        product_hints service_hints
+        options { name price isDefault price_matrix { priceKey price } }
+      }
+      warnings
+    }
+  }`,
+  confirmOfferingsImport: `mutation confirmOfferingsImport($id: ID!, $input: ConfirmOfferingsImportInput!) {
+    confirmOfferingsImport(id: $id, input: $input) {
+      created { kind name status message }
+      skipped { kind name status message }
+      errors { kind name status message }
+    }
+  }`,
+  getModifierGroups: `query getModifierGroups($id: ID!, $includeInactive: Boolean) {
+    getModifierGroups(id: $id, includeInactive: $includeInactive) {
+      _id business_id name isRequired selectionType minSelections maxSelections
+      priceBehavior includedQuantity status createdBy createdAt updatedAt
+      options {
+        catalogItemId priceOverride sortOrder isDefault
+        priceMatrix { priceKey price }
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
+      }
+    }
+  }`,
+  getModifierGroup: `query getModifierGroup($_id: ID!, $id: ID!) {
+    getModifierGroup(_id: $_id, id: $id) {
+      _id business_id name isRequired selectionType minSelections maxSelections
+      priceBehavior includedQuantity status createdBy createdAt updatedAt
+      options {
+        catalogItemId priceOverride sortOrder isDefault
+        priceMatrix { priceKey price }
+        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
+      }
+    }
+  }`,
+  getModifierCatalogItems: `query getModifierCatalogItems($id: ID!, $includeInactive: Boolean) {
+    getModifierCatalogItems(id: $id, includeInactive: $includeInactive) {
+      _id sku name type price priceMatrix { priceKey price }
+      trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      isModifier isAvailable unitOfMeasure variantId status
+    }
+  }`,
+  createModifierGroup: `mutation createModifierGroup($id: ID!, $args: CreateModifierGroupInput!) {
+    createModifierGroup(id: $id, args: $args) { _id name status }
+  }`,
+  updateModifierGroup: `mutation updateModifierGroup($_id: ID!, $id: ID!, $args: UpdateModifierGroupInput!) {
+    updateModifierGroup(_id: $_id, id: $id, args: $args) { _id name status }
+  }`,
+  deleteModifierGroup: `mutation deleteModifierGroup($_id: ID!, $id: ID!) {
+    deleteModifierGroup(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreModifierGroup: `mutation restoreModifierGroup($_id: ID!, $id: ID!) {
+    restoreModifierGroup(_id: $_id, id: $id) { _id name }
+  }`,
+  getArchivedModifierGroups: `query getArchivedModifierGroups($id: ID!) {
+    getArchivedModifierGroups(id: $id) {
+      _id name deleted_at options { catalogItemId catalogItem { name } }
+    }
+  }`,
+  getArchivedModifierCatalogItems: `query getArchivedModifierCatalogItems($id: ID!) {
+    getArchivedModifierCatalogItems(id: $id) {
+      _id sku name price deleted_at
+    }
+  }`,
+  deleteModifierCatalogItem: `mutation deleteModifierCatalogItem($_id: ID!, $id: ID!) {
+    deleteModifierCatalogItem(_id: $_id, id: $id) { _id mode referenceCount }
+  }`,
+  restoreModifierCatalogItem: `mutation restoreModifierCatalogItem($_id: ID!, $id: ID!) {
+    restoreModifierCatalogItem(_id: $_id, id: $id) { _id name }
+  }`,
+  createModifierCatalogItem: `mutation createModifierCatalogItem($id: ID!, $args: CreateModifierCatalogItemInput!) {
+    createModifierCatalogItem(id: $id, args: $args) {
+      _id sku name price type trackInventory hasBillOfMaterials isModifier status
+    }
+  }`,
+  updateModifierCatalogItem: `mutation updateModifierCatalogItem($_id: ID!, $id: ID!, $args: UpdateModifierCatalogItemInput!) {
+    updateModifierCatalogItem(_id: $_id, id: $id, args: $args) {
+      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials isModifier status
+    }
+  }`,
+  setProductModifierGroups: `mutation setProductModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {
+    setProductModifierGroups(_id: $_id, id: $id, modifierGroupIds: $modifierGroupIds) {
+      _id modifierGroupIds
+    }
+  }`,
+  setServiceModifierGroups: `mutation setServiceModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {
+    setServiceModifierGroups(_id: $_id, id: $id, modifierGroupIds: $modifierGroupIds) {
+      _id modifierGroupIds
+    }
+  }`,
+  previewModifierPricing: `query previewModifierPricing(
+    $id: ID!
+    $productVariantId: ID
+    $serviceOptionId: ID
+    $quantity: Float!
+    $selectedModifiers: [SelectedModifierInput!]!
+  ) {
+    previewModifierPricing(
+      id: $id
+      productVariantId: $productVariantId
+      serviceOptionId: $serviceOptionId
+      quantity: $quantity
+      selectedModifiers: $selectedModifiers
+    ) {
+      additionalTotal
+      lines { modifierGroupId catalogItemId quantity unitPrice total }
+    }
   }`,
 }

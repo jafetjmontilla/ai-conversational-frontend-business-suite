@@ -1,57 +1,55 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { RegisterInvitationForm } from '@/components/auth/RegisterInvitationForm';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export default function RegisterInvitationPage() {
-  const { authUser, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const [validatingInvitation, setValidatingInvitation] = useState(true);
+  const [contentVisible, setContentVisible] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  // Redirigir si ya está autenticado
   useEffect(() => {
-    if (!loading && authUser?.customClaims?.role) {
-      router.push('/dashboard');
+    setValidatingInvitation(true);
+    setContentVisible(false);
+  }, [token]);
+
+  useEffect(() => {
+    if (validatingInvitation) {
+      setContentVisible(false);
+      return;
     }
-  }, [authUser, loading, router]);
+    const timer = setTimeout(() => setContentVisible(true), 300);
+    return () => clearTimeout(timer);
+  }, [validatingInvitation]);
 
-  // Mostrar loading mientras se verifica la autenticación
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 dark:border-green-400"></div>
-      </div>
-    );
-  }
-
-  // Si ya está autenticado, no mostrar nada (se redirigirá)
-  if (authUser?.customClaims?.role) {
-    return null;
-  }
-
-  const handleAuthSuccess = () => {
-    router.push('/dashboard');
-  };
+  const contentTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 1.2, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <RegisterInvitationForm
-            token={token || ''}
-            onSuccess={handleAuthSuccess}
-          />
-        </motion.div>
-      </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <motion.div
+        className="relative w-full max-w-md"
+        initial={false}
+        animate={
+          contentVisible
+            ? { opacity: 1, y: 0 }
+            : { opacity: 0, y: prefersReducedMotion ? 0 : 10 }
+        }
+        transition={contentTransition}
+        aria-hidden={!contentVisible}
+      >
+        <RegisterInvitationForm
+          token={token || ''}
+          onSuccess={() => router.push('/dashboard')}
+          onValidatingChange={setValidatingInvitation}
+        />
+      </motion.div>
     </div>
   );
 }

@@ -1,46 +1,45 @@
-import { useEffect, useState } from "react";
-import { fetchApiV1, queries } from "../Fetching";
-import type { Business } from "../interfases";
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  BUSINESS_STALE_TIME_MS,
+  businessQueryKeys,
+  fetchBusinessBySlug,
+} from "@/lib/queries/business";
 
-export function useBusiness(businessId: string | null) {
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [loading, setLoading] = useState(!!businessId);
-
-  useEffect(() => {
-    if (!businessId) {
-      setBusiness(null);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
+export function useBusiness(businessSlug: string | null) {
+  const {
+    data: business = null,
+    isLoading,
+    isFetching,
+    refetch,
+    error,
+  } = useQuery({
+    queryKey: businessQueryKeys.detail(businessSlug),
+    queryFn: async () => {
       try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
+        return await fetchBusinessBySlug(businessSlug!);
       } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      } finally {
-        if (!cancelled) setLoading(false);
+        toast.error("Error al cargar el negocio");
+        throw new Error("Error al cargar el negocio");
       }
-    })();
-    return () => { cancelled = true; };
-  }, [businessId]);
+    },
+    enabled: !!businessSlug,
+    staleTime: BUSINESS_STALE_TIME_MS,
+  });
 
   const businessIdDoc = business?._id ?? null;
 
-  return { business, businessIdDoc, loading };
+  return {
+    business,
+    businessIdDoc,
+    loading: isLoading,
+    isFetching,
+    error,
+    refetch: async () => {
+      const result = await refetch();
+      return result.data ?? null;
+    },
+  };
 }

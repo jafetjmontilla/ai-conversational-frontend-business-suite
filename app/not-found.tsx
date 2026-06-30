@@ -64,11 +64,11 @@ export default function NotFound() {
           <div className="pt-4 border-t">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <Image
-                src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
+                src="/images/icons/android-chrome-192x192.png"
                 alt="Logo"
-                width={48}
-                height={28}
-                className="rounded"
+                width={36}
+                height={36}
+                className="rounded-md"
               />
               <span>ERP</span>
             </div>

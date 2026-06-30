@@ -217,6 +217,75 @@ export interface UserMemoryRecordRow {
   updatedAt: string;
 }
 
+export interface PaeEpisodeRow {
+  id: string;
+  businessId: string;
+  userId: string;
+  role: string;
+  conversationId: string;
+  summary: string;
+  userMessage: string;
+  assistantReply?: string | null;
+  openQuestions?: string[];
+  createdAt: string;
+}
+
+export interface PaeEpisodeListResult {
+  items: PaeEpisodeRow[];
+  totalCount: number;
+}
+
+export interface PaeSkillRow {
+  id: string;
+  businessId: string;
+  userId?: string | null;
+  role: string;
+  name: string;
+  description: string;
+  template: string;
+  triggerHints: string[];
+  usageCount: number;
+  updatedAt: string;
+}
+
+export interface PaeSkillListResult {
+  items: PaeSkillRow[];
+  totalCount: number;
+}
+
+export interface PaeWorkflowRunRow {
+  id: string;
+  runId: string;
+  businessId: string;
+  userId: string;
+  role: string;
+  conversationId: string;
+  goal: string;
+  status: string;
+  resultText?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+export interface PaeWorkflowRunListResult {
+  items: PaeWorkflowRunRow[];
+  totalCount: number;
+}
+
+export interface PaeProactiveRoutineRow {
+  cron: string;
+  prompt: string;
+  enabled: boolean;
+}
+
+export interface PaeProactiveSettings {
+  defaultEngine: string;
+  routines: PaeProactiveRoutineRow[];
+  usesDefaultRoutine: boolean;
+  defaultRoutineCron: string;
+}
+
 export interface UserMemoryListResult {
   items: UserMemoryRecordRow[];
   totalCount: number;
@@ -278,31 +347,23 @@ export interface BusinessConfig {
   earlyResponse?: EarlyResponseConfig;
 }
 
-export interface MetaCloudApiNumber {
-  phoneNumberId: string;
-  phoneNumber: string;
-  accessToken: string;
-  verifyToken: string;
-}
+export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic";
+export type ChannelAgentEngine = "cse" | "pae";
 
-export interface BaileysApiNumber {
-  sessionId: string;
-  phoneNumber?: string | null;
+export interface BusinessChannel {
+  channelId: string;
+  name: string;
+  type: ChannelType;
   active: boolean;
-}
-
-export interface WhatsappsConfig {
-  metaCloudApiNumbers: MetaCloudApiNumber[];
-  baileysApiNumbers: BaileysApiNumber[];
-  whatsapp_allowed_phone_numbers: string[];
-}
-
-/** @deprecated Usar WhatsappsConfig.metaCloudApiNumbers */
-export interface WhatsAppConfig {
-  phoneNumberId: string;
-  phoneNumber: string;
-  accessToken: string;
-  verifyToken: string;
+  agentEngine: ChannelAgentEngine;
+  allowedPhoneNumbers: string[];
+  sessionId?: string | null;
+  phoneNumber?: string | null;
+  phoneNumberId?: string | null;
+  accessToken?: string | null;
+  verifyToken?: string | null;
+  callbackUrl?: string | null;
+  webhookSecret?: string | null;
 }
 
 /** Dirección física o de facturación. */
@@ -337,6 +398,8 @@ export interface Business {
   phone?: string;
   address?: BusinessAddress;
   currency?: string;
+  /** País del negocio (configuración regional). */
+  country?: string;
   timezone?: string;
   language?: string;
   businessCategory?: string;
@@ -354,8 +417,9 @@ export interface Business {
   billingCustomExchangeRate?: number;
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
-  whatsapps?: WhatsappsConfig;
-  callbackUrl?: string;
+  channels?: BusinessChannel[];
+  /** Apps instaladas en Suite (registros enriquecidos). */
+  installedApps?: import("@/lib/app-suite/capabilities").BusinessInstalledApp[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -491,6 +555,8 @@ export interface ProductCategory {
   name: string;
   description?: string;
   type: "producto" | "servicio" | "ambos";
+  /** Atributo cuyos valores definen priceKey para extras (ej. Tamaño). */
+  pricingAttributeId?: string | null;
   active: boolean;
   createdBy: string;
   createdAt?: string;
@@ -498,6 +564,14 @@ export interface ProductCategory {
 }
 
 // ——— Product (maestro) + Variants (SKUs) ———
+
+export interface RequiredMaterial {
+  materialVariantId: string;
+  sku: string;
+  quantity: number;
+  unitOfMeasure?: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -505,8 +579,16 @@ export interface Product {
   category_id: string | null;
   base_price: number;
   brand: string;
-  /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas (Service_Materials). Default true. */
+  /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas. Default true. */
   is_sellable?: boolean;
+  /** Si true, al vender se descuenta stock del SKU del producto. */
+  trackInventory?: boolean;
+  /** Si true, al vender se descuentan insumos de requiredMaterials. */
+  hasBillOfMaterials?: boolean;
+  requiredMaterials?: RequiredMaterial[];
+  modifierGroupIds?: string[];
+  /** Override del atributo de priceKey (hereda de categoría si null). */
+  pricingAttributeId?: string | null;
   status: boolean;
   createdBy: string;
   createdAt?: string;
@@ -524,6 +606,8 @@ export interface AttributeValue {
   _id: string;
   attribute_id: string;
   value: string;
+  /** Slug estable para priceKey (ej. mediana, 128gb). */
+  code?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -624,7 +708,7 @@ export interface ProductVariantForMaterial {
   product?: { _id: string; name: string } | null;
 }
 
-/** Servicio padre (catálogo independiente de productos). */
+/** Servicio padre (catálogo independiente de productos). trackInventory siempre false en backend. */
 export interface Service {
   _id: string;
   business_id: string;
@@ -632,10 +716,13 @@ export interface Service {
   description: string;
   is_available?: boolean;
   unit_of_measure?: string;
+  hasBillOfMaterials?: boolean;
+  requiredMaterials?: RequiredMaterial[];
   cost_review_pending?: boolean;
   status: boolean;
   options?: ServiceOption[];
   materials?: ServiceMaterial[];
+  modifierGroupIds?: string[];
 }
 
 /** Resultado del costo de producción dinámico de un servicio. */
@@ -656,4 +743,68 @@ export interface InventoryLog {
   concept: string;
   userId: string;
   createdAt: string;
+}
+
+export type ModifierSelectionType = "SINGLE" | "MULTIPLE";
+export type ModifierPriceBehavior = "ADDITIONAL" | "INCLUDED";
+
+export interface PriceMatrixEntry {
+  priceKey: string;
+  price: number;
+}
+
+export interface ModifierCatalogItem {
+  _id: string;
+  sku: string;
+  name: string;
+  type: string;
+  price: number;
+  priceMatrix?: PriceMatrixEntry[];
+  trackInventory: boolean;
+  hasBillOfMaterials: boolean;
+  requiredMaterials?: RequiredMaterial[];
+  isModifier: boolean;
+  isAvailable: boolean;
+  unitOfMeasure: string;
+  variantId?: string | null;
+  status: boolean;
+}
+
+export interface ModifierGroupOption {
+  catalogItemId: string;
+  priceOverride?: number | null;
+  priceMatrix?: PriceMatrixEntry[];
+  sortOrder: number;
+  isDefault: boolean;
+  catalogItem?: ModifierCatalogItem | null;
+}
+
+export interface ModifierGroup {
+  _id: string;
+  business_id: string;
+  name: string;
+  isRequired: boolean;
+  selectionType: ModifierSelectionType;
+  minSelections: number;
+  maxSelections: number;
+  priceBehavior: ModifierPriceBehavior;
+  includedQuantity: number;
+  options: ModifierGroupOption[];
+  status: boolean;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ModifierPriceLine {
+  modifierGroupId: string;
+  catalogItemId: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface ModifierPricingResult {
+  lines: ModifierPriceLine[];
+  additionalTotal: number;
 }

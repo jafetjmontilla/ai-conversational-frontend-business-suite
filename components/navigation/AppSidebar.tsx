@@ -1,58 +1,143 @@
 "use client"
 
-import { Sidebar, SidebarGroupContent, SidebarMenuButton, SidebarMenu, SidebarGroup, SidebarContent, SidebarHeader, SidebarMenuItem, useSidebar, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar"
+import {
+  Sidebar,
+  SidebarGroupContent,
+  SidebarMenuButton,
+  SidebarMenu,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenuItem,
+  useSidebar,
+  SidebarFooter,
+  SidebarMenuBadge,
+} from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 import Image from 'next/image'
-import React, { Dispatch, FC, useEffect, useState } from 'react';
+import { Roboto } from 'next/font/google'
+
+const roboto = Roboto({ subsets: ['latin'], weight: ['700'] })
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home, Users, Bell, ChevronLeft, ChevronRight, SquareArrowOutUpRight, Building2, Pencil, UserPlus, BookOpen, Settings, MessageSquare, Package, FileText, CreditCard, FileBarChart, Briefcase, Brain, FileSearch, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SquareArrowOutUpRight } from 'lucide-react';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { useAllowed, useBusinessRole, getBusinessIdFromPathname } from "@/lib/hooks/useAllowed"
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps"
 import { getProfileHref, isProfilePath } from "@/lib/profileRoutes"
 import { useAuth } from "@/contexts/AuthContext"
 import { useIsMobile } from "@/hooks/use-mobile"
+import {
+  buildAccountNavItems,
+  buildBusinessNavGroups,
+  buildBusinessTopItems,
+  buildSystemNavItems,
+  isNavItemActive,
+  type NavItem,
+} from "@/lib/navigation/businessNav"
 import packageJson from '../../package.json' assert { type: 'json' };
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  badge?: number;
-  condition?: boolean;
-};
-
-export interface AppSidebarProps {
-  setSlugs: Dispatch<React.SetStateAction<{ name: string, href: string }[]>>
+function NavMenuItems({
+  items,
+  loading,
+  pathname,
+  state,
+  onNavigate,
+}: {
+  items: NavItem[];
+  loading: boolean;
+  pathname: string;
+  state: "expanded" | "collapsed";
+  onNavigate: (item: NavItem) => void;
+}) {
+  return (
+    <>
+      {items.map((item) => {
+        const isActive = isNavItemActive(pathname, item);
+        const Icon = item.icon;
+        return (
+          <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton
+              tooltip={item.label}
+              asChild
+              onClick={() => !loading && onNavigate(item)}
+              className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+            >
+              <div>
+                <Icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                <span>{item.label}</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </>
+  );
 }
 
-export function AppSidebar({ setSlugs }: AppSidebarProps) {
+export function AppSidebar() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const { state, toggleSidebar } = useSidebar();
   const { theme } = useThemeContext();
-  const businessId = getBusinessIdFromPathname(pathname || '');
+  const businessId = getBusinessIdFromPathname(pathname);
+  const { installedApps } = useBusinessApps(businessId);
   const { businessRole } = useBusinessRole(businessId);
-  const { hasRole, hasAnyRole, can } = useAllowed({ businessRole: businessRole ?? undefined });
+  const { can } = useAllowed({ businessRole: businessRole ?? undefined });
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
-  const versionLabel = packageJson.version ? `Business Suite v${packageJson.version}` : "Business Suite";
+  const versionLabel = packageJson.version ? `v${packageJson.version}` : "";
 
-  const canViewBusinesses = can('negocios:ver');
-  const canViewUsers = can('usuarios:ver');
-  const canEditCurrentBusiness = can('negocio:editar');
-  const canViewCurrentBusiness = can('negocio:ver');
-  const canManageBusinessUsers = can('negocio:usuarios');
+  const businessPerms = useMemo(
+    () => ({
+      canViewCurrentBusiness: can('negocio:ver'),
+      canEditCurrentBusiness: can('negocio:editar'),
+      canManageBusinessUsers: can('negocio:usuarios'),
+    }),
+    [can]
+  );
 
-  const handleNavigation = async (href: string, label: string) => {
-    if (pathname === href) return;
+  const systemPerms = useMemo(
+    () => ({
+      canViewBusinesses: can('negocios:ver'),
+      canViewUsers: can('usuarios:ver'),
+    }),
+    [can]
+  );
+
+  const isSystemScope = !businessId;
+
+  const topItems = useMemo(
+    () => (businessId ? buildBusinessTopItems(businessId, businessPerms, installedApps) : []),
+    [businessId, businessPerms, installedApps]
+  );
+
+  const navGroups = useMemo(
+    () => (businessId ? buildBusinessNavGroups(businessId, businessPerms, installedApps) : []),
+    [businessId, businessPerms, installedApps]
+  );
+
+  const systemItems = useMemo(
+    () => (isSystemScope ? buildSystemNavItems() : []),
+    [isSystemScope]
+  );
+
+  const accountItems = useMemo(
+    () => (isSystemScope ? buildAccountNavItems(systemPerms) : []),
+    [isSystemScope, systemPerms]
+  );
+
+  const handleNavigation = async (item: NavItem) => {
+    if (isNavItemActive(pathname, item)) return;
     setLoading(true);
-    setCurrentPath(href);
-    router.push(href);
+    setCurrentPath(item.href);
+    router.push(item.href);
     await new Promise((resolve) => setTimeout(resolve, 800));
     if (isMobile) toggleSidebar();
   };
@@ -60,50 +145,6 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
   useEffect(() => {
     if (pathname === currentPath) setLoading(false);
   }, [pathname, currentPath]);
-
-  const isSystemScope = !businessId;
-
-  const buildPersonalItems = (): NavItem[] => {
-    if (!isSystemScope) {
-      return [
-        { href: `/${businessId}/edit`, label: 'Editar negocio', icon: Pencil, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/config`, label: 'Configuración del negocio', icon: Settings, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/userMemories`, label: 'Memoria de usuarios', icon: Brain, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/promptLogs`, label: 'Prompt Logs', icon: FileSearch, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/checkout-audit`, label: 'Auditoría checkout', icon: ShoppingCart, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/channels`, label: 'Canales', icon: MessageSquare, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/users`, label: 'Usuarios del negocio', icon: UserPlus, condition: canManageBusinessUsers },
-        { href: `/${businessId}/knowledge`, label: 'Generar conocimiento', icon: BookOpen, condition: canEditCurrentBusiness },
-        { href: `/${businessId}/invoice`, label: 'Facturación', icon: FileText, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/inventory`, label: 'Inventario', icon: Package, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/services`, label: 'Servicios', icon: Briefcase, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/reportPayments`, label: 'Reporte de pagos', icon: CreditCard, condition: canViewCurrentBusiness },
-        { href: `/${businessId}/reportInvoices`, label: 'Reporte de facturas', icon: FileBarChart, condition: canViewCurrentBusiness },
-      ].filter((item) => item.condition !== false);
-    }
-    return [
-      { href: '/dashboard', label: 'Dashboard', icon: Home },
-    ];
-  };
-
-  const buildAccountItems = (): NavItem[] => {
-    if (!isSystemScope) return [];
-    return [
-      { href: '/notifications', label: 'Notificaciones', icon: Bell },
-      { href: '/businesses', label: 'Negocios', icon: Building2, condition: canViewBusinesses },
-      { href: '/users', label: 'Usuarios', icon: Users, condition: canViewUsers },
-    ].filter((item) => item.condition !== false);
-  };
-
-  useEffect(() => {
-    setSlugs([
-      ...buildPersonalItems().map((item) => ({ name: item.label, href: item.href })),
-      ...buildAccountItems().map((item) => ({ name: item.label, href: item.href })),
-    ]);
-  }, [businessId, canEditCurrentBusiness, canViewCurrentBusiness, canManageBusinessUsers, canViewBusinesses, canViewUsers]);
-
-  const personalItems = buildPersonalItems();
-  const accountItems = buildAccountItems();
 
   return (
     <>
@@ -121,63 +162,96 @@ export function AppSidebar({ setSlugs }: AppSidebarProps) {
         </Button>
         <SidebarHeader>
           <SidebarMenu>
-            <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1">
-              <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer">
-                <Image src={theme === "dark" ? `/images/4net-logo-white.png` : `/images/4net-logo-black.png`} alt="Business Suite" width={50} height={30} className="rounded-md" />
-                {state === "expanded" && <span className="font-bold text-sm">{versionLabel}</span>}
+            <div className="pl-1 flex w-full h-14 items-center overflow-hidden -translate-x-1 w-full">
+              <div className="flex text-nowrap gap-2 items-center hover:scale-105 transition-all duration-200 ease-linear cursor-pointer w-full">
+                <Image src="/images/icons/android-chrome-192x192.png" alt="Business Suite" width={36} height={36} className="rounded-md" />
+                <div className="flex w-full justify-between items-center">
+                  <span className={`font-bold text-xl *dark:text-[#40D55C] text-[#1FB014] ${roboto.className}`}>kiterAi</span>
+                  {state === "expanded" && <span className={`text-[10px] text-muted-foreground ${roboto.className}`}>{versionLabel}</span>}
+                </div>
               </div>
             </div>
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent className="overflow-hidden">
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {personalItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        asChild
-                        onClick={() => !loading && handleNavigation(item.href, item.label)}
-                        className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
-                      >
-                        <div>
-                          <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
-                          <span>{item.label}</span>
-                        </div>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {isSystemScope ? (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <NavMenuItems
+                    items={systemItems}
+                    loading={loading}
+                    pathname={pathname}
+                    state={state}
+                    onNavigate={handleNavigation}
+                  />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ) : (
+            <>
+              {topItems.length > 0 && (
+                <SidebarGroup>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <NavMenuItems
+                        items={topItems}
+                        loading={loading}
+                        pathname={pathname}
+                        state={state}
+                        onNavigate={handleNavigation}
+                      />
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+              {navGroups.map((group) => (
+                <SidebarGroup key={group.id}>
+                  <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <NavMenuItems
+                        items={group.items}
+                        loading={loading}
+                        pathname={pathname}
+                        state={state}
+                        onNavigate={handleNavigation}
+                      />
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              ))}
+            </>
+          )}
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
             {accountItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isNavItemActive(pathname, item);
+              const Icon = item.icon;
               return (
-                <SidebarMenuItem key={item.label}>
+                <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     tooltip={item.label}
                     asChild
-                    onClick={() => !loading && handleNavigation(item.href, item.label)}
+                    onClick={() => !loading && handleNavigation(item)}
                     className={`cursor-pointer ${state === "collapsed" ? "rounded-sm" : ""} ${isActive ? "bg-accent text-accent-foreground" : ""}`}
                   >
                     <div>
-                      <item.icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
+                      <Icon style={{ width: '20px', height: '20px', transform: 'translateX(-2px)' }} />
                       <span>{item.label}</span>
                     </div>
                   </SidebarMenuButton>
-                  <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
                 </SidebarMenuItem>
               );
             })}
             <Separator className="my-2" />
-            <SidebarMenuItem onClick={() => !loading && handleNavigation(getProfileHref(businessId), "Perfil")}>
+            <SidebarMenuItem onClick={() => !loading && handleNavigation({
+              id: "profile",
+              href: getProfileHref(businessId),
+              label: "Perfil",
+              icon: SquareArrowOutUpRight,
+            })}>
               <SidebarMenuButton className={`h-14 ${isProfilePath(pathname) ? "bg-accent text-accent-foreground" : ""}`}>
                 <Avatar className="scale-[80%] -translate-x-[12px]">
                   <AvatarImage src={user?.photoURL || ""} />

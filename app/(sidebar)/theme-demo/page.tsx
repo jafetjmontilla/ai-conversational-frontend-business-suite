@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ThemeDemo } from '@/components/ThemeDemo';
 import { CommentsPanel } from '@/components/CommentsPanel';
 import { useState, useEffect } from 'react';
@@ -108,12 +109,12 @@ export default function ThemeDemoPage() {
       </Card>
 
       <div className="mt-8 text-center">
-        <a
+        <Link
           href="/"
           className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
         >
           ← Volver al inicio
-        </a>
+        </Link>
       </div>
     </div>
   );

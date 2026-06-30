@@ -23,7 +23,8 @@ const TOKEN_EXPIRED_REASONS = [
 const TEMPORARY_DISCONNECT_REASONS = [
   'transport close', // Pérdida de conexión de red
   'ping timeout', // Timeout del ping
-  'transport error' // Error de transporte
+  'transport error', // Error de transporte
+  'websocket error', // Fallo de upgrade tras proxy/CDN; polling suele funcionar
 ];
 
 export const useWebSocket = (
@@ -112,7 +113,10 @@ export const useWebSocket = (
         auth: {
           token: token
         },
-        transports: ['websocket', 'polling'],
+        // Polling primero: más fiable detrás de nginx/Cloudflare; luego upgrade a websocket
+        transports: ['polling', 'websocket'],
+        upgrade: true,
+        rememberUpgrade: true,
         reconnection: false // Deshabilitamos la reconexión automática de Socket.IO para manejarla nosotros
       });
 
@@ -126,7 +130,12 @@ export const useWebSocket = (
       });
 
       newSocket.on('connect_error', async (err) => {
-        console.error('❌ Error de conexión Socket.IO:', err.message);
+        const isTransportError = err.message === 'websocket error' || err.message.includes('transport');
+        if (isTransportError) {
+          console.warn('⚠️ Socket.IO: error de transporte, reintentando...', err.message);
+        } else {
+          console.error('❌ Error de conexión Socket.IO:', err.message);
+        }
         setIsConnected(false);
         isConnectingRef.current = false;
 

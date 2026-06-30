@@ -35,6 +35,77 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // Índices de sección → subruta por defecto
+      {
+        source: '/:businessId/ai/memory',
+        has: [{ type: 'query', key: 'tab', value: 'settings' }],
+        destination: '/:businessId/ai/memory/ajustes',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/ai/memory',
+        destination: '/:businessId/ai/memory/datos',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/productos',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/productos/:path*',
+        destination: '/:businessId/offerings/products/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/servicios',
+        destination: '/:businessId/offerings/services',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/servicios/:path*',
+        destination: '/:businessId/offerings/services/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/offerings/atributos',
+        destination: '/:businessId/offerings/attributes',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/catalog',
+        destination: '/:businessId/offerings/products',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/catalog/:path*',
+        destination: '/:businessId/offerings/:path*',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/billing',
+        destination: '/:businessId/billing/facturas',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/knowledge',
+        destination: '/:businessId/knowledge/protocols',
+        permanent: false,
+      },
+      {
+        source: '/:businessId/ops',
+        destination: '/:businessId/ops/logs',
+        permanent: false,
+      },
+    ];
+  },
   // Headers de cache para assets de emoji-picker-react y otros CDNs
   async headers() {
     return [
@@ -89,10 +160,8 @@ const nextConfig = {
 
     return config;
   },
-  experimental: {
-    // Mejorar la estabilidad del servidor
-    serverComponentsExternalPackages: ['firebase'],
-  },
+  serverExternalPackages: ['firebase'],
+  outputFileTracingRoot: require('path').join(__dirname),
 }
 
 module.exports = nextConfig 

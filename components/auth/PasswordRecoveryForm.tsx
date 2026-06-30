@@ -62,11 +62,11 @@ export function PasswordRecoveryForm({ onBackToLogin }: PasswordRecoveryFormProp
     return (
       <Card className="w-full max-w-md mx-auto">
         <Image
-          src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
+          src="/images/icons/android-chrome-512x512.png"
           alt="4netERP"
-          width={200}
-          height={200}
-          className="mt-10 mx-auto"
+          width={120}
+          height={120}
+          className="mt-10 mx-auto rounded-xl"
         />
         <CardHeader className="text-center space-y-1 py-6">
           <div className="flex items-center justify-center mb-4">
@@ -110,11 +110,11 @@ export function PasswordRecoveryForm({ onBackToLogin }: PasswordRecoveryFormProp
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
+        src="/images/icons/android-chrome-512x512.png"
         alt="4netERP"
-        width={200}
-        height={200}
-        className="mt-10 mx-auto"
+        width={120}
+        height={120}
+        className="mt-10 mx-auto rounded-xl"
       />
       <CardHeader className="text-center space-y-1 py-6">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Recuperar Contraseña</h2>

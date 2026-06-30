@@ -137,13 +137,61 @@ export type KnowledgeAuditResponse = {
     sourcesWithoutDocuments: string[];
     orphanSources: string[];
   };
+  debugSearch?: {
+    query: string;
+    min_score?: number | null;
+    rerank?: string | null;
+    mmr_lambda?: number | null;
+    candidate_multiplier?: number | null;
+    top_k?: number | null;
+    results: {
+      documentId: string;
+      content: string;
+      score: number;
+      sourceId: string;
+      metadata?: Record<string, unknown>;
+    }[];
+    note?: string;
+  };
 };
 
-/** GET /api/knowledge/audit?businessId=xxx — requiere autenticación */
-export const fetchKnowledgeAudit = async (businessId: string): Promise<KnowledgeAuditResponse> => {
+export type KnowledgeAuditOptions = {
+  query?: string;
+  minScore?: number;
+  rerank?: 'none' | 'mmr';
+  mmrLambda?: number;
+  candidateMultiplier?: number;
+  topK?: number;
+};
+
+/** GET /api/knowledge/audit?businessId=xxx[&query=...&min_score=0.7] — requiere autenticación */
+export const fetchKnowledgeAudit = async (
+  businessId: string,
+  options?: KnowledgeAuditOptions
+): Promise<KnowledgeAuditResponse> => {
   const token = await getIdToken();
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000';
-  const url = `${baseURL}/api/knowledge/audit?businessId=${encodeURIComponent(businessId)}`;
+  const params = new URLSearchParams({ businessId });
+  const query = options?.query?.trim();
+  if (query) {
+    params.set('query', query);
+    if (options?.minScore != null) {
+      params.set('min_score', String(options.minScore));
+    }
+    if (options?.rerank) {
+      params.set('rerank', options.rerank);
+    }
+    if (options?.mmrLambda != null) {
+      params.set('mmr_lambda', String(options.mmrLambda));
+    }
+    if (options?.candidateMultiplier != null) {
+      params.set('candidate_multiplier', String(options.candidateMultiplier));
+    }
+    if (options?.topK != null) {
+      params.set('top_k', String(options.topK));
+    }
+  }
+  const url = `${baseURL}/api/knowledge/audit?${params.toString()}`;
   const res = await fetch(url, {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : {},

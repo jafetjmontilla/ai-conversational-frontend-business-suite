@@ -1,13 +1,14 @@
 // Service Worker Manual para PWA - Frontend Business Suite
-// Versión: 1.1.0 - Generado: 2026-05-13T20:28:06.623Z
+// Versión: 1.1.0 - Generado: 2026-06-28T03:37:38.326Z
 const CACHE_NAME = 'frontend-business-suite-v1-1-0';
 const IMAGE_CACHE = 'frontend-business-suite-images-v1-1-0';
 
 // Archivos estáticos para cachear en la instalación (solo assets básicos)
 const STATIC_ASSETS = [
   '/manifest.json',
-  '/images/icon-192x192.png',
-  '/images/icon-512x512.png'
+  '/favicon.ico',
+  '/images/icons/android-chrome-192x192.png',
+  '/images/icons/android-chrome-512x512.png'
 ];
 
 // Instalar el service worker y cachear archivos estáticos

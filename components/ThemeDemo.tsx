@@ -178,7 +178,7 @@ export const ThemeDemo: FC = () => {
           <h4 className="font-medium text-foreground mb-2">Información del Sistema</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• El tema se guarda automáticamente en el navegador</li>
-            <li>• El modo "Sistema" sigue la preferencia del sistema operativo</li>
+            <li>• El modo &quot;Sistema&quot; sigue la preferencia del sistema operativo</li>
             <li>• Los cambios se aplican instantáneamente sin recargar la página</li>
             <li>• Todos los componentes están optimizados para ambos temas</li>
           </ul>

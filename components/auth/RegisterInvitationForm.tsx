@@ -48,6 +48,7 @@ interface UserData {
 interface RegisterInvitationFormProps {
   token: string;
   onSuccess?: () => void;
+  onValidatingChange?: (validating: boolean) => void;
 }
 
 const formSchema = z.object({
@@ -60,7 +61,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationFormProps) {
+export function RegisterInvitationForm({ token, onSuccess, onValidatingChange }: RegisterInvitationFormProps) {
   const { signInGoogle } = useAuth();
   const router = useRouter();
   const { theme, isDark } = useThemeContext();
@@ -71,7 +72,6 @@ export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationF
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRegisteringWithGoogle, setIsRegisteringWithGoogle] = useState(false);
   const [validationError, setValidationError] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -84,41 +84,53 @@ export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationF
   });
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    onValidatingChange?.(isValidating);
+  }, [isValidating, onValidatingChange]);
 
-  // Validar token al cargar el componente
   useEffect(() => {
-    if (token && isMounted) {
-      validateToken();
-    } else {
+    if (!token) {
       setValidationError('Token de invitación no encontrado');
       setIsValidating(false);
+      return;
     }
-  }, [token, isMounted]);
 
-  const validateToken = async () => {
-    try {
-      const response = await fetchApiV1({
-        query: queries.validateInvitationToken,
-        variables: { token },
-        type: 'json'
-      });
+    let cancelled = false;
 
-      if (response.success) {
-        setInvitationData(response.data);
-        setUserData(response.userData);
-        setValidationError('');
-      } else {
-        setValidationError(response.message);
+    const validateToken = async () => {
+      setIsValidating(true);
+      setValidationError('');
+
+      try {
+        const response = await fetchApiV1({
+          query: queries.validateInvitationToken,
+          variables: { token },
+          type: 'json',
+        });
+
+        if (cancelled) return;
+
+        if (response.success) {
+          setInvitationData(response.data);
+          setUserData(response.userData);
+          setValidationError('');
+        } else {
+          setValidationError(response.message);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Error validando token:', error);
+        setValidationError('Error validando la invitación');
+      } finally {
+        if (!cancelled) setIsValidating(false);
       }
-    } catch (error) {
-      console.error('Error validando token:', error);
-      setValidationError('Error validando la invitación');
-    } finally {
-      setIsValidating(false);
-    }
-  };
+    };
+
+    void validateToken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const onSubmit = async (values: FormValues) => {
     setIsRegistering(true);
@@ -201,18 +213,8 @@ export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationF
     }
   };
 
-  // Mostrar loading mientras se valida el token
   if (isValidating) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-center space-x-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span>Validando invitación...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   // Mostrar error si la validación falló
@@ -248,11 +250,11 @@ export function RegisterInvitationForm({ token, onSuccess }: RegisterInvitationF
   return (
     <Card className="w-full max-w-md mx-auto">
       <Image
-        src={theme === "dark" ? '/images/4netGradientDark.png' : '/images/4netGradientLight.png'}
+        src="/images/icons/android-chrome-512x512.png"
         alt="4netERP"
-        width={200}
-        height={200}
-        className="mt-10 mx-auto"
+        width={120}
+        height={120}
+        className="mt-10 mx-auto rounded-xl"
       />
       <CardHeader className="text-center space-y-1 py-6">
         <CardTitle className="flex items-center justify-center space-x-2 text-green-600">
