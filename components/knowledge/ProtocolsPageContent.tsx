@@ -34,7 +34,7 @@ import {
   narrativeStorageKey,
   type ProtocolDraftRecord,
 } from "@/lib/knowledge/protocolDraftForm";
-import { ArrowDownAZ, BookOpen, FilePenLine, Loader2, Sparkles, X } from "lucide-react";
+import { ArrowDownAZ, BookOpen, FilePenLine, Loader2, Sparkles, Wand2, X } from "lucide-react";
 
 type ProtocolSortField = "approvedAt" | "updatedAt";
 type ProtocolSortOrder = "asc" | "desc";
@@ -147,6 +147,7 @@ export function ProtocolsPageContent() {
   const [mobileDraftsOpen, setMobileDraftsOpen] = useState(false);
   const [narrative, setNarrative] = useState("");
   const [sending, setSending] = useState(false);
+  const [generatingHabitual, setGeneratingHabitual] = useState(false);
   const [pendingDrafts, setPendingDrafts] = useState<ProtocolDraftRecord[]>([]);
   const [published, setPublished] = useState<ProtocolDraftRecord[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
@@ -240,6 +241,26 @@ export function ProtocolsPageContent() {
       toast.error((e as Error)?.message || "Error al enviar");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleGenerateHabitualProtocols = async () => {
+    if (!businessId) return;
+    setGeneratingHabitual(true);
+    try {
+      await fetchApiV1({
+        query: queries.generateProtocolSuggestions,
+        type: "json",
+        variables: { businessId, instructions: null },
+      });
+      toast.success(
+        "Generando protocolos habituales según tu negocio. Los borradores aparecerán en unos segundos."
+      );
+      setMobileDraftsOpen(true);
+    } catch (e: unknown) {
+      toast.error((e as Error)?.message || "Error al generar protocolos habituales");
+    } finally {
+      setGeneratingHabitual(false);
     }
   };
 
@@ -354,10 +375,27 @@ export function ProtocolsPageContent() {
     <Card id="card-right" className={cn("flex h-full flex-col border-none", options?.className)}>
       <CardHeader className="space-y-3">
         {canEdit && (
-          <div className="flex justify-end">
-            <Button onClick={() => setGenerateDialogOpen(true)}>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => void handleGenerateHabitualProtocols()}
+              disabled={generatingHabitual || sending}
+            >
+              {generatingHabitual ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generando…
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Generar protocolos habituales
+                </>
+              )}
+            </Button>
+            <Button onClick={() => setGenerateDialogOpen(true)} disabled={generatingHabitual || sending}>
               <Sparkles className="h-4 w-4 mr-2" />
-              Generar protocolo
+              Generar con IA
             </Button>
           </div>
         )}
@@ -390,7 +428,7 @@ export function ProtocolsPageContent() {
           <p className="text-muted-foreground">Cargando…</p>
         ) : pendingDrafts.length === 0 ? (
           <p className="text-muted-foreground">
-            No hay borradores pendientes. Usa &quot;Generar protocolo&quot; para enviar una narrativa a la IA.
+            No hay borradores pendientes. Usa &quot;Generar protocolos habituales&quot; o &quot;Generar con IA&quot;.
           </p>
         ) : (
           <div className="space-y-2">
@@ -571,7 +609,7 @@ export function ProtocolsPageContent() {
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generar protocolo</DialogTitle>
+            <DialogTitle>Generar con IA</DialogTitle>
             <DialogDescription>
               Escribe cómo se hace algo en lenguaje natural. La IA extraerá título, resumen y pasos en un
               borrador para que lo revises en el panel derecho.

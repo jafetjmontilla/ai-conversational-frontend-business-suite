@@ -1676,6 +1676,9 @@ export const queries = {
   sendProtocolNarrative: `mutation sendProtocolNarrative($businessId: String!, $content: String!) {
     sendProtocolNarrative(businessId: $businessId, content: $content)
   }`,
+  generateProtocolSuggestions: `mutation generateProtocolSuggestions($businessId: String!, $instructions: String) {
+    generateProtocolSuggestions(businessId: $businessId, instructions: $instructions)
+  }`,
   updateProtocolDraft: `mutation updateProtocolDraft($id: ID!, $input: UpdateProtocolDraftInput!) {
     updateProtocolDraft(id: $id, input: $input) {
       _id
