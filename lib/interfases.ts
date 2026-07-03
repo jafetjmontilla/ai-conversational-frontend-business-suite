@@ -235,6 +235,47 @@ export interface PaeEpisodeListResult {
   totalCount: number;
 }
 
+export interface PaeContactPhoneRow {
+  value: string;
+  label?: string | null;
+  isPrimary?: boolean | null;
+  isWhatsApp?: boolean | null;
+}
+
+export interface PaeContactEmailRow {
+  value: string;
+  label?: string | null;
+  isPrimary?: boolean | null;
+}
+
+export interface PaeContactRow {
+  id: string;
+  contactId: string;
+  businessId: string;
+  userId: string;
+  role: string;
+  displayName: string;
+  aliases?: string[];
+  relationship?: string | null;
+  organization?: string | null;
+  jobTitle?: string | null;
+  phones?: PaeContactPhoneRow[];
+  emails?: PaeContactEmailRow[];
+  tags?: string[];
+  notes?: string | null;
+  preferredChannel?: string | null;
+  preferredOutboundProfile?: string | null;
+  doNotContact?: boolean | null;
+  source?: string | null;
+  lastContactedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface PaeContactListResult {
+  items: PaeContactRow[];
+  totalCount: number;
+}
+
 export interface PaeSkillRow {
   id: string;
   businessId: string;

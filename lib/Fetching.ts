@@ -646,6 +646,32 @@ export const queries = {
       }
     }
   }`,
+  listPaeContacts: `query listPaeContacts($businessDocId: ID!, $role: String, $skip: Int, $limit: Int, $userIdContains: String, $nameContains: String) {
+    listPaeContacts(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit, userIdContains: $userIdContains, nameContains: $nameContains) {
+      totalCount
+      items {
+        id
+        contactId
+        userId
+        role
+        displayName
+        aliases
+        relationship
+        organization
+        jobTitle
+        phones { value label isPrimary isWhatsApp }
+        emails { value label isPrimary }
+        tags
+        notes
+        preferredChannel
+        preferredOutboundProfile
+        doNotContact
+        source
+        lastContactedAt
+        updatedAt
+      }
+    }
+  }`,
   listPaeSkills: `query listPaeSkills($businessDocId: ID!, $role: String, $skip: Int, $limit: Int) {
     listPaeSkills(businessDocId: $businessDocId, role: $role, skip: $skip, limit: $limit) {
       totalCount
