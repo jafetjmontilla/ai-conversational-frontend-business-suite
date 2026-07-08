@@ -194,7 +194,7 @@ export function buildBusinessNavGroups(
           id: "billing",
           href: `${base}/billing/facturas`,
           activePrefix: `${base}/billing`,
-          label: "Facturación y cobros",
+          label: "Facturación interna",
           icon: FileText,
           permission: "negocio:ver",
           matchPrefix: true,

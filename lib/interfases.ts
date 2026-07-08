@@ -114,6 +114,8 @@ export interface RagSearchConfig {
 /** Estado de checkout en conversación (worker). */
 export interface CommerceFlowConfig {
   enabled?: boolean;
+  commerceInstructions?: string;
+  notifyStaffOnAgentInvoice?: boolean;
 }
 
 /** Motor del agente (blueprint). */
@@ -125,6 +127,13 @@ export interface LlmAuthMasked {
   type: string;
   headerName?: string | null;
   apiKeyMasked: boolean;
+}
+
+/** Auth LLM para mutaciones (sin apiKeyMasked; apiKey solo si el usuario la cambió). */
+export interface LlmAuthForUpdate {
+  type: string;
+  headerName?: string | null;
+  apiKey?: string;
 }
 
 export interface LlmContextCaching {
@@ -142,6 +151,10 @@ export interface LlmConfig {
   auth?: LlmAuthMasked | null;
   contextCaching: LlmContextCaching;
 }
+
+export type LlmConfigForUpdate = Omit<LlmConfig, "auth"> & {
+  auth?: LlmAuthForUpdate | null;
+};
 
 export interface GroundingConfig {
   minConfidence: number;
@@ -388,6 +401,10 @@ export interface BusinessConfig {
   earlyResponse?: EarlyResponseConfig;
 }
 
+export type BusinessConfigForUpdate = Omit<BusinessConfig, "llm"> & {
+  llm?: LlmConfigForUpdate;
+};
+
 export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic";
 export type ChannelAgentEngine = "cse" | "pae";
 
@@ -456,6 +473,8 @@ export interface Business {
   billingExchangeRateSource?: "bcv_dolar" | "bcv_euro" | "binance" | "custom";
   /** Tasa manual cuando la fuente es custom. */
   billingCustomExchangeRate?: number;
+  /** Flujo UI de facturación interna: carousel o editor. */
+  billingInternalFlow?: "carousel" | "editor";
   /** Configuración usada por el worker (conversaciones, personalidad, fuentes RAG, herramientas). */
   config?: BusinessConfig;
   channels?: BusinessChannel[];
@@ -508,6 +527,16 @@ export interface QuantityHistory {
 // Facturación e inventario (multi-tenant por business_id)
 export type InvoiceItemType = 'product_variant' | 'service_option' | 'inventory';
 
+export interface InvoiceSelectedModifier {
+  modifierGroupId: string;
+  catalogItemId: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  /** Solo UI; no se persiste en API. */
+  label?: string;
+}
+
 export interface InvoiceItem {
   _id: string;
   id: string;
@@ -519,10 +548,14 @@ export interface InvoiceItem {
   itemType?: InvoiceItemType;
   productVariantId?: string;
   serviceOptionId?: string;
+  lineNote?: string;
+  selectedModifiers?: InvoiceSelectedModifier[];
   invoiceId: string;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type InvoiceSource = "manual" | "agent" | "api";
 
 export interface Invoice {
   _id: string;
@@ -534,6 +567,11 @@ export interface Invoice {
   totalUsd: number;
   status: "draft" | "paid" | "cancelled";
   createdBy: string;
+  createdByName?: string;
+  orderId?: string;
+  conversationId?: string;
+  channel?: string;
+  source?: InvoiceSource;
   createdAt: string;
   updatedAt: string;
 }

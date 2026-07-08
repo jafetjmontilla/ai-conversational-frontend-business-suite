@@ -457,6 +457,7 @@ export const queries = {
       billingDisplayCurrency
       billingExchangeRateSource
       billingCustomExchangeRate
+      billingInternalFlow
       config {
         conversationTimeout
         messageLimit
@@ -511,6 +512,8 @@ export const queries = {
         }
         commerceFlow {
           enabled
+          commerceInstructions
+          notifyStaffOnAgentInvoice
         }
         agent {
           defaultEngine
@@ -898,9 +901,15 @@ export const queries = {
       billingDisplayCurrency
       billingExchangeRateSource
       billingCustomExchangeRate
+      billingInternalFlow
       channels {
         channelId name type active agentEngine allowedPhoneNumbers
         sessionId phoneNumber phoneNumberId accessToken verifyToken callbackUrl webhookSecret
+      }
+      installedApps {
+        app_id status
+        limits { max_records current_usage features_enabled }
+        installed_at updated_at uninstalled_at billing_cycle_ends
       }
       createdAt
       updatedAt
@@ -1093,11 +1102,16 @@ export const queries = {
         clientName
         clientId
         clientPhone
-        items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId createdAt updatedAt }
+        items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } createdAt updatedAt }
         totalBs
         totalUsd
         status
         createdBy
+        createdByName
+        orderId
+        conversationId
+        channel
+        source
         createdAt
         updatedAt
       }
@@ -1109,11 +1123,16 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId createdAt updatedAt }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } createdAt updatedAt }
       totalBs
       totalUsd
       status
       createdBy
+      createdByName
+      orderId
+      conversationId
+      channel
+      source
       createdAt
       updatedAt
     }
@@ -1124,7 +1143,7 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } }
       totalBs
       totalUsd
       status
@@ -1139,7 +1158,7 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId }
+      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } }
       totalBs
       totalUsd
       status

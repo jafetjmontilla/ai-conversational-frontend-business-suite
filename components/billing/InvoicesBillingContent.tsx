@@ -1,19 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Invoice, InvoiceResponse } from "@/lib/interfases";
+import type { Invoice, InvoiceResponse, InvoiceSource } from "@/lib/interfases";
 import { toast } from "sonner";
-import { Plus, Receipt } from "lucide-react";
+import { Bot, Plus, Receipt } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
+import { normalizeBillingInternalFlow } from "@/lib/billing/flows";
 import { InvoiceCard, formatNumber } from "@/components/invoice/InvoiceCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useWebSocketContext } from "@/contexts/WebSocketContext";
+import { cn } from "@/lib/utils";
+
+type SourceFilter = "all" | InvoiceSource;
 
 export function InvoicesBillingContent() {
   const params = useParams();
@@ -29,20 +35,29 @@ export function InvoicesBillingContent() {
   const [localInvoices, setLocalInvoices] = useState<Invoice[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+
+  const { onInvoiceCreated, onInvoiceUpdated } = useWebSocketContext();
+
+  const billingFlow = normalizeBillingInternalFlow(business?.billingInternalFlow);
 
   const exchangeRate =
     business?.billingExchangeRateSource === "custom" && business?.billingCustomExchangeRate
       ? business.billingCustomExchangeRate
       : 1;
 
-  const fetchInvoices = () => {
+  const fetchInvoices = useCallback(() => {
     if (!businessIdDoc) return;
     setLoading(true);
+    const filters =
+      sourceFilter === "all" ? undefined : { source: sourceFilter };
     fetchApiV1({
       query: queries.getInvoices,
       type: "json",
       variables: {
         id: businessIdDoc,
+        filters,
         skip: 0,
         limit: 50,
         sort: { createdAt: -1 },
@@ -53,14 +68,56 @@ export function InvoicesBillingContent() {
       })
       .catch(() => toast.error("Error al cargar facturas"))
       .finally(() => setLoading(false));
-  };
+  }, [businessIdDoc, sourceFilter]);
 
   useEffect(() => {
     if (!businessIdDoc) return;
     fetchInvoices();
-  }, [businessIdDoc]);
+  }, [businessIdDoc, fetchInvoices]);
 
-  const addNewInvoice = () => {
+  useEffect(() => {
+    const unsubCreate = onInvoiceCreated((payload) => {
+      if (payload.businessId !== businessIdDoc) return;
+      fetchInvoices();
+      if (payload.source === "agent") {
+        toast.info("Nueva factura del agente", {
+          description: "Revisa el listado para cobrar en caja.",
+        });
+      }
+    });
+    const unsubUpdate = onInvoiceUpdated((payload) => {
+      if (payload.businessId !== businessIdDoc) return;
+      fetchInvoices();
+    });
+    return () => {
+      unsubCreate();
+      unsubUpdate();
+    };
+  }, [businessIdDoc, fetchInvoices, onInvoiceCreated, onInvoiceUpdated]);
+
+  const addNewInvoice = async () => {
+    if (billingFlow === "editor") {
+      if (!businessIdDoc) return;
+      setCreating(true);
+      try {
+        const saved = (await fetchApiV1({
+          query: queries.createInvoice,
+          type: "json",
+          variables: {
+            id: businessIdDoc,
+            args: { items: [] },
+          },
+        })) as Invoice | null;
+        if (!saved?._id) throw new Error("No se pudo crear la factura");
+        router.push(`/${businessId}/billing/facturas/${saved._id}`);
+      } catch (e: unknown) {
+        toast.error((e as { message?: string })?.message || "Error al crear factura");
+      } finally {
+        setCreating(false);
+      }
+      return;
+    }
+
     const newInvoice: Invoice = {
       _id: `local-${Date.now()}`,
       clientName: "",
@@ -117,18 +174,43 @@ export function InvoicesBillingContent() {
               Facturas
             </div>
             {canEditCurrentBusiness?.() && (
-              <Button onClick={addNewInvoice} className="flex items-center gap-2 shrink-0" disabled={!businessIdDoc}>
+              <Button onClick={addNewInvoice} className="flex items-center gap-2 shrink-0" disabled={!businessIdDoc || creating}>
                 <Plus className="h-4 w-4" />
-                Nueva Factura
+                {creating ? "Creando…" : "Nueva Factura"}
               </Button>
             )}
           </CardTitle>
-          <CardDescription>Crear y gestionar facturas</CardDescription>
+          <CardDescription>
+            {billingFlow === "carousel"
+              ? "Caja rápida arriba; historial abajo (incluye pagadas y anuladas)."
+              : "Crea borradores en el editor; historial abajo (incluye pagadas y anuladas)."}
+          </CardDescription>
+          <div className="flex flex-wrap gap-2 pt-2">
+            {(
+              [
+                { id: "all" as const, label: "Todas" },
+                { id: "agent" as const, label: "Agente", icon: Bot },
+                { id: "manual" as const, label: "Manual" },
+              ] as const
+            ).map((opt) => (
+              <Button
+                key={opt.id}
+                type="button"
+                size="sm"
+                variant={sourceFilter === opt.id ? "default" : "outline"}
+                className="h-8"
+                onClick={() => setSourceFilter(opt.id)}
+              >
+                {"icon" in opt && opt.icon ? <opt.icon className="h-3.5 w-3.5 mr-1" /> : null}
+                {opt.label}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className="flex min-w-0 flex-col flex-1 overflow-x-hidden p-2 md:px-6">
           <div className="flex flex-col h-full overflow-hidden">
             <div className="w-full h-[410px] flex relative flex-shrink-0">
-              {localInvoices.length > 0 ? (
+              {billingFlow === "carousel" && localInvoices.length > 0 ? (
                 <Carousel
                   opts={{
                     align: (isMobile ? "center" : "start") as "center" | "start",
@@ -155,19 +237,26 @@ export function InvoicesBillingContent() {
                   <CarouselPrevious className={`${state === "collapsed" ? "md:translate-x-[90px]" : "md:translate-x-[266px]"} fixed -left-1.5 md:left-0 md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md`} />
                   <CarouselNext className="fixed -right-1.5 md:right-0 md:-translate-x-[10px] md:translate-y-[54px] bg-white hover:bg-gray-50 border border-gray-300 shadow-md" />
                 </Carousel>
-              ) : (
+              ) : billingFlow === "carousel" ? (
                 <div className="flex items-center justify-center h-64 text-gray-500 w-full">
                   <div className="text-center">
                     <Receipt className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg mb-2">No hay facturas en edición</p>
-                    <p className="text-sm text-gray-400">Haz clic en &quot;Nueva Factura&quot; para crear una nueva factura</p>
+                    <p className="text-sm text-gray-400">Haz clic en &quot;Nueva Factura&quot; para crear una en el carrusel</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground w-full px-4">
+                  <div className="text-center max-w-sm">
+                    <Receipt className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">Flujo editor activo. Usa &quot;Nueva Factura&quot; para abrir un borrador en pantalla completa.</p>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="flex justify-end items-end w-full mt-2 md:mt-0">
-              <div className="flex flex-col w-full md:w-[320px] md:max-h-[125px] overflow-y-auto">
+              <div className="flex flex-col w-full md:w-[420px] md:max-h-[125px] overflow-y-auto">
                 {loading ? (
                   <div className="flex items-center justify-center py-4">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
@@ -179,10 +268,37 @@ export function InvoicesBillingContent() {
                       className="w-full flex items-center text-xs text-primary hover:bg-accent flex-shrink-0 cursor-pointer"
                       onClick={() => router.push(`/${businessId}/billing/facturas/${invoice._id}`)}
                     >
-                      <span className={`flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
-                        {new Date(invoice.createdAt).toLocaleString("es-VE", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                      <span
+                        className={cn(
+                          "flex items-center w-32 h-6 px-2 justify-start border-l border-r border-b border-primary",
+                          index === 0 && "border-t"
+                        )}
+                      >
+                        {new Date(invoice.createdAt).toLocaleString("es-VE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </span>
-                      <span className={`flex items-center flex-1 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
+                      <span
+                        className={cn(
+                          "flex items-center flex-1 min-w-0 h-6 px-2 justify-start gap-1 border-r border-b border-primary truncate",
+                          index === 0 && "border-t"
+                        )}
+                      >
+                        {invoice.source === "agent" && (
+                          <Badge variant="secondary" className="h-4 px-1 text-[9px] shrink-0">
+                            Agente
+                          </Badge>
+                        )}
+                        <span className="truncate">{invoice.clientName || invoice.clientPhone || "—"}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          "flex items-center w-24 h-6 px-2 justify-end border-r border-b border-primary",
+                          index === 0 && "border-t"
+                        )}
+                      >
                         {formatNumber(invoice.totalBs)}
                       </span>
                       <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>

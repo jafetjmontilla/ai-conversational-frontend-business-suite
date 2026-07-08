@@ -59,6 +59,14 @@ export interface ProtocolDraftUpdatedPayload {
   businessId: string;
 }
 
+export interface InvoiceRealtimePayload {
+  businessId: string;
+  source?: string;
+  invoice?: Record<string, unknown>;
+  conversationId?: string;
+  orderId?: string;
+}
+
 export type { BusinessUpdatedPayload };
 export type { WhatsAppSessionEventPayload };
 
@@ -95,6 +103,8 @@ interface WebSocketContextType {
   refreshChannelsSnapshot: (businessId: string) => void;
   // Se invoca al reconectar tras pérdida de conexión
   onReconnect: (callback: () => void) => () => void;
+  onInvoiceCreated: (callback: (payload: InvoiceRealtimePayload) => void) => () => void;
+  onInvoiceUpdated: (callback: (payload: InvoiceRealtimePayload) => void) => () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -154,6 +164,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const whatsAppSessionEventCallbacksRef = useRef<((payload: WhatsAppSessionEventPayload) => void)[]>([]);
 
   const onReconnectCallbacksRef = useRef<(() => void)[]>([]);
+  const invoiceRealtimeCallbacksRef = useRef<{
+    onCreated: ((payload: InvoiceRealtimePayload) => void)[];
+    onUpdated: ((payload: InvoiceRealtimePayload) => void)[];
+  }>({ onCreated: [], onUpdated: [] });
   const hadConnectedOnceRef = useRef<boolean>(false);
 
   // Obtener token de autenticación de Firebase (mismo que GraphQL)
@@ -316,7 +330,15 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     whatsAppSessionEventCallbacksRef.current.forEach(cb => cb(payload));
   }, []);
 
-  // Detectar reconexión (isConnected pasa de false a true tras haber estado conectado)
+  const handleInvoiceCreated = useCallback((payload: InvoiceRealtimePayload) => {
+    invoiceRealtimeCallbacksRef.current.onCreated.forEach(cb => cb(payload));
+  }, []);
+
+  const handleInvoiceUpdated = useCallback((payload: InvoiceRealtimePayload) => {
+    invoiceRealtimeCallbacksRef.current.onUpdated.forEach(cb => cb(payload));
+  }, []);
+
+  // Detectar reconexión
   useEffect(() => {
     if (isConnected) {
       if (hadConnectedOnceRef.current) {
@@ -375,6 +397,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
     // Canales: sesiones Baileys (QR, conexión)
     socket.on('whatsapp:session:event', handleWhatsAppSessionEvent);
+    socket.on('invoice:created', handleInvoiceCreated);
+    socket.on('invoice:updated', handleInvoiceUpdated);
 
     // Cleanup
     return () => {
@@ -389,8 +413,10 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       socket.off('protocolDraft:updated', handleProtocolDraftUpdated);
       socket.off('business:updated', handleBusinessUpdated);
       socket.off('whatsapp:session:event', handleWhatsAppSessionEvent);
+      socket.off('invoice:created', handleInvoiceCreated);
+      socket.off('invoice:updated', handleInvoiceUpdated);
     };
-  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated, handleBusinessUpdated, handleWhatsAppSessionEvent]);
+  }, [socket, handleNotification, handleConnected, handleStreamingUpdate, handleStreamingError, handleStreamingInitial, handleTicketCreated, handleTicketUpdated, handleTicketDeleted, handleProtocolDraftUpdated, handleBusinessUpdated, handleWhatsAppSessionEvent, handleInvoiceCreated, handleInvoiceUpdated]);
 
   // Métodos para suscribirse a eventos (sin dependencias)
   const onNotification = useCallback((callback: (notification: NotificationData) => void) => {
@@ -515,6 +541,22 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     };
   }, []);
 
+  const onInvoiceCreated = useCallback((callback: (payload: InvoiceRealtimePayload) => void) => {
+    invoiceRealtimeCallbacksRef.current.onCreated.push(callback);
+    return () => {
+      const i = invoiceRealtimeCallbacksRef.current.onCreated.indexOf(callback);
+      if (i !== -1) invoiceRealtimeCallbacksRef.current.onCreated.splice(i, 1);
+    };
+  }, []);
+
+  const onInvoiceUpdated = useCallback((callback: (payload: InvoiceRealtimePayload) => void) => {
+    invoiceRealtimeCallbacksRef.current.onUpdated.push(callback);
+    return () => {
+      const i = invoiceRealtimeCallbacksRef.current.onUpdated.indexOf(callback);
+      if (i !== -1) invoiceRealtimeCallbacksRef.current.onUpdated.splice(i, 1);
+    };
+  }, []);
+
   const value: WebSocketContextType = {
     socket,
     isConnected,
@@ -539,7 +581,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     subscribeToChannels,
     unsubscribeFromChannels,
     refreshChannelsSnapshot,
-    onReconnect
+    onReconnect,
+    onInvoiceCreated,
+    onInvoiceUpdated
   };
 
   return (

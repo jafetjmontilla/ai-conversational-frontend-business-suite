@@ -10,6 +10,10 @@ import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Invoice, InvoiceResponse } from "@/lib/interfases";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
+import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
+import { INTERNAL_BILLING_APP_ID } from "@/lib/billing/internalBilling";
+import { InternalBillingAppPrompt } from "@/components/billing/InternalBillingAppPrompt";
+import { InternalBillingUsageBar } from "@/components/billing/InternalBillingUsageBar";
 import {
   BookOpen,
   LayoutDashboard,
@@ -38,12 +42,20 @@ export default function BusinessSummaryPage() {
   const { businessRole } = useBusinessRole(businessSlug);
   const { canViewCurrentBusiness, canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const { business, businessIdDoc, loading: loadingBusiness } = useBusiness(businessSlug);
+  const { hasApp, getAppRecord, installApp, loading: loadingApps } = useBusinessApps(businessSlug);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [installingBilling, setInstallingBilling] = useState(false);
+
+  const billingInstalled = hasApp(INTERNAL_BILLING_APP_ID);
+  const billingRecord = getAppRecord(INTERNAL_BILLING_APP_ID);
 
   useEffect(() => {
-    if (!businessIdDoc) return;
+    if (!businessIdDoc || !billingInstalled) {
+      setInvoices([]);
+      return;
+    }
     setLoadingInvoices(true);
     fetchApiV1({
       query: queries.getInvoices,
@@ -58,7 +70,7 @@ export default function BusinessSummaryPage() {
       .then((res: InvoiceResponse) => setInvoices(res?.results ?? []))
       .catch(() => toast.error("Error al cargar facturas recientes"))
       .finally(() => setLoadingInvoices(false));
-  }, [businessIdDoc]);
+  }, [businessIdDoc, billingInstalled]);
 
   const channelSummary = useMemo(() => {
     const list = business?.channels ?? [];
@@ -68,6 +80,15 @@ export default function BusinessSummaryPage() {
     const hasGeneric = list.some((c) => c.type === "generic");
     return { cloud, baileys, baileysActive, hasGeneric };
   }, [business]);
+
+  const handleInstallBilling = async () => {
+    setInstallingBilling(true);
+    try {
+      await installApp(INTERNAL_BILLING_APP_ID);
+    } finally {
+      setInstallingBilling(false);
+    }
+  };
 
   if (!businessSlug) return null;
 
@@ -146,42 +167,71 @@ export default function BusinessSummaryPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
-              Últimas facturas
-            </CardTitle>
-            <CardDescription>Las 5 más recientes.</CardDescription>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Facturación Interna
+                </CardTitle>
+                <CardDescription>
+                  {billingInstalled ? "Las 5 facturas más recientes." : "App no instalada en este negocio."}
+                </CardDescription>
+              </div>
+              {billingInstalled && !loadingApps ? (
+                <InternalBillingUsageBar
+                  record={billingRecord}
+                  businessSlug={businessSlug}
+                  compact
+                />
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loadingInvoices ? (
+            {loadingBusiness || loadingApps ? (
               <div className="flex justify-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
               </div>
-            ) : invoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin facturas registradas.</p>
+            ) : !billingInstalled ? (
+              <InternalBillingAppPrompt
+                businessSlug={businessSlug}
+                canInstall={canEditCurrentBusiness()}
+                installing={installingBilling}
+                onInstall={handleInstallBilling}
+                variant="card"
+              />
             ) : (
-              <ul className="space-y-2 text-sm">
-                {invoices.map((inv) => (
-                  <li key={inv._id} className="flex items-center justify-between gap-2">
-                    <Link
-                      href={`/${businessSlug}/billing/facturas/${inv._id}`}
-                      className="truncate font-medium hover:underline"
-                    >
-                      {inv.clientName || "Sin cliente"}
-                    </Link>
-                    <span className="shrink-0 text-muted-foreground text-xs">
-                      {formatInvoiceDate(inv.createdAt)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {loadingInvoices ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin facturas registradas.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {invoices.map((inv) => (
+                      <li key={inv._id} className="flex items-center justify-between gap-2">
+                        <Link
+                          href={`/${businessSlug}/billing/facturas/${inv._id}`}
+                          className="truncate font-medium hover:underline"
+                        >
+                          {inv.clientName || "Sin cliente"}
+                        </Link>
+                        <span className="shrink-0 text-muted-foreground text-xs">
+                          {formatInvoiceDate(inv.createdAt)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/${businessSlug}/billing/facturas`}>
+                    Ver facturación
+                    <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                  </Link>
+                </Button>
+              </>
             )}
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/${businessSlug}/billing/facturas`}>
-                Ver facturación
-                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-              </Link>
-            </Button>
           </CardContent>
         </Card>
       </div>

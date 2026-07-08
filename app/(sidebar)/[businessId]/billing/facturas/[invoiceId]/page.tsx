@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Fragment, useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,33 +8,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchApiV1, queries } from "@/lib/Fetching";
-import type { Business, Invoice, InvoiceItemType } from "@/lib/interfases";
+import type { Invoice } from "@/lib/interfases";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Save, CreditCard } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusiness } from "@/lib/hooks/useBusiness";
 import { PaymentDialog } from "@/components/invoice/PaymentDialog";
+import { InvoiceLineModifiers } from "@/components/invoice/InvoiceLineModifiers";
+import { InvoiceLineNoteField } from "@/components/invoice/InvoiceLineNoteField";
+import {
+  computeLineTotal,
+  mapLineToInvoiceItemInput,
+  type InvoiceLineDraft,
+} from "@/lib/billing/invoiceLine";
+import { AgentInvoiceBanner } from "@/components/billing/AgentInvoiceBanner";
 
 type SellableVariantRow = {
   _id: string;
+  product_id: string;
   sku: string;
   price_override: number | null;
   stock_quantity: number;
   product?: { name: string; base_price?: number } | null;
 };
-
-interface InvoiceItemRow {
-  id: string;
-  inventoryId: string;
-  productVariantId?: string;
-  serviceOptionId?: string;
-  itemType?: InvoiceItemType;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-  searchTerm?: string;
-  searchResults?: SellableVariantRow[];
-}
 
 export default function InvoiceEditorPage() {
   const params = useParams();
@@ -44,49 +40,22 @@ export default function InvoiceEditorPage() {
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness, canViewCurrentBusiness } = useBusinessPermissions(businessRole);
 
-  const [business, setBusiness] = useState<Business | null>(null);
+  const { business, businessIdDoc, loading: loadingBusiness } = useBusiness(businessId);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clientName, setClientName] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientPhone, setClientPhone] = useState("");
-  const [items, setItems] = useState<InvoiceItemRow[]>([]);
+  const [items, setItems] = useState<InvoiceLineDraft[]>([]);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
-  const businessIdDoc = business?._id;
   const exchangeRate =
     business?.billingExchangeRateSource === "custom" && business?.billingCustomExchangeRate
       ? business.billingCustomExchangeRate
       : 1;
 
   const canEdit = canEditCurrentBusiness?.() && invoice?.status === "draft";
-
-  useEffect(() => {
-    if (!businessId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        let b = (await fetchApiV1({
-          query: queries.getBusiness,
-          type: "json",
-          variables: { id: businessId },
-        })) as Business | null;
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (cancelled) return;
-        setBusiness(b || null);
-      } catch {
-        if (!cancelled) toast.error("Error al cargar el negocio");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [businessId]);
 
   const loadInvoice = useCallback(async () => {
     if (!businessIdDoc || !invoiceId) return;
@@ -116,7 +85,9 @@ export default function InvoiceEditorPage() {
           description: it.description || "",
           quantity: it.quantity || 0,
           unitPrice: it.unitPrice || 0,
-          total: it.total || 0,
+          total: it.total || computeLineTotal(it.quantity || 0, it.unitPrice || 0, it.selectedModifiers),
+          lineNote: it.lineNote || "",
+          selectedModifiers: it.selectedModifiers || [],
         }))
       );
     } catch (e: any) {
@@ -130,7 +101,7 @@ export default function InvoiceEditorPage() {
     if (businessIdDoc) loadInvoice();
   }, [businessIdDoc, loadInvoice]);
 
-  const totalBs = items.reduce((s, it) => s + (it.quantity * it.unitPrice), 0);
+  const totalBs = items.reduce((s, it) => s + computeLineTotal(it.quantity, it.unitPrice, it.selectedModifiers), 0);
 
   const addItem = () => {
     setItems(prev => [...prev, {
@@ -143,6 +114,8 @@ export default function InvoiceEditorPage() {
       quantity: 0,
       unitPrice: 0,
       total: 0,
+      lineNote: "",
+      selectedModifiers: [],
     }]);
   };
 
@@ -150,13 +123,22 @@ export default function InvoiceEditorPage() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const updateItem = (idx: number, field: keyof InvoiceItemRow, value: any) => {
+  const updateItem = (idx: number, field: keyof InvoiceLineDraft, value: unknown) => {
     setItems(prev => {
       const updated = [...prev];
-      (updated[idx] as any)[field] = value;
-      if (field === "quantity" || field === "unitPrice") {
-        updated[idx].total = Math.round((updated[idx].quantity * updated[idx].unitPrice + Number.EPSILON) * 100) / 100;
+      const row = { ...updated[idx], [field]: value } as InvoiceLineDraft;
+      if (field === "quantity" || field === "selectedModifiers") {
+        row.total = computeLineTotal(row.quantity, row.unitPrice, row.selectedModifiers);
       }
+      if (field === "description" && (!value || String(value).trim() === "")) {
+        row.unitPrice = 0;
+        row.total = 0;
+        row.productVariantId = undefined;
+        row.productId = undefined;
+        row.lineNote = "";
+        row.selectedModifiers = [];
+      }
+      updated[idx] = row;
       return updated;
     });
   };
@@ -202,10 +184,12 @@ export default function InvoiceEditorPage() {
         ...updated[idx],
         inventoryId: "",
         productVariantId: row._id,
+        productId: row.product_id,
         itemType: "product_variant",
         description,
         unitPrice: Number(unitPrice),
-        total: Math.round((updated[idx].quantity * Number(unitPrice) + Number.EPSILON) * 100) / 100,
+        total: computeLineTotal(updated[idx].quantity, Number(unitPrice), []),
+        selectedModifiers: [],
         searchResults: [],
         searchTerm: "",
         id: row.sku || updated[idx].id,
@@ -228,17 +212,9 @@ export default function InvoiceEditorPage() {
             clientName: clientName.trim(),
             clientId: clientId.trim(),
             clientPhone: clientPhone.trim(),
-            items: items.map(it => ({
-              id: it.id,
-              inventoryId: it.inventoryId || "",
-              itemType: it.productVariantId ? "product_variant" : (it.itemType ?? "inventory"),
-              productVariantId: it.productVariantId || undefined,
-              serviceOptionId: it.serviceOptionId || undefined,
-              description: it.description,
-              quantity: it.quantity,
-              unitPrice: it.unitPrice,
-              total: Math.round((it.quantity * it.unitPrice + Number.EPSILON) * 100) / 100,
-            })),
+            items: items
+              .filter((it) => it.description.trim() || it.quantity > 0)
+              .map((it) => mapLineToInvoiceItemInput(it)),
           },
         },
       });
@@ -252,7 +228,7 @@ export default function InvoiceEditorPage() {
   };
 
   if (!businessId) return null;
-  if (loading) {
+  if (loading || loadingBusiness) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -282,6 +258,7 @@ export default function InvoiceEditorPage() {
           Volver a facturas
         </Button>
       </div>
+      {invoice && <AgentInvoiceBanner invoice={invoice} businessSlug={businessId} />}
       <Card className="flex flex-col w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -350,7 +327,8 @@ export default function InvoiceEditorPage() {
                   </TableRow>
                 ) : (
                   items.map((item, idx) => (
-                    <TableRow key={idx}>
+                    <Fragment key={item.id || idx}>
+                    <TableRow>
                       <TableCell className="relative">
                         {canEdit ? (
                           <div>
@@ -361,7 +339,7 @@ export default function InvoiceEditorPage() {
                             />
                             {(item.searchResults?.length ?? 0) > 0 && (
                               <div className="absolute z-10 bg-popover border rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto w-[90%]">
-                                {item.searchResults!.map(row => {
+                                {(item.searchResults as SellableVariantRow[] | undefined)?.map(row => {
                                   const price = row.price_override ?? row.product?.base_price ?? 0;
                                   const label = row.product?.name ? `${row.product.name} - ${row.sku}` : row.sku;
                                   return (
@@ -394,21 +372,12 @@ export default function InvoiceEditorPage() {
                           item.quantity
                         )}
                       </TableCell>
-                      <TableCell>
-                        {canEdit ? (
-                          <Input
-                            type="number"
-                            value={item.unitPrice}
-                            onChange={e => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)}
-                            className="w-24"
-                            min={0}
-                            step="0.01"
-                          />
-                        ) : (
-                          item.unitPrice.toFixed(2)
-                        )}
+                      <TableCell className="text-right tabular-nums">
+                        {item.unitPrice.toFixed(2)}
                       </TableCell>
-                      <TableCell>{(item.quantity * item.unitPrice).toFixed(2)}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {computeLineTotal(item.quantity, item.unitPrice, item.selectedModifiers).toFixed(2)}
+                      </TableCell>
                       {canEdit && (
                         <TableCell>
                           <Button size="sm" variant="ghost" className="text-red-600" onClick={() => removeItem(idx)}>
@@ -417,6 +386,30 @@ export default function InvoiceEditorPage() {
                         </TableCell>
                       )}
                     </TableRow>
+                    {(item.description.trim() || !canEdit) && (
+                      <TableRow key={`${idx}-extras`}>
+                        <TableCell colSpan={canEdit ? 5 : 4} className="bg-muted/20 py-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <InvoiceLineNoteField
+                              value={item.lineNote || ""}
+                              onChange={(v) => updateItem(idx, "lineNote", v)}
+                              disabled={!canEdit}
+                            />
+                            <InvoiceLineModifiers
+                              businessId={businessIdDoc!}
+                              productId={item.productId}
+                              productVariantId={item.productVariantId}
+                              serviceId={item.serviceId}
+                              lineQuantity={item.quantity || 0}
+                              value={item.selectedModifiers ?? []}
+                              onChange={(mods) => updateItem(idx, "selectedModifiers", mods)}
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
                   ))
                 )}
               </TableBody>

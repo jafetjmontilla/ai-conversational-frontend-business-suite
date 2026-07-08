@@ -89,12 +89,12 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
   },
   {
     id: "facturacion-inventario",
-    title: "Facturación e Inventario",
-    tagline: "El control total de tu negocio en tiempo real.",
+    title: "Facturación Interna",
+    tagline: "Facturas y cobros para tu operación diaria, sin complejidad fiscal.",
     description:
-      "Emite facturas fiscales de forma ágil, calcula impuestos automáticos, actualiza tu stock automáticamente y obtén predicciones inteligentes para reponer existencias antes de quedarte sin mercadería para tus clientes.",
+      "Registra ventas, emite facturas internas y cobra en Bs o USD. Se integra con tu catálogo, descuenta stock al cobrar y conecta pedidos del agente IA con tus cobros.",
     audience:
-      "Pequeñas y medianas empresas (PyMEs), distribuidores, bodegones, ferreterías y tiendas físicas con almacén dinámico.",
+      "Negocios que necesitan llevar control de ventas y cobros en la plataforma.",
     category: "Finanzas",
     categoryLabel: "Finanzas y Control",
     rating: 4.8,
@@ -103,10 +103,10 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     iconGradient: "from-teal-500 to-emerald-600",
     routePath: "/billing/facturas",
     features: [
-      "Facturación multidivisa e impresión simplificada",
-      "Control estricto de múltiples almacenes/sucursales",
-      "Alertas push de mínimo stock configurables",
-      "Módulo simplificado de egresos y gastos corrientes",
+      "Facturas internas en borrador",
+      "Descuento de stock al confirmar el pago (catálogo unificado)",
+      "Reportes de pagos y resumen por método de cobro",
+      "Pedidos y cotizaciones desde el agente de atención al cliente",
     ],
   },
   {

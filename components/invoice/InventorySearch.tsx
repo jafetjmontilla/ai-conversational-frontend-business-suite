@@ -7,6 +7,7 @@ import { fetchApiV1, queries } from '@/lib/Fetching';
 /** Item seleccionable para una línea de factura (variante de producto vendible). */
 export interface InvoiceVariantSelection {
   productVariantId: string;
+  productId?: string;
   description: string;
   unitPrice: number;
   sku?: string;
@@ -83,6 +84,7 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
     const unitPrice = row.price_override ?? row.product?.base_price ?? 0;
     return {
       productVariantId: row._id,
+      productId: row.product_id,
       description: desc,
       unitPrice: Number(unitPrice),
       sku: row.sku,

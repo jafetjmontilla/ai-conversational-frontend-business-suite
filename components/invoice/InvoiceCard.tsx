@@ -2,12 +2,15 @@
 
 import { useState, useEffect, SetStateAction, Dispatch } from 'react';
 import { XIcon, X, Loader2 } from 'lucide-react';
-import type { Invoice, InvoiceItem } from '@/lib/interfases';
+import type { Invoice, InvoiceItem, InvoiceSelectedModifier } from '@/lib/interfases';
 import { Button } from '@/components/ui/button';
 import { InventorySearch, type InvoiceVariantSelection } from './InventorySearch';
 import { PaymentDialog } from './PaymentDialog';
+import { InvoiceLineModifiers } from './InvoiceLineModifiers';
+import { InvoiceLineNoteField } from './InvoiceLineNoteField';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { toast } from 'sonner';
+import { computeLineTotal, mapLineToInvoiceItemInput, roundToTwoDecimals } from '@/lib/billing/invoiceLine';
 
 interface InvoiceCardProps {
   invoice: Invoice;
@@ -27,12 +30,25 @@ export const formatNumber = (num: number, decimals: number = 2): string => {
   });
 };
 
-const roundToTwoDecimals = (num: number): number => {
-  return Math.round((num + Number.EPSILON) * 100) / 100;
-};
+const roundToTwoDecimalsLocal = roundToTwoDecimals;
 
 interface TableItem extends InvoiceItem {
-  inventoryItem?: any;
+  inventoryItem?: unknown;
+  productId?: string;
+  lineNote?: string;
+  selectedModifiers?: InvoiceSelectedModifier[];
+}
+
+function rescaleModifiers(
+  modifiers: InvoiceSelectedModifier[] | undefined,
+  lineQuantity: number
+): InvoiceSelectedModifier[] {
+  const qty = Math.max(1, lineQuantity || 1);
+  return (modifiers ?? []).map((m) => ({
+    ...m,
+    quantity: qty,
+    total: roundToTwoDecimalsLocal(qty * (m.unitPrice ?? 0)),
+  }));
 }
 
 export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, businessId, setLocalInvoices, onPaymentSuccess }: InvoiceCardProps) {
@@ -54,13 +70,16 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
       inventoryId: '',
       itemType: 'product_variant' as const,
       productVariantId: '',
+      productId: '',
+      lineNote: '',
+      selectedModifiers: [],
       invoiceId: '',
     }));
   }
 
   useEffect(() => {
     const invoiceIdChanged = localInvoice._id !== invoice._id;
-    setDisablePay(localInvoice.totalUsd === 0);
+    setDisablePay(localInvoice.totalBs === 0);
     if (!invoiceIdChanged) return;
     setLocalInvoice(invoice);
     if (invoice.items && invoice.items.length > 0) {
@@ -76,6 +95,9 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
             inventoryId: item.inventoryId || '',
             itemType: item.itemType || 'product_variant',
             productVariantId: item.productVariantId || '',
+            productId: (item as TableItem).productId || '',
+            lineNote: item.lineNote || '',
+            selectedModifiers: item.selectedModifiers || [],
           };
         }
       });
@@ -96,16 +118,25 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
       return prevItems.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
+          if (field === 'quantity' || field === 'unitPrice') {
+            const quantity = updatedItem.quantity || 0;
+            const unitPrice = updatedItem.unitPrice || 0;
+            updatedItem.selectedModifiers = rescaleModifiers(updatedItem.selectedModifiers, quantity);
+            updatedItem.total = computeLineTotal(quantity, unitPrice, updatedItem.selectedModifiers);
+          }
+          if (field === 'lineNote' || field === 'selectedModifiers') {
+            const quantity = updatedItem.quantity || 0;
+            const unitPrice = updatedItem.unitPrice || 0;
+            updatedItem.total = computeLineTotal(quantity, unitPrice, updatedItem.selectedModifiers);
+          }
           if (field === 'description' && (!value || value.trim() === '')) {
             updatedItem.unitPrice = 0;
             updatedItem.total = 0;
             updatedItem.inventoryId = '';
             updatedItem.productVariantId = '';
-          }
-          if (field === 'quantity' || field === 'unitPrice') {
-            const quantity = updatedItem.quantity || 0;
-            const unitPrice = updatedItem.unitPrice || 0;
-            updatedItem.total = roundToTwoDecimals(quantity * unitPrice);
+            updatedItem.productId = '';
+            updatedItem.lineNote = '';
+            updatedItem.selectedModifiers = [];
           }
           return updatedItem;
         }
@@ -125,10 +156,13 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
         quantity: roundToTwoDecimals(item.quantity || 0),
         description: item.description || '',
         unitPrice: roundToTwoDecimals(item.unitPrice || 0),
-        total: roundToTwoDecimals(item.total || 0),
+        total: computeLineTotal(item.quantity || 0, item.unitPrice || 0, item.selectedModifiers),
         inventoryId: item.inventoryId || '',
         itemType: item.productVariantId ? 'product_variant' : (item.itemType || 'inventory'),
         productVariantId: item.productVariantId || undefined,
+        serviceOptionId: item.serviceOptionId || undefined,
+        lineNote: item.lineNote || undefined,
+        selectedModifiers: item.selectedModifiers,
         invoiceId: item.invoiceId || '',
       }));
     const updatedInvoice = {
@@ -148,14 +182,17 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
           const updatedItem = {
             ...item,
             description: selection.description,
-            unitPrice: roundToTwoDecimals(selection.unitPrice),
+            unitPrice: roundToTwoDecimalsLocal(selection.unitPrice),
             inventoryId: '',
             itemType: 'product_variant' as const,
             productVariantId: selection.productVariantId,
+            productId: selection.productId || '',
+            selectedModifiers: [],
+            lineNote: item.lineNote || '',
             id: selection.sku || item.id,
           };
           const quantity = updatedItem.quantity || 0;
-          updatedItem.total = roundToTwoDecimals(quantity * selection.unitPrice);
+          updatedItem.total = computeLineTotal(quantity, selection.unitPrice, []);
           return updatedItem;
         }
         return item;
@@ -183,16 +220,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
     try {
       const items = tableItems
         .filter(item => item.description.trim() !== '' || item.quantity > 0)
-        .map(item => ({
-          id: item.id,
-          inventoryId: item.inventoryId || '',
-          itemType: item.productVariantId ? 'product_variant' : (item.itemType || 'inventory'),
-          productVariantId: item.productVariantId || undefined,
-          description: item.description || '',
-          quantity: roundToTwoDecimals(item.quantity || 0),
-          unitPrice: roundToTwoDecimals(item.unitPrice || 0),
-          total: roundToTwoDecimals(item.total || 0),
-        }));
+        .map(item => mapLineToInvoiceItemInput(item as TableItem));
 
       if (items.length === 0) {
         toast.error('Agrega al menos un item a la factura');
@@ -350,6 +378,32 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
               ))}
             </tbody>
           </table>
+
+          {tableItems.some((it) => it.description.trim()) ? (
+            <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
+              {tableItems
+                .filter((it) => it.description.trim())
+                .map((it) => (
+                  <div key={`extras-${it.id}`} className="rounded border border-ring/50 p-1.5 bg-muted/30">
+                    <p className="text-[10px] font-medium truncate mb-1">{it.description}</p>
+                    <InvoiceLineNoteField
+                      compact
+                      value={it.lineNote || ""}
+                      onChange={(v) => updateTableItem(it.id, "lineNote", v)}
+                    />
+                    <InvoiceLineModifiers
+                      className="mt-1 border-0 p-0 bg-transparent"
+                      businessId={businessId}
+                      productId={it.productId}
+                      lineQuantity={it.quantity || 0}
+                      value={it.selectedModifiers ?? []}
+                      onChange={(mods) => updateTableItem(it.id, "selectedModifiers", mods)}
+                    />
+                  </div>
+                ))}
+            </div>
+          ) : null}
+
           <div className="flex flex-col">
             <div className="flex justify-between text-xs">
               <div className="flex-1" />

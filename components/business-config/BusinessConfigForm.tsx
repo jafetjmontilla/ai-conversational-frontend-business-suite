@@ -51,6 +51,8 @@ const defaultRagSearch = {
 
 const defaultCommerceFlow = {
   enabled: false,
+  commerceInstructions: "",
+  notifyStaffOnAgentInvoice: true,
 };
 
 const defaultAgent = {
@@ -200,6 +202,8 @@ const formSchema = z.object({
   }),
   commerceFlow: z.object({
     enabled: z.boolean(),
+    commerceInstructions: z.string().optional(),
+    notifyStaffOnAgentInvoice: z.boolean().optional(),
   }),
   agent: z.object({
     defaultEngine: z.enum(["cse", "pae"]),
@@ -387,6 +391,8 @@ function mergeWithDefault(config: Partial<BusinessConfig> | null | undefined): B
     },
     commerceFlow: {
       enabled: cf?.enabled ?? defaultCommerceFlow.enabled,
+      commerceInstructions: cf?.commerceInstructions ?? "",
+      notifyStaffOnAgentInvoice: cf?.notifyStaffOnAgentInvoice !== false,
     },
     agent: {
       defaultEngine: ag?.defaultEngine === "pae" ? "pae" : "cse",
@@ -674,6 +680,8 @@ export function BusinessConfigForm({
         },
         commerceFlow: {
           enabled: values.commerceFlow.enabled,
+          commerceInstructions: values.commerceFlow.commerceInstructions?.trim() || undefined,
+          notifyStaffOnAgentInvoice: values.commerceFlow.notifyStaffOnAgentInvoice !== false,
         },
         agent: {
           defaultEngine: values.agent.defaultEngine,
@@ -1096,6 +1104,48 @@ export function BusinessConfigForm({
                           </FormItem>
                         )}
                       />
+                      {form.watch("commerceFlow.enabled") && (
+                        <>
+                          <FormField
+                            control={form.control}
+                            name="commerceFlow.notifyStaffOnAgentInvoice"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between gap-4 pt-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm">Notificar staff al facturar pedido</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Avisa a admin/editores cuando el agente confirma un pedido.
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value !== false}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="commerceFlow.commerceInstructions"
+                            render={({ field }) => (
+                              <FormItem className="pt-2">
+                                <FormLabel className="text-sm">Instrucciones de venta (agente)</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    {...field}
+                                    value={field.value ?? ""}
+                                    rows={6}
+                                    className="font-mono text-xs resize-none"
+                                    placeholder="Formas de pago, horarios, políticas de confirmación…"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </>
+                      )}
                     </div>
                     <FormField
                       control={form.control}
