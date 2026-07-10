@@ -70,7 +70,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <Card>
           <CardContent className="text-center p-8">
-            <h2 className="text-3xl font-bold mb-4">Bienvenido a ERP 4NET</h2>
+            <h2 className="text-3xl font-bold mb-4">Bienvenido a Kiterai - Business Suite</h2>
             <p className="text-lg text-muted-foreground">Sistema de gestión</p>
           </CardContent>
         </Card>

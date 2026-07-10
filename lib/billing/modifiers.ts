@@ -15,6 +15,15 @@ export type ModifierGroupOption = {
   catalogItem?: ModifierCatalogItem | null;
 };
 
+export type ModifierGroupSection = {
+  sectionId: string;
+  name: string;
+  selectionType: "SINGLE" | "MULTIPLE";
+  minSelections: number;
+  maxSelections: number;
+  options: ModifierGroupOption[];
+};
+
 export type ModifierGroup = {
   _id: string;
   name: string;
@@ -24,8 +33,27 @@ export type ModifierGroup = {
   maxSelections: number;
   priceBehavior: "ADDITIONAL" | "INCLUDED";
   includedQuantity: number;
+  sections?: ModifierGroupSection[];
   options: ModifierGroupOption[];
 };
+
+const DEFAULT_SECTION_ID = "__default__";
+
+export function getGroupSections(group: ModifierGroup): ModifierGroupSection[] {
+  if (group.sections?.length) {
+    return group.sections;
+  }
+  return [
+    {
+      sectionId: DEFAULT_SECTION_ID,
+      name: group.name,
+      selectionType: group.selectionType,
+      minSelections: group.minSelections,
+      maxSelections: group.maxSelections,
+      options: group.options ?? [],
+    },
+  ];
+}
 
 export function resolveModifierOptionPrice(option: ModifierGroupOption): number {
   if (option.priceOverride != null && option.priceOverride >= 0) {
@@ -36,6 +64,7 @@ export function resolveModifierOptionPrice(option: ModifierGroupOption): number 
 
 export function buildModifierSelection(
   group: ModifierGroup,
+  section: ModifierGroupSection,
   option: ModifierGroupOption,
   lineQuantity: number
 ): InvoiceSelectedModifier {
@@ -44,6 +73,7 @@ export function buildModifierSelection(
   const total = roundToTwoDecimals(quantity * unitPrice);
   return {
     modifierGroupId: group._id,
+    modifierSectionId: section.sectionId === DEFAULT_SECTION_ID ? undefined : section.sectionId,
     catalogItemId: option.catalogItemId,
     quantity,
     unitPrice,

@@ -2355,7 +2355,7 @@ export const queries = {
       }
     }
   }`,
-  // Queries de Storage (4net-erp-backend)
+  // Queries de Storage (Kiterai-Business-Suite-backend)
   uploadFile: `mutation($file: Upload!, $args: StorageInput) {
     uploadFile(file: $file, args: $args) {
       _id
@@ -2471,6 +2471,15 @@ export const queries = {
     getModifierGroups(id: $id, includeInactive: $includeInactive) {
       _id business_id name isRequired selectionType minSelections maxSelections
       priceBehavior includedQuantity status createdBy createdAt updatedAt
+      sections {
+        sectionId name selectionType minSelections maxSelections
+        priceBehavior includedQuantity sortOrder
+        options {
+          catalogItemId priceOverride sortOrder isDefault
+          priceMatrix { priceKey price }
+          catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
+        }
+      }
       options {
         catalogItemId priceOverride sortOrder isDefault
         priceMatrix { priceKey price }
@@ -2482,6 +2491,15 @@ export const queries = {
     getModifierGroup(_id: $_id, id: $id) {
       _id business_id name isRequired selectionType minSelections maxSelections
       priceBehavior includedQuantity status createdBy createdAt updatedAt
+      sections {
+        sectionId name selectionType minSelections maxSelections
+        priceBehavior includedQuantity sortOrder
+        options {
+          catalogItemId priceOverride sortOrder isDefault
+          priceMatrix { priceKey price }
+          catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
+        }
+      }
       options {
         catalogItemId priceOverride sortOrder isDefault
         priceMatrix { priceKey price }
@@ -2527,12 +2545,16 @@ export const queries = {
   }`,
   createModifierCatalogItem: `mutation createModifierCatalogItem($id: ID!, $args: CreateModifierCatalogItemInput!) {
     createModifierCatalogItem(id: $id, args: $args) {
-      _id sku name price type trackInventory hasBillOfMaterials isModifier status
+      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      isModifier isAvailable unitOfMeasure variantId status
     }
   }`,
   updateModifierCatalogItem: `mutation updateModifierCatalogItem($_id: ID!, $id: ID!, $args: UpdateModifierCatalogItemInput!) {
     updateModifierCatalogItem(_id: $_id, id: $id, args: $args) {
-      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials isModifier status
+      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials
+      requiredMaterials { materialVariantId sku quantity unitOfMeasure }
+      isModifier isAvailable unitOfMeasure variantId status
     }
   }`,
   setProductModifierGroups: `mutation setProductModifierGroups($_id: ID!, $id: ID!, $modifierGroupIds: [ID!]!) {
@@ -2560,7 +2582,7 @@ export const queries = {
       selectedModifiers: $selectedModifiers
     ) {
       additionalTotal
-      lines { modifierGroupId catalogItemId quantity unitPrice total }
+      lines { modifierGroupId modifierSectionId catalogItemId quantity unitPrice total }
     }
   }`,
 }

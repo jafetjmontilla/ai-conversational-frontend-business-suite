@@ -251,7 +251,7 @@ export function RegisterInvitationForm({ token, onSuccess, onValidatingChange }:
     <Card className="w-full max-w-md mx-auto">
       <Image
         src="/images/icons/android-chrome-512x512.png"
-        alt="4netERP"
+        alt="Kiterai - Business Suite"
         width={120}
         height={120}
         className="mt-10 mx-auto rounded-xl"

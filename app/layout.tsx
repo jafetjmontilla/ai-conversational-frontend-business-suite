@@ -17,8 +17,8 @@ export const metadata: Metadata = {
       ? process.env.NEXT_PUBLIC_APP_URL
       : 'http://localhost:3000'
   ),
-  title: '4net - ERP',
-  description: 'ERP de 4net',
+  title: 'Kiterai - Business Suite',
+  description: 'Business Suite de Kiterai',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: '4net ERP',
+    title: 'Kiterai - Business Suite',
   },
   openGraph: {
-    title: '4net - ERP',
-    description: 'ERP de 4net',
+    title: 'Kiterai - Business Suite',
+    description: 'Business Suite de Kiterai',
     images: APP_LOGO,
   },
 }
@@ -69,7 +69,7 @@ export default function RootLayout({ children, }: { children: React.ReactNode })
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange={false}
-          storageKey="4netERP-theme"
+          storageKey="Kiterai-Business-Suite-theme"
         >
           <AuthProvider>
             <AuthGuardClient>

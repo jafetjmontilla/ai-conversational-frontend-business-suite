@@ -124,10 +124,28 @@ export function ModifierGroupsLinker({
                     {g.name}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    {g.selectionType === "SINGLE" ? "Una opción" : "Varias opciones"}
+                    {(() => {
+                      const sectionCount = g.sections?.length ?? 0;
+                      if (sectionCount > 1) return `${sectionCount} secciones`;
+                      if (sectionCount === 1) {
+                        return g.sections![0].selectionType === "SINGLE"
+                          ? "Una opción"
+                          : "Varias opciones";
+                      }
+                      return g.selectionType === "SINGLE" ? "Una opción" : "Varias opciones";
+                    })()}
                     {g.isRequired ? " · Obligatorio" : " · Opcional"}
                     {" · "}
-                    {g.options.length} opción(es)
+                    {(() => {
+                      const fromSections = g.sections?.reduce(
+                        (sum, s) => sum + (s.options?.length ?? 0),
+                        0
+                      );
+                      return fromSections && fromSections > 0
+                        ? fromSections
+                        : g.options.length;
+                    })()}{" "}
+                    opción(es)
                   </p>
                 </div>
               </div>

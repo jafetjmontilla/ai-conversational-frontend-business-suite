@@ -16,13 +16,13 @@ import { InternalBillingAppPrompt } from "@/components/billing/InternalBillingAp
 import { InternalBillingUsageBar } from "@/components/billing/InternalBillingUsageBar";
 import {
   BookOpen,
-  LayoutDashboard,
   MessageSquare,
   Receipt,
   Settings,
   ArrowRight,
   Wifi,
   WifiOff,
+  House,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,7 +111,7 @@ export default function BusinessSummaryPage() {
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <LayoutDashboard className="h-6 w-6" />
+          <House className="h-6 w-6" />
           {loadingBusiness ? "Cargando…" : business?.name ?? businessSlug}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">

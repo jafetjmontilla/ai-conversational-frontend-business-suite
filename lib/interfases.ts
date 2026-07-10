@@ -529,6 +529,7 @@ export type InvoiceItemType = 'product_variant' | 'service_option' | 'inventory'
 
 export interface InvoiceSelectedModifier {
   modifierGroupId: string;
+  modifierSectionId?: string;
   catalogItemId: string;
   quantity: number;
   unitPrice: number;
@@ -858,6 +859,18 @@ export interface ModifierGroupOption {
   catalogItem?: ModifierCatalogItem | null;
 }
 
+export interface ModifierGroupSection {
+  sectionId: string;
+  name: string;
+  selectionType: ModifierSelectionType;
+  minSelections: number;
+  maxSelections: number;
+  priceBehavior?: ModifierPriceBehavior | null;
+  includedQuantity?: number | null;
+  sortOrder: number;
+  options: ModifierGroupOption[];
+}
+
 export interface ModifierGroup {
   _id: string;
   business_id: string;
@@ -868,6 +881,7 @@ export interface ModifierGroup {
   maxSelections: number;
   priceBehavior: ModifierPriceBehavior;
   includedQuantity: number;
+  sections?: ModifierGroupSection[];
   options: ModifierGroupOption[];
   status: boolean;
   createdBy: string;
@@ -877,6 +891,7 @@ export interface ModifierGroup {
 
 export interface ModifierPriceLine {
   modifierGroupId: string;
+  modifierSectionId?: string;
   catalogItemId: string;
   quantity: number;
   unitPrice: number;

@@ -92,7 +92,20 @@ export default function ModifiersListPage() {
         type: "json",
         variables: {
           id: businessIdDoc,
-          args: { name: newName.trim(), selectionType: "MULTIPLE", maxSelections: 3 },
+          args: {
+            name: newName.trim(),
+            selectionType: "MULTIPLE",
+            maxSelections: 5,
+            sections: [
+              {
+                name: "Opciones",
+                selectionType: "MULTIPLE",
+                minSelections: 0,
+                maxSelections: 5,
+                options: [],
+              },
+            ],
+          },
         },
       });
       const g = created as { _id: string };
@@ -217,9 +230,33 @@ export default function ModifiersListPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {g.selectionType === "SINGLE" ? "Una" : `${g.minSelections}–${g.maxSelections}`}
+                      {(() => {
+                        const sectionCount = g.sections?.length ?? 0;
+                        if (sectionCount > 1) {
+                          return `${sectionCount} secciones`;
+                        }
+                        if (sectionCount === 1) {
+                          const s = g.sections![0];
+                          return s.selectionType === "SINGLE"
+                            ? "Una"
+                            : `${s.minSelections}–${s.maxSelections}`;
+                        }
+                        return g.selectionType === "SINGLE"
+                          ? "Una"
+                          : `${g.minSelections}–${g.maxSelections}`;
+                      })()}
                     </TableCell>
-                    <TableCell>{g.options?.length ?? 0}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const fromSections = g.sections?.reduce(
+                          (sum, s) => sum + (s.options?.length ?? 0),
+                          0
+                        );
+                        return fromSections && fromSections > 0
+                          ? fromSections
+                          : g.options?.length ?? 0;
+                      })()}
+                    </TableCell>
                     <TableCell className="text-sm">
                       {g.priceBehavior === "INCLUDED"
                         ? `${g.includedQuantity} incl.`

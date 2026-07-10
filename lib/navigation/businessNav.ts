@@ -15,7 +15,7 @@ import {
   Brain,
   FileSearch,
   ScanSearch,
-  LayoutDashboard,
+  House,
   LayoutGrid,
 } from "lucide-react";
 
@@ -124,7 +124,7 @@ export function buildBusinessTopItems(
         id: "resumen",
         href: `/${businessId}`,
         label: "Resumen",
-        icon: LayoutDashboard,
+        icon: House,
         permission: "negocio:ver",
       },
       {
