@@ -125,8 +125,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   // Obtener estado de autenticación
   const { user, loading } = useAuth();
 
-  // Estado para forzar renovación de token y reconexión
-  const [forceTokenRefresh, setForceTokenRefresh] = useState(false);
+  // Ref para forzar renovación de token sin re-disparar el efecto de conexión
+  const forceTokenRefreshRef = useRef(false);
   const tokenRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTokenRef = useRef<string | null>(null);
 
@@ -201,14 +201,14 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     }
   }, [user]);
 
-  // Wrapper para getAuthToken que siempre pasa el forceRefresh del estado
+  // Wrapper para getAuthToken que lee el flag de renovación forzada desde ref
   const getAuthTokenWrapper = useCallback(async () => {
-    const shouldForceRefresh = forceTokenRefresh;
+    const shouldForceRefresh = forceTokenRefreshRef.current;
     if (shouldForceRefresh) {
-      setForceTokenRefresh(false); // Resetear después de usarlo
+      forceTokenRefreshRef.current = false;
     }
     return await getAuthToken(shouldForceRefresh);
-  }, [getAuthToken, forceTokenRefresh]);
+  }, [getAuthToken]);
 
   // Configurar WebSocket solo si el usuario está autenticado
   const shouldConnect = !loading && !!user;
@@ -216,13 +216,13 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   // Callback para cuando se detecta que el token expiró
   const handleTokenExpired = useCallback(() => {
     console.log('🔄 Token expirado detectado, forzando renovación...');
-    setForceTokenRefresh(true);
+    forceTokenRefreshRef.current = true;
   }, []);
 
   const { socket, isConnected, error, reconnect } = useWebSocket(
     shouldConnect ? (process.env.NEXT_PUBLIC_WEBSOCKET_URL || '') : '',
     shouldConnect ? getAuthTokenWrapper : async () => null,
-    forceTokenRefresh,
+    false,
     { onTokenExpired: shouldConnect ? handleTokenExpired : undefined }
   );
 
@@ -350,21 +350,11 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
   }, [isConnected]);
 
   useEffect(() => {
-    console.log('🔌 Is Connected:', isConnected);
-    console.log('🔌 Error:', error);
-
-    // Si hay un error y el usuario está autenticado, intentar reconectar
-    if (error && shouldConnect && socket && !socket.connected) {
-      console.log('🔄 Error detectado, intentando reconectar...');
-      // El hook useWebSocket ya maneja la reconexión automática,
-      // pero podemos forzar una reconexión manual si es necesario
-      setTimeout(() => {
-        if (socket && !socket.connected && shouldConnect) {
-          reconnect();
-        }
-      }, 2000);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔌 Is Connected:', isConnected);
+      if (error) console.log('🔌 Error:', error);
     }
-  }, [isConnected, error, shouldConnect, socket, reconnect]);
+  }, [isConnected, error]);
 
   // Configurar eventos WebSocket cuando el socket esté disponible
   useEffect(() => {

@@ -13,8 +13,10 @@ import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusiness } from "@/lib/hooks/useBusiness";
+import { businessQueryKeys } from "@/lib/queries/business";
 import type { Business, BusinessConfig, LlmConfig } from "@/lib/interfases";
 import { Brain, Loader2, Play, Plus, Settings, Trash2, Wrench, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -469,14 +471,54 @@ const CONFIG_META: Record<
   },
 };
 
+const BEHAVIOR_BUSINESS_ADMIN_TABS = [
+  { value: "personality", label: "Personalidad" },
+  { value: "responses", label: "Respuestas" },
+];
+
+function resolveConfigMeta(mode: BusinessConfigMode, limitedBehaviorAdmin: boolean) {
+  const base = CONFIG_META[mode];
+  if (mode === "behavior" && limitedBehaviorAdmin) {
+    return {
+      ...base,
+      description: "Personalidad, respuestas globales y placeholders del asistente.",
+      tabs: BEHAVIOR_BUSINESS_ADMIN_TABS,
+      defaultTab: "personality",
+    };
+  }
+  return base;
+}
+
+function buildLimitedBehaviorConfig(values: FormValues, existing: Partial<BusinessConfig> | null | undefined): BusinessConfig {
+  const base = mergeWithDefault(existing);
+  return {
+    ...base,
+    personality: values.personality,
+    globalResponses: {
+      ...base.globalResponses,
+      greeting: values.globalResponses.greeting,
+      goodbye: values.globalResponses.goodbye,
+      noData: values.globalResponses.noData,
+      noReplyWithoutRag: values.globalResponses.noReplyWithoutRag === true,
+    },
+    earlyResponse: {
+      ...base.earlyResponse!,
+      placeholders: {
+        includeUserName: values.earlyResponse.placeholders.includeUserName,
+        includeBusinessName: values.earlyResponse.placeholders.includeBusinessName,
+      },
+    },
+  };
+}
+
 const PAGE_LAYOUT_ICON: Partial<Record<BusinessConfigMode, LucideIcon>> = {
   behavior: Settings,
   tools: Wrench,
   "memory-settings": Brain,
 };
 
-function showsSection(mode: BusinessConfigMode, section: string): boolean {
-  return CONFIG_META[mode].tabs.some((t) => t.value === section);
+function showsSection(mode: BusinessConfigMode, section: string, limitedBehaviorAdmin = false): boolean {
+  return resolveConfigMeta(mode, limitedBehaviorAdmin).tabs.some((t) => t.value === section);
 }
 
 export function BusinessConfigForm({
@@ -490,13 +532,16 @@ export function BusinessConfigForm({
   const params = useParams();
   const router = useRouter();
   const businessId = params?.businessId as string;
-  const { meData } = useAuth();
-  const { businessRole } = useBusinessRole(businessId);
-  const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { businessRole, loading: roleLoading } = useBusinessRole(businessId);
+  const { canEditCurrentBusiness, canManageSystem } = useBusinessPermissions(businessRole);
+  const isBehaviorLimitedAdmin =
+    mode === "behavior" && businessRole === "business_admin" && !canManageSystem();
+  const meta = resolveConfigMeta(mode, isBehaviorLimitedAdmin);
+  const { business, loading } = useBusiness(businessId);
   const [saving, setSaving] = useState(false);
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [activeTab, setActiveTab] = useState(() => CONFIG_META[mode].defaultTab);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => meta.defaultTab);
   /** Texto pegado por proveedor (solo UI; no se guarda en BD). */
   const [providerDocSnippets, setProviderDocSnippets] = useState<string[]>([]);
   const [parsingProviderIndex, setParsingProviderIndex] = useState<number | null>(null);
@@ -535,7 +580,6 @@ export function BusinessConfigForm({
 
   const applyBusinessToForm = useCallback(
     (b: Business) => {
-      setBusiness(b);
       const cfg = mergeWithDefault(b.config);
       form.reset({
         conversationTimeout: cfg.conversationTimeout,
@@ -592,53 +636,31 @@ export function BusinessConfigForm({
   );
 
   useEffect(() => {
-    if (!businessId) return;
-    const isMyBusiness = meData?.business && (meData.business.businessId === businessId || meData.business._id === businessId);
-    const load = async () => {
-      try {
-        let b: Business | null = null;
-        if (isMyBusiness && meData?.business) {
-          b = meData.business as Business;
-        }
-        if (!b) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { id: businessId },
-          })) as Business | null;
-        }
-        if (!b && businessId) {
-          b = (await fetchApiV1({
-            query: queries.getBusiness,
-            type: "json",
-            variables: { businessId },
-          })) as Business | null;
-        }
-        if (b) {
-          applyBusinessToForm(b);
-        } else {
-          toast.error("Negocio no encontrado");
-          router.push("/businesses");
-        }
-      } catch (e) {
-        toast.error("Error al cargar la configuración");
-        router.push("/businesses");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [businessId, meData?.business, applyBusinessToForm]);
+    setConfigLoaded(false);
+  }, [businessId]);
 
   useEffect(() => {
-    setActiveTab(CONFIG_META[mode].defaultTab);
-  }, [mode]);
+    if (loading) return;
+    if (!business) {
+      toast.error("Negocio no encontrado");
+      router.push("/businesses");
+      return;
+    }
+    applyBusinessToForm(business);
+    setConfigLoaded(true);
+  }, [business, loading, applyBusinessToForm, router]);
+
+  useEffect(() => {
+    setActiveTab(meta.defaultTab);
+  }, [mode, isBehaviorLimitedAdmin, meta.defaultTab]);
 
   const onSubmit = async (values: FormValues) => {
     if (!business) return;
     setSaving(true);
     try {
-      const config = {
+      const config = isBehaviorLimitedAdmin
+        ? buildLimitedBehaviorConfig(values, business.config)
+        : {
         conversationTimeout: values.conversationTimeout,
         messageLimit: values.messageLimit ?? 100,
         personality: values.personality,
@@ -744,7 +766,10 @@ export function BusinessConfigForm({
           variables: { businessId: business.businessId ?? businessId },
         })) as Business | null;
       }
-      if (fresh) applyBusinessToForm(fresh);
+      if (fresh) {
+        queryClient.setQueryData(businessQueryKeys.detail(businessId), fresh);
+        applyBusinessToForm(fresh);
+      }
     } catch (e: unknown) {
       const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Error al guardar";
       toast.error(msg);
@@ -760,7 +785,7 @@ export function BusinessConfigForm({
     toast.error("No se puede guardar", { description: msg });
   };
 
-  if (loading) {
+  if (loading || roleLoading || !configLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -785,8 +810,20 @@ export function BusinessConfigForm({
     );
   }
 
-  const meta = CONFIG_META[mode];
   const PageIcon = PAGE_LAYOUT_ICON[mode];
+
+  const handleSave = isBehaviorLimitedAdmin
+    ? (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const tone = form.getValues("personality.tone")?.trim();
+        const language = form.getValues("personality.language")?.trim();
+        if (!tone || !language) {
+          toast.error("No se puede guardar", { description: "Tono e idioma son obligatorios." });
+          return;
+        }
+        void onSubmit(form.getValues());
+      }
+    : form.handleSubmit(onSubmit, onSubmitInvalid);
 
   return (
     <div className={pageLayout ? "flex gap-2 w-full h-full" : "p-4 md:p-6 lg:p-8 max-w-4xl"}>
@@ -809,7 +846,7 @@ export function BusinessConfigForm({
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form noValidate onSubmit={form.handleSubmit(onSubmit, onSubmitInvalid)} className="space-y-6">
+            <form noValidate onSubmit={handleSave} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="flex w-full flex-wrap gap-1 h-auto min-h-10">
                   {meta.tabs.map((tab) => (
@@ -819,7 +856,7 @@ export function BusinessConfigForm({
                   ))}
                 </TabsList>
 
-                {showsSection(mode, "general") && (
+                {showsSection(mode, "general", isBehaviorLimitedAdmin) && (
                   <TabsContent value="general" className="space-y-4 pt-4">
                     <FormField
                       control={form.control}
@@ -850,7 +887,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "personality") && (
+                {showsSection(mode, "personality", isBehaviorLimitedAdmin) && (
                   <TabsContent value="personality" className="space-y-4 pt-4">
                     <FormField
                       control={form.control}
@@ -894,90 +931,96 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "responses") && (
+                {showsSection(mode, "responses", isBehaviorLimitedAdmin) && (
                   <TabsContent value="responses" className="space-y-6 pt-4">
                     <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Mensajes tempranos (early responses)</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Mensajes enviados mientras se procesa una consulta que toma más de unos segundos. Mejoran la UX sin costo de tokens.
-                      </p>
-                      <FormField
-                        control={form.control}
-                        name="earlyResponse.enabled"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 gap-4">
-                            <div className="space-y-0.5">
-                              <FormLabel>Habilitar mensajes tempranos</FormLabel>
-                              <p className="text-sm text-muted-foreground">
-                                Envía un mensaje intermedio cuando la respuesta estimada toma más del tiempo configurado.
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name="earlyResponse.minLatencyMs"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Latencia mínima (ms)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={500} max={10000} step={100} {...field} />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Enviar early response si latencia estimada supera este valor. Default: 2500ms</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="earlyResponse.debounceMs"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Debounce (ms)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={0} max={5000} step={100} {...field} />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Tiempo para fusionar mensajes consecutivos. Default: 1500ms</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name="earlyResponse.confidenceThresholds.high"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Umbral confianza alta (0–1)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={0} max={1} step={0.05} {...field} />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Mensajes asertivos cuando confianza ≥ este valor. Default: 0.8</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="earlyResponse.confidenceThresholds.medium"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Umbral confianza media (0–1)</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={0} max={1} step={0.05} {...field} />
-                              </FormControl>
-                              <p className="text-xs text-muted-foreground">Mensajes cautelosos cuando confianza ≥ este valor. Default: 0.5</p>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                      {!isBehaviorLimitedAdmin ? (
+                        <>
+                          <h3 className="text-sm font-medium">Mensajes tempranos (early responses)</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Mensajes enviados mientras se procesa una consulta que toma más de unos segundos. Mejoran la UX sin costo de tokens.
+                          </p>
+                          <FormField
+                            control={form.control}
+                            name="earlyResponse.enabled"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 gap-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Habilitar mensajes tempranos</FormLabel>
+                                  <p className="text-sm text-muted-foreground">
+                                    Envía un mensaje intermedio cuando la respuesta estimada toma más del tiempo configurado.
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField
+                              control={form.control}
+                              name="earlyResponse.minLatencyMs"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Latencia mínima (ms)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={500} max={10000} step={100} {...field} />
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground">Enviar early response si latencia estimada supera este valor. Default: 2500ms</p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="earlyResponse.debounceMs"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Debounce (ms)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} max={5000} step={100} {...field} />
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground">Tiempo para fusionar mensajes consecutivos. Default: 1500ms</p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <FormField
+                              control={form.control}
+                              name="earlyResponse.confidenceThresholds.high"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Umbral confianza alta (0–1)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} max={1} step={0.05} {...field} />
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground">Mensajes asertivos cuando confianza ≥ este valor. Default: 0.8</p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="earlyResponse.confidenceThresholds.medium"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Umbral confianza media (0–1)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} max={1} step={0.05} {...field} />
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground">Mensajes cautelosos cuando confianza ≥ este valor. Default: 0.5</p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <h3 className="text-sm font-medium">Placeholders en respuestas</h3>
+                      )}
                       <div className="flex flex-row gap-4">
                         <FormField
                           control={form.control}
@@ -1078,7 +1121,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "tools") && (
+                {showsSection(mode, "tools", isBehaviorLimitedAdmin) && (
                   <TabsContent value="tools" className="space-y-4 pt-4">
                     <p className="text-sm text-muted-foreground">
                       En cada herramienta puede pegar un fragmento de documentación, un curl, cabeceras HTTP o una query GraphQL y usar{" "}
@@ -1479,7 +1522,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "providers") && (
+                {showsSection(mode, "providers", isBehaviorLimitedAdmin) && (
                   <TabsContent value="providers" className="space-y-4 pt-4">
                     <p className="text-sm text-muted-foreground">
                       Proveedores de datos (REST o GraphQL) a los que el worker llama para ejecutar herramientas. Asocie cada herramienta a un proveedor en la pestaña Herramientas. La API Key se guarda cifrada; deje vacío para no cambiar.
@@ -1756,7 +1799,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "memory-user") && (
+                {showsSection(mode, "memory-user", isBehaviorLimitedAdmin) && (
                   <TabsContent value="memory-user" className="space-y-6 pt-4">
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium">Memoria de usuario (worker)</h3>
@@ -1838,7 +1881,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "rag-search") && (
+                {showsSection(mode, "rag-search", isBehaviorLimitedAdmin) && (
                   <TabsContent value="rag-search" className="space-y-6 pt-4">
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium">Búsqueda RAG (Knowledge-RAG)</h3>
@@ -1933,7 +1976,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "agent-llm") && (
+                {showsSection(mode, "agent-llm", isBehaviorLimitedAdmin) && (
                   <TabsContent value="agent-llm" className="space-y-6 pt-4">
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium">Motor del agente (blueprint)</h3>
@@ -2171,7 +2214,7 @@ export function BusinessConfigForm({
                   </TabsContent>
                 )}
 
-                {showsSection(mode, "cache") && business && (
+                {showsSection(mode, "cache", isBehaviorLimitedAdmin) && business && (
                   <TabsContent value="cache">
                     <BusinessCacheTabContent businessDocId={business._id} />
                   </TabsContent>

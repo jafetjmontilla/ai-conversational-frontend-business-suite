@@ -27,15 +27,40 @@ const TEMPORARY_DISCONNECT_REASONS = [
   'websocket error', // Fallo de upgrade tras proxy/CDN; polling suele funcionar
 ];
 
+// Errores de connect_error recuperables (proxy, red, polling, etc.)
+const RECOVERABLE_CONNECT_ERROR_PATTERNS = [
+  'websocket error',
+  'xhr poll error',
+  'transport',
+  'timeout',
+  'network',
+  'econnrefused',
+  'enotfound',
+  'etimedout',
+  'socket hang up',
+];
+
+const MAX_RETRIES = 15;
+
+const isRecoverableConnectError = (message: string): boolean =>
+  RECOVERABLE_CONNECT_ERROR_PATTERNS.some((pattern) =>
+    message.toLowerCase().includes(pattern)
+  );
+
+const isTokenConnectError = (message: string): boolean =>
+  TOKEN_EXPIRED_REASONS.some((reason) => message.includes(reason)) ||
+  message.toLowerCase().includes('token');
+
 export const useWebSocket = (
   url: string,
   getToken: () => Promise<string | null>,
-  forceRefresh: boolean = false,
+  _forceRefresh: boolean = false,
   options: UseWebSocketOptions = {}
 ): WebSocketHook => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const getTokenRef = useRef(getToken);
   const onTokenExpiredRef = useRef(options.onTokenExpired);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,6 +84,41 @@ export const useWebSocket = (
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+  };
+
+  const teardownSocket = (target?: Socket | null) => {
+    const sock = target ?? socketRef.current;
+    if (!sock) return;
+
+    sock.removeAllListeners();
+    sock.disconnect();
+
+    if (socketRef.current === sock) {
+      socketRef.current = null;
+    }
+  };
+
+  const scheduleReconnect = (delayMs: number, resetRetries = false) => {
+    if (!shouldReconnectRef.current) return;
+
+    if (retryCountRef.current >= MAX_RETRIES) {
+      console.error('❌ Socket.IO: máximo de reintentos alcanzado');
+      setError('No se pudo conectar al servidor en tiempo real');
+      return;
+    }
+
+    if (resetRetries) {
+      retryCountRef.current = 0;
+    }
+
+    retryCountRef.current++;
+    console.log(`🔄 Reintentando conexión en ${delayMs / 1000}s (intento ${retryCountRef.current}/${MAX_RETRIES})...`);
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (shouldReconnectRef.current) {
+        connectSocket();
+      }
+    }, delayMs);
   };
 
   // Función para determinar si debe reconectarse basado en la razón
@@ -101,11 +161,8 @@ export const useWebSocket = (
         return;
       }
 
-      // Si ya existe un socket, desconectarlo primero
-      if (socket) {
-        socket.removeAllListeners();
-        socket.disconnect();
-      }
+      // Desconectar socket previo (ref evita closure obsoleto del state)
+      teardownSocket();
 
       console.log('🔌 Intentando conectar Socket.IO...', { url });
 
@@ -120,6 +177,8 @@ export const useWebSocket = (
         reconnection: false // Deshabilitamos la reconexión automática de Socket.IO para manejarla nosotros
       });
 
+      socketRef.current = newSocket;
+
       // Eventos de conexión
       newSocket.on('connect', () => {
         console.log('✅ Socket.IO conectado exitosamente');
@@ -129,44 +188,30 @@ export const useWebSocket = (
         isConnectingRef.current = false;
       });
 
-      newSocket.on('connect_error', async (err) => {
-        const isTransportError = err.message === 'websocket error' || err.message.includes('transport');
-        if (isTransportError) {
-          console.warn('⚠️ Socket.IO: error de transporte, reintentando...', err.message);
+      newSocket.on('connect_error', (err) => {
+        const recoverable = isRecoverableConnectError(err.message);
+        const tokenError = isTokenConnectError(err.message);
+
+        if (recoverable || tokenError) {
+          console.warn('⚠️ Socket.IO: error de conexión, reintentando...', err.message);
         } else {
           console.error('❌ Error de conexión Socket.IO:', err.message);
         }
+
         setIsConnected(false);
         isConnectingRef.current = false;
+        teardownSocket(newSocket);
 
-        // Verificar si el error es por token inválido
-        const isTokenError = TOKEN_EXPIRED_REASONS.some(r =>
-          err.message.includes(r) || err.message.toLowerCase().includes('token')
-        );
-
-        if (isTokenError && shouldReconnectRef.current) {
+        if (tokenError && shouldReconnectRef.current) {
           console.log('🔄 Token expirado, intentando renovar y reconectar...');
-          // Notificar al contexto que el token expiró
           if (onTokenExpiredRef.current) {
             onTokenExpiredRef.current();
           }
-          // Intentar reconectar con token renovado después de un breve delay
-          setTimeout(() => {
-            if (shouldReconnectRef.current) {
-              connectSocket(); // Reconectar (el contexto renovará el token si es necesario)
-            }
-          }, 1000);
+          scheduleReconnect(1000, true);
+        } else if (recoverable && shouldReconnectRef.current) {
+          scheduleReconnect(2000);
         } else if (shouldReconnectRef.current) {
-          // Error temporal, intentar reconectar en 2 segundos
-          const delay = 2000;
-          console.log(`🔄 Reintentando conexión en 2 segundos (intento ${retryCountRef.current + 1})...`);
-
-          retryCountRef.current++;
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (shouldReconnectRef.current) {
-              connectSocket();
-            }
-          }, delay);
+          scheduleReconnect(2000);
         } else {
           setError(err.message);
         }
@@ -183,27 +228,12 @@ export const useWebSocket = (
 
           if (isTokenExpired) {
             console.log('🔄 Desconexión por token expirado, renovando token y reconectando...');
-            // Notificar al contexto que el token expiró
             if (onTokenExpiredRef.current) {
               onTokenExpiredRef.current();
             }
-            // Renovar token y reconectar
-            setTimeout(() => {
-              if (shouldReconnectRef.current) {
-                connectSocket(); // Reconectar (el contexto renovará el token si es necesario)
-              }
-            }, 1000);
+            scheduleReconnect(1000, true);
           } else {
-            // Desconexión temporal, reconectar en 2 segundos
-            const delay = 2000;
-            console.log(`🔄 Reintentando conexión en 2 segundos (intento ${retryCountRef.current + 1})...`);
-
-            retryCountRef.current++;
-            reconnectTimeoutRef.current = setTimeout(() => {
-              if (shouldReconnectRef.current) {
-                connectSocket();
-              }
-            }, delay);
+            scheduleReconnect(2000);
           }
         } else {
           console.log('🔌 Desconexión permanente, no se reconectará:', reason);
@@ -219,29 +249,21 @@ export const useWebSocket = (
       setIsConnected(false);
       isConnectingRef.current = false;
 
-      // Reintentar si es un error recuperable
       if (shouldReconnectRef.current) {
-        const delay = 2000;
-        console.log(`🔄 Reintentando conexión en 2 segundos (intento ${retryCountRef.current + 1})...`);
-        retryCountRef.current++;
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (shouldReconnectRef.current) {
-            connectSocket();
-          }
-        }, delay);
+        scheduleReconnect(2000);
       }
     }
   };
 
   // Función manual para reconectar
   const reconnect = () => {
-    if (socket && socket.connected) {
+    if (socketRef.current?.connected) {
       console.log('🔌 Socket ya está conectado');
       return;
     }
 
     console.log('🔄 Reconexión manual solicitada');
-    retryCountRef.current = 0; // Resetear contador
+    retryCountRef.current = 0;
     connectSocket();
   };
 
@@ -265,17 +287,14 @@ export const useWebSocket = (
     return () => {
       shouldReconnectRef.current = false;
       clearReconnectTimeout();
-
-      if (socket) {
-        socket.removeAllListeners();
-        socket.disconnect();
-      }
+      teardownSocket();
 
       setSocket(null);
       setIsConnected(false);
       isConnectingRef.current = false;
     };
-  }, [url, forceRefresh]);
+    // Solo reconectar cuando cambia la URL; forceRefresh se maneja vía ref en getToken
+  }, [url]);
 
   return {
     socket,
