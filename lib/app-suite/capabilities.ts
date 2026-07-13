@@ -34,6 +34,7 @@ export const CAPABILITIES = {
   AI_MEMORY: "ai.memory",
   SUPPLIER_MANAGE: "supplier.manage",
   RECIPE_BOM: "recipe.bom",
+  COMMERCE_CHECKOUT: "commerce.checkout",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -47,7 +48,7 @@ export const APP_CAPABILITIES: Record<string, Capability[]> = {
   "gestion-proveedores": [CAPABILITIES.SUPPLIER_MANAGE],
   "gestion-insumos-materia-prima": [CAPABILITIES.PRODUCT_RAW_MATERIAL],
   "procesadora-alimentos": [CAPABILITIES.PRODUCT_RAW_MATERIAL, CAPABILITIES.RECIPE_BOM],
-  "tienda-online": [CAPABILITIES.PRODUCT_SELLABLE, CAPABILITIES.CATALOG_PUBLISH],
+  "tienda-online": [CAPABILITIES.PRODUCT_SELLABLE, CAPABILITIES.CATALOG_PUBLISH, CAPABILITIES.COMMERCE_CHECKOUT],
   "productos-servicios": [],
   "agente-atencion-cliente": [
     CAPABILITIES.AI_BEHAVIOR,
@@ -71,6 +72,7 @@ export const CAPABILITY_REQUIRED_APPS: Partial<Record<Capability, AppSuiteAppId[
   [CAPABILITIES.AI_MEMORY]: ["agente-asistente-personal"],
   [CAPABILITIES.SUPPLIER_MANAGE]: ["gestion-proveedores"],
   [CAPABILITIES.RECIPE_BOM]: ["procesadora-alimentos"],
+  [CAPABILITIES.COMMERCE_CHECKOUT]: ["tienda-online"],
 };
 
 export function isActiveInstalledApp(record: BusinessInstalledApp): boolean {

@@ -514,6 +514,10 @@ export const queries = {
           enabled
           commerceInstructions
           notifyStaffOnAgentInvoice
+          stockReservationTtlMinutes
+          defaultFulfillmentMethod
+          webCheckoutEnabled
+          storefrontTheme
         }
         agent {
           defaultEngine
@@ -1140,6 +1144,7 @@ export const queries = {
   createInvoice: `mutation createInvoice($id: ID!, $args: CreateInvoiceInput!) {
     createInvoice(id: $id, args: $args) {
       _id
+      orderId
       clientName
       clientId
       clientPhone
@@ -1198,6 +1203,49 @@ export const queries = {
         status
         createdAt
       }
+    }
+  }`,
+  getOrders: `query getOrders($id: ID!, $filters: OrderFiltersInput) {
+    getOrders(id: $id, filters: $filters) {
+      _id
+      status
+      salesChannel
+      fulfillmentMethod
+      billingStatus
+      clientName
+      clientPhone
+      totalUsd
+      totalBs
+      summary
+      invoiceId
+      reservedUntil
+      shippingAddress { street city reference phone }
+      lines { sku description quantity total }
+      createdAt
+      updatedAt
+    }
+  }`,
+  getFulfillmentQueue: `query getFulfillmentQueue($id: ID!) {
+    getFulfillmentQueue(id: $id) {
+      _id
+      status
+      salesChannel
+      fulfillmentMethod
+      clientName
+      clientPhone
+      totalUsd
+      summary
+      invoiceId
+      reservedUntil
+      shippingAddress { street city reference phone }
+      lines { sku description quantity total }
+      createdAt
+    }
+  }`,
+  updateOrderStatus: `mutation updateOrderStatus($id: ID!, $orderId: ID!, $status: String!) {
+    updateOrderStatus(id: $id, orderId: $orderId, status: $status) {
+      _id
+      status
     }
   }`,
   getPayments: `query getPayments($id: ID!, $filters: PaymentFiltersInput) {

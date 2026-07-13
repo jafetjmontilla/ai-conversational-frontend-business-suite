@@ -57,6 +57,12 @@ export const CHECKOUT_STAGES_META: CheckoutStageMeta[] = [
     toolsHint: "submit_shipping",
   },
   {
+    key: "shipping_submitted",
+    label: "Envío registrado",
+    description: "Pedido en preparación en almacén.",
+    toolsHint: "get_order_status",
+  },
+  {
     key: "done",
     label: "Completado",
     description: "Flujo cerrado.",

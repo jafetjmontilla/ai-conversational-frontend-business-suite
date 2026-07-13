@@ -116,6 +116,11 @@ export interface CommerceFlowConfig {
   enabled?: boolean;
   commerceInstructions?: string;
   notifyStaffOnAgentInvoice?: boolean;
+  stockReservationTtlMinutes?: number;
+  defaultFulfillmentMethod?: "pickup" | "delivery";
+  webCheckoutEnabled?: boolean;
+  storefrontTheme?: string;
+  stripeWebhookSecret?: string;
 }
 
 /** Motor del agente (blueprint). */

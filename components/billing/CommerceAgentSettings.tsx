@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useBusiness } from "@/lib/hooks/useBusiness";
@@ -13,13 +21,14 @@ import { businessQueryKeys } from "@/lib/queries/business";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Bot, RotateCcw } from "lucide-react";
-import type { Business, BusinessConfig } from "@/lib/interfases";
+import type { Business, BusinessConfig, CommerceFlowConfig } from "@/lib/interfases";
 import {
   DEFAULT_COMMERCE_INSTRUCTIONS,
   resolveCommerceInstructionsForUi,
 } from "@/lib/billing/commerceDefaults";
 import { CommerceCheckoutGuide } from "@/components/billing/CommerceCheckoutGuide";
 import { sanitizeBusinessConfigForUpdate } from "@/lib/sanitizeBusinessConfigForUpdate";
+import { listStorefrontThemes, DEFAULT_STOREFRONT_THEME_ID } from "@/lib/storefront/themes/registry";
 
 type Props = {
   businessSlug: string;
@@ -28,11 +37,7 @@ type Props = {
 function mergeConfigForSave(
   existing: BusinessConfig | undefined,
   patch: {
-    commerceFlow: {
-      enabled: boolean;
-      commerceInstructions: string;
-      notifyStaffOnAgentInvoice: boolean;
-    };
+    commerceFlow: CommerceFlowConfig;
   }
 ): BusinessConfig {
   const base = existing ?? ({} as BusinessConfig);
@@ -60,13 +65,34 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
   const [enabled, setEnabled] = useState(cf?.enabled ?? false);
   const [instructions, setInstructions] = useState(storedInstructions);
   const [notifyStaff, setNotifyStaff] = useState(cf?.notifyStaffOnAgentInvoice !== false);
+  const [reservationTtl, setReservationTtl] = useState(String(cf?.stockReservationTtlMinutes ?? 30));
+  const [defaultFulfillment, setDefaultFulfillment] = useState<
+    "pickup" | "delivery"
+  >(cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery");
+  const [webCheckoutEnabled, setWebCheckoutEnabled] = useState(cf?.webCheckoutEnabled ?? false);
+  const [storefrontTheme, setStorefrontTheme] = useState(
+    cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID
+  );
   const [saving, setSaving] = useState(false);
+  const storefrontThemes = listStorefrontThemes();
 
   useEffect(() => {
     setEnabled(cf?.enabled ?? false);
     setInstructions(resolveCommerceInstructionsForUi(cf?.commerceInstructions));
     setNotifyStaff(cf?.notifyStaffOnAgentInvoice !== false);
-  }, [cf?.enabled, cf?.commerceInstructions, cf?.notifyStaffOnAgentInvoice]);
+    setReservationTtl(String(cf?.stockReservationTtlMinutes ?? 30));
+    setDefaultFulfillment(cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery");
+    setWebCheckoutEnabled(cf?.webCheckoutEnabled ?? false);
+    setStorefrontTheme(cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID);
+  }, [
+    cf?.enabled,
+    cf?.commerceInstructions,
+    cf?.notifyStaffOnAgentInvoice,
+    cf?.stockReservationTtlMinutes,
+    cf?.defaultFulfillmentMethod,
+    cf?.webCheckoutEnabled,
+    cf?.storefrontTheme,
+  ]);
 
   const canEdit = canEditCurrentBusiness?.();
   const canView = canViewCurrentBusiness?.();
@@ -83,7 +109,11 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
   const dirty =
     enabled !== (cf?.enabled ?? false) ||
     instructions !== storedInstructions ||
-    notifyStaff !== (cf?.notifyStaffOnAgentInvoice !== false);
+    notifyStaff !== (cf?.notifyStaffOnAgentInvoice !== false) ||
+    reservationTtl !== String(cf?.stockReservationTtlMinutes ?? 30) ||
+    defaultFulfillment !== (cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery") ||
+    webCheckoutEnabled !== (cf?.webCheckoutEnabled ?? false) ||
+    storefrontTheme !== (cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID);
 
   const handleSave = async () => {
     if (!businessIdDoc || !canEdit) return;
@@ -95,6 +125,13 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
             enabled,
             commerceInstructions: instructions.trim(),
             notifyStaffOnAgentInvoice: notifyStaff,
+            stockReservationTtlMinutes: Math.min(
+              1440,
+              Math.max(5, parseInt(reservationTtl, 10) || 30)
+            ),
+            defaultFulfillmentMethod: defaultFulfillment,
+            webCheckoutEnabled,
+            storefrontTheme,
           },
         })
       );
@@ -147,6 +184,76 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
             </div>
             <Switch checked={notifyStaff} onCheckedChange={setNotifyStaff} disabled={!canEdit} />
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label>Reserva de stock (minutos)</Label>
+              <Input
+                type="number"
+                min={5}
+                max={1440}
+                value={reservationTtl}
+                onChange={(e) => setReservationTtl(e.target.value)}
+                disabled={!canEdit}
+              />
+            </div>
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label>Entrega por defecto (WhatsApp)</Label>
+              <Select
+                value={defaultFulfillment}
+                onValueChange={(v) => setDefaultFulfillment(v as "pickup" | "delivery")}
+                disabled={!canEdit}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="delivery">Delivery</SelectItem>
+                  <SelectItem value="pickup">Retiro en tienda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label>Checkout web público</Label>
+              <p className="text-sm text-muted-foreground">
+                Habilita la tienda en /{businessSlug}/tienda con carrito y pago Stripe.
+              </p>
+            </div>
+            <Switch
+              checked={webCheckoutEnabled}
+              onCheckedChange={setWebCheckoutEnabled}
+              disabled={!canEdit}
+            />
+          </div>
+
+          {webCheckoutEnabled ? (
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label>Tema de la tienda</Label>
+              <Select
+                value={storefrontTheme}
+                onValueChange={setStorefrontTheme}
+                disabled={!canEdit}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {storefrontThemes.map((theme) => (
+                    <SelectItem key={theme.id} value={theme.id}>
+                      {theme.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {storefrontThemes.find((theme) => theme.id === storefrontTheme)?.description ??
+                  "Tema visual de la tienda pública."}
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">

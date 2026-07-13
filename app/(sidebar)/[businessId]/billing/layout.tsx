@@ -14,6 +14,7 @@ import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
 import { INTERNAL_BILLING_APP_ID } from "@/lib/billing/internalBilling";
 
 const BILLING_TABS = [
+  { id: "pedidos", label: "Pedidos" },
   { id: "facturas", label: "Facturas" },
   { id: "pagos", label: "Pagos" },
   { id: "resumen", label: "Resumen" },

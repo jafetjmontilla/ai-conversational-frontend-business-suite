@@ -13,6 +13,17 @@ interface AuthGuardProps {
 
 const SYSTEM_SCOPE_SEGMENTS = ['dashboard', 'users', 'businesses', 'profile'];
 
+const AUTH_PAGES = ['/login', '/register-invitation', '/forgot-password', '/register'];
+
+function isStorefrontPath(pathname: string | null): boolean {
+  return /^\/[^/]+\/tienda(\/|$)/.test(pathname ?? '');
+}
+
+/** Rutas accesibles sin sesión (login/registro + tienda pública). */
+function isAuthExemptPath(pathname: string | null): boolean {
+  return AUTH_PAGES.includes(pathname ?? '') || isStorefrontPath(pathname);
+}
+
 /** Redirige a usuario con rol de negocio a su primer negocio. Usa meData.business si existe (una sola llamada getMe); si no, getMyBusinessMemberships + getBusiness. */
 async function redirectToBusiness(router: ReturnType<typeof useRouter>, meData: MeData | null): Promise<void> {
   if (meData?.business?.businessId) {
@@ -43,8 +54,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const redirectingRef = useRef(false);
 
-  const publicRoutes = ['/login', '/register-invitation', '/forgot-password', '/register'];
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isAuthExemptRoute = isAuthExemptPath(pathname);
+  const isAuthPage = AUTH_PAGES.includes(pathname ?? '');
 
   const role = authUser?.customClaims?.role as string | undefined;
   const isSystemRole = role && systemRoles.includes(role as 'system_admin' | 'system_operator' | 'system_viewer');
@@ -54,14 +65,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // Redirección: no autenticado -> login
   useEffect(() => {
     if (loading) return;
-    if (!authUser && !isPublicRoute) {
+    if (!authUser && !isAuthExemptRoute) {
       router.push('/login');
     }
-  }, [authUser, loading, router, pathname, isPublicRoute]);
+  }, [authUser, loading, router, pathname, isAuthExemptRoute]);
 
-  // Redirección: autenticado en ruta pública -> dashboard o al negocio según rol
+  // Redirección: autenticado en login/registro -> dashboard o al negocio según rol
   useEffect(() => {
-    if (loading || !authUser || !isPublicRoute) return;
+    if (loading || !authUser || !isAuthPage) return;
     if (isSystemRole) {
       router.push('/dashboard');
       return;
@@ -69,15 +80,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
     if (redirectingRef.current) return;
     redirectingRef.current = true;
     redirectToBusiness(router, meData).finally(() => { redirectingRef.current = false; });
-  }, [authUser, loading, isPublicRoute, isSystemRole, meData, router]);
+  }, [authUser, loading, isAuthPage, isSystemRole, meData, router]);
 
   // Redirección: rol de negocio en ruta del sistema -> al negocio (por businessId). Evita redirigir si ya estamos en un negocio.
   useEffect(() => {
-    if (loading || !authUser || isPublicRoute || isSystemRole || !isSystemScopeRoute) return;
+    if (loading || !authUser || isAuthPage || isSystemRole || !isSystemScopeRoute) return;
     if (redirectingRef.current) return;
     redirectingRef.current = true;
     redirectToBusiness(router, meData).finally(() => { redirectingRef.current = false; });
-  }, [authUser, loading, pathname, isPublicRoute, isSystemRole, isSystemScopeRoute, meData, router]);
+  }, [authUser, loading, pathname, isAuthPage, isSystemRole, isSystemScopeRoute, meData, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {
@@ -88,10 +99,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!authUser && !isPublicRoute) return null;
+  if (!authUser && !isAuthExemptRoute) return null;
 
-  // Usuario autenticado en ruta pública: no mostrar login, mostrar loading hasta redirigir
-  if (authUser && isPublicRoute) {
+  // Usuario autenticado en login/registro: loading hasta redirigir
+  if (authUser && isAuthPage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-wellness-50 dark:from-gray-900 dark:to-gray-800">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400" />

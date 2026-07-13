@@ -23,8 +23,8 @@ export function InternalBillingAppPrompt({
   variant = "page",
   className,
 }: InternalBillingAppPromptProps) {
-  const module = getInternalBillingModule();
-  const Icon = module?.icon ?? FileText;
+  const billingModule = getInternalBillingModule();
+  const Icon = billingModule?.icon ?? FileText;
 
   return (
     <div
@@ -38,23 +38,23 @@ export function InternalBillingAppPrompt({
         className={cn(
           "flex items-center justify-center rounded-2xl bg-gradient-to-tr shadow-md mb-4",
           variant === "page" ? "h-14 w-14" : "h-11 w-11",
-          module?.iconGradient ?? "from-teal-500 to-emerald-600"
+          billingModule?.iconGradient ?? "from-teal-500 to-emerald-600"
         )}
       >
         <Icon className={cn("text-white", variant === "page" ? "h-7 w-7" : "h-5 w-5")} />
       </div>
 
       <h2 className={cn("font-semibold text-foreground", variant === "page" ? "text-xl" : "text-base")}>
-        {module?.title ?? "Facturación Interna"}
+        {billingModule?.title ?? "Facturación Interna"}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-        {module?.description ??
+        {billingModule?.description ??
           "Registra ventas internas y cobros en Bs o USD. No sustituye tu facturación fiscal legal."}
       </p>
 
-      {variant === "page" && module?.features?.length ? (
+      {variant === "page" && billingModule?.features?.length ? (
         <ul className="mt-4 w-full text-left text-sm text-muted-foreground space-y-1.5">
-          {module.features.map((feature) => (
+          {billingModule.features.map((feature) => (
             <li key={feature} className="flex gap-2">
               <span className="text-primary shrink-0">•</span>
               <span>{feature}</span>
