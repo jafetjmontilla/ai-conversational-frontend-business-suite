@@ -749,6 +749,67 @@ export const queries = {
       }
     }
   }`,
+  listPaeLocalDevices: `query listPaeLocalDevices($businessDocId: ID!, $status: String, $skip: Int, $limit: Int) {
+    listPaeLocalDevices(businessDocId: $businessDocId, status: $status, skip: $skip, limit: $limit) {
+      totalCount
+      items {
+        id
+        deviceId
+        businessId
+        userId
+        label
+        allowedCapabilities
+        status
+        pairingCode
+        pairingExpiresAt
+        credentialsIssued
+        lastSeenAt
+        revokedAt
+        createdAt
+        updatedAt
+      }
+    }
+  }`,
+  startPaeLocalDevicePairing: `mutation startPaeLocalDevicePairing($businessDocId: ID!, $label: String) {
+    startPaeLocalDevicePairing(businessDocId: $businessDocId, label: $label) {
+      pairingCode
+      expiresAt
+      ttlMs
+      device {
+        id
+        deviceId
+        label
+        status
+        allowedCapabilities
+        pairingCode
+        pairingExpiresAt
+        createdAt
+      }
+    }
+  }`,
+  confirmPaeLocalDevicePairing: `mutation confirmPaeLocalDevicePairing($businessDocId: ID!, $pairingCode: String!) {
+    confirmPaeLocalDevicePairing(businessDocId: $businessDocId, pairingCode: $pairingCode) {
+      deviceSecret
+      deviceToken
+      device {
+        id
+        deviceId
+        label
+        status
+        allowedCapabilities
+        credentialsIssued
+        updatedAt
+      }
+    }
+  }`,
+  revokePaeLocalDevice: `mutation revokePaeLocalDevice($businessDocId: ID!, $deviceId: String!) {
+    revokePaeLocalDevice(businessDocId: $businessDocId, deviceId: $deviceId) {
+      id
+      deviceId
+      status
+      revokedAt
+    }
+  }`,
   listUserMemories: `query listUserMemories($businessDocId: ID!, $skip: Int, $limit: Int, $userKeyContains: String) {
     listUserMemories(businessDocId: $businessDocId, skip: $skip, limit: $limit, userKeyContains: $userKeyContains) {
       totalCount

@@ -312,6 +312,41 @@ export interface PaeSkillListResult {
   totalCount: number;
 }
 
+export interface PaeLocalDeviceRow {
+  id: string;
+  deviceId: string;
+  businessId: string;
+  userId: string;
+  label?: string | null;
+  allowedCapabilities: string[];
+  status: string;
+  pairingCode?: string | null;
+  pairingExpiresAt?: string | null;
+  credentialsIssued: boolean;
+  lastSeenAt?: string | null;
+  revokedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaeLocalDeviceListResult {
+  items: PaeLocalDeviceRow[];
+  totalCount: number;
+}
+
+export interface PaeLocalDevicePairingStart {
+  device: PaeLocalDeviceRow;
+  pairingCode: string;
+  expiresAt: string;
+  ttlMs: number;
+}
+
+export interface PaeLocalDeviceCredentials {
+  device: PaeLocalDeviceRow;
+  deviceSecret: string;
+  deviceToken: string;
+}
+
 export interface PaeWorkflowRunRow {
   id: string;
   runId: string;

@@ -15,6 +15,7 @@ const MEMORY_TABS = [
   { id: "skills", label: "Skills" },
   { id: "workflows", label: "Workflows" },
   { id: "rutinas", label: "Rutinas proactivas" },
+  { id: "dispositivos", label: "Dispositivos" },
 ] as const;
 
 export default function AiMemoryLayout({ children }: { children: React.ReactNode }) {

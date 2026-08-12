@@ -18,6 +18,7 @@ import { useBusinessPermissions } from "@/lib/hooks/useAllowed";
 import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { pushRecentBusiness } from "@/lib/recentBusinesses";
 
 export default function BusinessesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -75,8 +76,13 @@ export default function BusinessesPage() {
     }
   };
 
-  const handleOpenBusiness = (slug: string) => {
-    router.push(`/${slug}`);
+  const handleOpenBusiness = (b: Business) => {
+    pushRecentBusiness({
+      _id: b._id,
+      businessId: b.businessId,
+      name: b.name || b.businessId,
+    });
+    router.push(`/${b.businessId}`);
   };
 
   if (!canViewBusinesses()) {
@@ -158,7 +164,7 @@ export default function BusinessesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleOpenBusiness(b.businessId)}
+                              onClick={() => handleOpenBusiness(b)}
                               title="Abrir negocio"
                             >
                               <ExternalLink className="h-4 w-4" />

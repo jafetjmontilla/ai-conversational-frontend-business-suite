@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner"
 import packageJson from "@/package.json"
 import { getBusinessIdFromPathname, useAllowed, useBusinessRole, useMyBusinesses } from "@/lib/hooks/useAllowed"
+import { useBusiness } from "@/lib/hooks/useBusiness"
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps"
 import { getProfileHref } from "@/lib/profileRoutes"
 import { resolveNavBreadcrumb } from "@/lib/navigation/businessNav"
@@ -28,24 +29,33 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
 
 import { getRoleLabel } from "@/lib/roles";
 import { BusinessProvider } from "@/contexts/BusinessProvider";
+import { CseTestChat } from "@/components/cse/CseTestChat";
+import {
+  getRecentBusinesses,
+  pushRecentBusiness,
+  type RecentBusiness,
+} from "@/lib/recentBusinesses";
 
-const SYSTEM_VALUE = "__system__"
+const ORGANIZATIONS_VALUE = "__organizations__"
 
 export function SidebarLayout({ children, defaultOpen }: { children: React.ReactNode, defaultOpen?: boolean }) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [recentBusinesses, setRecentBusinesses] = useState<RecentBusiness[]>([])
   const pathname = usePathname()
   const { theme } = useThemeContext();
   const { authUser, logout } = useAuth();
   const router = useRouter();
   const { businesses, loading: loadingBusinesses } = useMyBusinesses();
   const currentBusinessId = getBusinessIdFromPathname(pathname || "");
-  const selectValue = currentBusinessId || SYSTEM_VALUE;
+  const { business: currentBusiness } = useBusiness(currentBusinessId);
+  const selectValue = currentBusinessId || ORGANIZATIONS_VALUE;
   const { installedApps } = useBusinessApps(currentBusinessId);
   const { businessRole } = useBusinessRole(currentBusinessId);
   const { can } = useAllowed({ businessRole: businessRole ?? undefined });
@@ -64,6 +74,42 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
     },
     installedApps
   );
+
+  useEffect(() => {
+    setRecentBusinesses(getRecentBusinesses())
+  }, [currentBusinessId])
+
+  // Registrar la org activa al entrar (vía slug de URL; no depende de membresías)
+  useEffect(() => {
+    if (!currentBusiness?._id || !currentBusiness.businessId) return
+    setRecentBusinesses(
+      pushRecentBusiness({
+        _id: currentBusiness._id,
+        businessId: currentBusiness.businessId,
+        name: currentBusiness.name || currentBusiness.businessId,
+      })
+    )
+  }, [currentBusiness?._id, currentBusiness?.businessId, currentBusiness?.name])
+
+  // Recientes de localStorage; asegurar que la actual aparezca aunque aún no se haya persistido
+  const recentItems = (() => {
+    const items = [...recentBusinesses]
+    if (currentBusiness?._id && currentBusiness.businessId) {
+      const already = items.some(
+        (r) =>
+          r.businessId === currentBusiness.businessId ||
+          r._id === currentBusiness._id
+      )
+      if (!already) {
+        items.unshift({
+          _id: currentBusiness._id,
+          businessId: currentBusiness.businessId,
+          name: currentBusiness.name || currentBusiness.businessId,
+        })
+      }
+    }
+    return items.slice(0, 8)
+  })()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -92,37 +138,68 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                 </>
               )}
             </div> */}
-            {authUser && (businesses.length > 0 || authUser.customClaims?.role) && (
+            {authUser && (businesses.length > 0 || authUser.customClaims?.role || recentItems.length > 0) && (
               <Select
                 value={selectValue}
                 onValueChange={async (value) => {
-                  if (value === SYSTEM_VALUE) {
-                    router.push("/dashboard");
-                  } else {
-                    const business = businesses.find((b) => b.businessId === value);
-                    if (business?._id) {
-                      try {
-                        await fetchApiV1({ query: queries.setCurrentBusiness, type: "json", variables: { id: business._id } });
-                      } catch {
-                        // ignorar error; la navegación sigue siendo válida
-                      }
-                    }
-                    router.push(`/${value}`);
+                  if (value === ORGANIZATIONS_VALUE) {
+                    router.push("/businesses");
+                    return;
                   }
+                  const business =
+                    recentItems.find((b) => b.businessId === value) ||
+                    businesses.find((b) => b.businessId === value) ||
+                    (currentBusiness?.businessId === value || currentBusiness?._id === value
+                      ? {
+                          _id: currentBusiness._id,
+                          businessId: currentBusiness.businessId,
+                          name: currentBusiness.name || currentBusiness.businessId,
+                        }
+                      : undefined);
+                  if (business?._id) {
+                    try {
+                      await fetchApiV1({ query: queries.setCurrentBusiness, type: "json", variables: { id: business._id } });
+                    } catch {
+                      // ignorar error; la navegación sigue siendo válida
+                    }
+                    setRecentBusinesses(
+                      pushRecentBusiness({
+                        _id: business._id,
+                        businessId: business.businessId,
+                        name: business.name || business.businessId,
+                      })
+                    );
+                  }
+                  router.push(`/${business?.businessId || value}`);
                 }}
-                disabled={loadingBusinesses}
+                disabled={loadingBusinesses && recentItems.length === 0}
               >
                 <SelectTrigger className="w-[180px] h-8 text-xs border-border/50 bg-muted/30">
                   <Building2 className="h-3.5 w-3.5 opacity-70 mr-1.5 shrink-0" />
-                  <SelectValue placeholder="Negocio" />
+                  <SelectValue placeholder="Organización" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={SYSTEM_VALUE}>Sistema / Dashboard</SelectItem>
-                  {businesses.map((b) => (
-                    <SelectItem key={b._id} value={b.businessId}>
-                      {b.name || b.businessId}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value={ORGANIZATIONS_VALUE}>Organizaciones</SelectItem>
+                  {(recentItems.length > 0 || currentBusinessId) && (
+                    <>
+                      <SelectSeparator />
+                      {recentItems.map((b) => (
+                        <SelectItem key={b.businessId} value={b.businessId}>
+                          {b.name || b.businessId}
+                        </SelectItem>
+                      ))}
+                      {currentBusinessId &&
+                        !recentItems.some(
+                          (b) =>
+                            b.businessId === currentBusinessId ||
+                            b._id === currentBusinessId
+                        ) && (
+                          <SelectItem value={currentBusinessId}>
+                            {currentBusiness?.name || currentBusinessId}
+                          </SelectItem>
+                        )}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             )}
@@ -203,7 +280,10 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       {currentBusinessId ? (
-        <BusinessProvider businessSlug={currentBusinessId}>{mainContent}</BusinessProvider>
+        <BusinessProvider businessSlug={currentBusinessId}>
+          {mainContent}
+          <CseTestChat key={currentBusinessId} businessId={currentBusinessId} />
+        </BusinessProvider>
       ) : (
         mainContent
       )}
