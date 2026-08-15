@@ -84,10 +84,10 @@ export interface DataProviderAuth {
   apiKeyMasked?: boolean;
 }
 
-/** Proveedor de datos: REST (baseUrl) o GraphQL (endpoint). */
+/** Proveedor de datos: REST (baseUrl), GraphQL (endpoint) o MCP (endpoint = URL Streamable HTTP). */
 export interface DataProvider {
   id: string;
-  kind: "rest" | "graphql";
+  kind: "rest" | "graphql" | "mcp";
   baseUrl?: string | null;
   endpoint?: string | null;
   auth?: DataProviderAuth | null;

@@ -120,37 +120,68 @@ const defaultConfig: BusinessConfig = {
 };
 
 const dataProviderAuthSchema = z.object({
-  type: z.enum(["header", "bearer"]),
+  type: z.enum(["header", "bearer", "none"]),
   headerName: z.string().optional(),
   apiKey: z.string().optional(),
 });
 
+function looksLikeHttpUrl(value: string): boolean {
+  try {
+    z.string().url().parse(value.trim());
+    return /^https?:\/\//i.test(value.trim());
+  } catch {
+    return false;
+  }
+}
+
+/** Si el select no actualizó `kind` pero ya hay URL en endpoint, no exigir Base URL REST. */
+function effectiveProviderKind(p: {
+  kind: "rest" | "graphql" | "mcp";
+  baseUrl?: string;
+  endpoint?: string;
+}): "rest" | "graphql" | "mcp" {
+  if (p.kind === "graphql" || p.kind === "mcp") return p.kind;
+  const base = (p.baseUrl ?? "").trim();
+  const endpoint = (p.endpoint ?? "").trim();
+  if (!base && looksLikeHttpUrl(endpoint)) {
+    return endpoint.includes("/graphql") ? "graphql" : "mcp";
+  }
+  if (base.includes("/mcp") || endpoint.includes("/mcp")) return "mcp";
+  return "rest";
+}
+
 const dataProviderSchema = z
   .object({
     id: z.string().min(1, "Indica un Id único (ej. mi-api). Es el que enlazan las herramientas."),
-    kind: z.enum(["rest", "graphql"]),
+    kind: z.enum(["rest", "graphql", "mcp"]),
     baseUrl: z.string().optional().or(z.literal("")),
     endpoint: z.string().optional().or(z.literal("")),
     auth: dataProviderAuthSchema.optional(),
   })
   .superRefine((p, ctx) => {
-    if (p.kind === "rest" && !(p.baseUrl ?? "").trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "REST requiere Base URL", path: ["baseUrl"] });
-    } else if (p.kind === "rest" && (p.baseUrl ?? "").trim()) {
-      try {
-        z.string().url().parse((p.baseUrl ?? "").trim());
-      } catch {
+    const kind = effectiveProviderKind(p);
+    if (kind === "rest") {
+      if (!(p.baseUrl ?? "").trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "REST requiere Base URL. Si es un servidor MCP, cambia Tipo a MCP.",
+          path: ["baseUrl"],
+        });
+      } else if (!looksLikeHttpUrl(p.baseUrl ?? "")) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "URL no válida", path: ["baseUrl"] });
       }
+      return;
     }
-    if (p.kind === "graphql" && !(p.endpoint ?? "").trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "GraphQL requiere Endpoint", path: ["endpoint"] });
-    } else if (p.kind === "graphql" && (p.endpoint ?? "").trim()) {
-      try {
-        z.string().url().parse((p.endpoint ?? "").trim());
-      } catch {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "URL no válida", path: ["endpoint"] });
-      }
+    const urlField = (p.endpoint ?? "").trim() || (p.baseUrl ?? "").trim();
+    const path = (p.endpoint ?? "").trim() ? (["endpoint"] as const) : (["baseUrl"] as const);
+    if (!urlField) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: kind === "mcp" ? "MCP requiere URL del servidor" : "GraphQL requiere Endpoint",
+        path: [...path],
+      });
+    } else if (!looksLikeHttpUrl(urlField)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "URL no válida", path: [...path] });
     }
   });
 
@@ -605,7 +636,11 @@ export function BusinessConfigForm({
           kind: p.kind,
           baseUrl: p.baseUrl ?? "",
           endpoint: p.endpoint ?? "",
-          auth: { type: p.auth?.type ?? "bearer", headerName: p.auth?.headerName ?? "", apiKey: "" },
+          auth: {
+            type: p.auth?.type === "header" || p.auth?.type === "bearer" ? p.auth.type : ("none" as const),
+            headerName: p.auth?.headerName ?? "",
+            apiKey: "",
+          },
         })),
         userMemory: { ...defaultUserMemory, ...cfg.userMemory },
         ragSearch: { ...defaultRagSearch, ...cfg.ragSearch },
@@ -677,13 +712,25 @@ export function BusinessConfigForm({
           ...(t.method ? { method: t.method } : {}),
           ...(t.path?.trim() ? { path: t.path.trim() } : {}),
         })),
-        dataProviders: values.dataProviders.map((p) => ({
-          id: p.id,
-          kind: p.kind,
-          baseUrl: p.kind === "rest" ? (p.baseUrl?.trim() || undefined) : undefined,
-          endpoint: p.kind === "graphql" ? (p.endpoint?.trim() || undefined) : undefined,
-          auth: p.auth?.type ? { type: p.auth.type, headerName: p.auth.headerName || undefined, apiKey: p.auth.apiKey?.trim() || undefined } : undefined,
-        })),
+        dataProviders: values.dataProviders.map((p) => {
+          const kind = effectiveProviderKind(p);
+          const id = p.id.trim();
+          const auth =
+            p.auth?.type === "header" || p.auth?.type === "bearer"
+              ? {
+                  type: p.auth.type as "header" | "bearer",
+                  ...(p.auth.type === "header" && p.auth.headerName?.trim()
+                    ? { headerName: p.auth.headerName.trim() }
+                    : {}),
+                  ...(p.auth.apiKey?.trim() ? { apiKey: p.auth.apiKey.trim() } : {}),
+                }
+              : null;
+          if (kind === "rest") {
+            return { id, kind, baseUrl: (p.baseUrl ?? "").trim(), auth };
+          }
+          const endpoint = (p.endpoint?.trim() || p.baseUrl?.trim() || "");
+          return { id, kind, endpoint, auth };
+        }),
         userMemory: {
           enabled: values.userMemory.enabled,
           maxFacts: values.userMemory.maxFacts,
@@ -1229,22 +1276,26 @@ export function BusinessConfigForm({
                                   render={({ field: f }) => (
                                     <FormItem className="min-w-[140px] max-w-[200px]">
                                       <FormLabel className="text-xs">Proveedor</FormLabel>
-                                      <FormControl>
-                                        <select
-                                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm"
-                                          value={f.value ?? ""}
-                                          onChange={(e) => f.onChange(e.target.value)}
-                                        >
-                                          <option value="">—</option>
+                                      <Select
+                                        value={f.value?.trim() ? f.value : "__none__"}
+                                        onValueChange={(v) => f.onChange(v === "__none__" ? "" : v)}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="—" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="__none__">—</SelectItem>
                                           {form.watch("dataProviders").map((p) =>
                                             p.id.trim() ? (
-                                              <option key={`${p.id}-${p.kind}`} value={p.id.trim()}>
+                                              <SelectItem key={`${p.id}-${p.kind}`} value={p.id.trim()}>
                                                 {p.id.trim()}
-                                              </option>
+                                              </SelectItem>
                                             ) : null
                                           )}
-                                        </select>
-                                      </FormControl>
+                                        </SelectContent>
+                                      </Select>
                                       <FormMessage />
                                     </FormItem>
                                   )}
@@ -1278,21 +1329,25 @@ export function BusinessConfigForm({
                                       render={({ field: f }) => (
                                         <FormItem className="min-w-[160px] max-w-[220px]">
                                           <FormLabel className="text-xs">Método HTTP</FormLabel>
-                                          <FormControl>
-                                            <select
-                                              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm"
-                                              value={f.value ?? "GET"}
-                                              onChange={(e) =>
-                                                f.onChange(e.target.value as "GET" | "POST" | "PUT" | "PATCH" | "DELETE")
-                                              }
-                                            >
-                                              <option value="GET">GET</option>
-                                              <option value="POST">POST</option>
-                                              <option value="PUT">PUT</option>
-                                              <option value="PATCH">PATCH</option>
-                                              <option value="DELETE">DELETE</option>
-                                            </select>
-                                          </FormControl>
+                                          <Select
+                                            value={f.value ?? "GET"}
+                                            onValueChange={(v) =>
+                                              f.onChange(v as "GET" | "POST" | "PUT" | "PATCH" | "DELETE")
+                                            }
+                                          >
+                                            <FormControl>
+                                              <SelectTrigger>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                              <SelectItem value="GET">GET</SelectItem>
+                                              <SelectItem value="POST">POST</SelectItem>
+                                              <SelectItem value="PUT">PUT</SelectItem>
+                                              <SelectItem value="PATCH">PATCH</SelectItem>
+                                              <SelectItem value="DELETE">DELETE</SelectItem>
+                                            </SelectContent>
+                                          </Select>
                                         </FormItem>
                                       )}
                                     />
@@ -1525,7 +1580,7 @@ export function BusinessConfigForm({
                 {showsSection(mode, "providers", isBehaviorLimitedAdmin) && (
                   <TabsContent value="providers" className="space-y-4 pt-4">
                     <p className="text-sm text-muted-foreground">
-                      Proveedores de datos (REST o GraphQL) a los que el worker llama para ejecutar herramientas. Asocie cada herramienta a un proveedor en la pestaña Herramientas. La API Key se guarda cifrada; deje vacío para no cambiar.
+                      Proveedores de datos (REST, GraphQL o MCP) a los que el worker llama para ejecutar herramientas. Asocie cada herramienta a un proveedor en la pestaña Herramientas. La API Key se guarda cifrada; deje vacío para no cambiar. Un servidor MCP no usa Base URL de REST: en Tipo elige MCP y pega la URL en «URL del servidor MCP».
                     </p>
                     <FormField
                       control={form.control}
@@ -1555,16 +1610,33 @@ export function BusinessConfigForm({
                                   render={({ field: f }) => (
                                     <FormItem className="min-w-[120px]">
                                       <FormLabel className="text-xs">Tipo</FormLabel>
-                                      <FormControl>
-                                        <select
-                                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                          {...f}
-                                          onChange={(e) => f.onChange(e.target.value as "rest" | "graphql")}
-                                        >
-                                          <option value="rest">REST</option>
-                                          <option value="graphql">GraphQL</option>
-                                        </select>
-                                      </FormControl>
+                                      <Select
+                                        value={f.value ?? "rest"}
+                                        onValueChange={(v) => {
+                                          const kind = v as "rest" | "graphql" | "mcp";
+                                          f.onChange(kind);
+                                          if (kind === "mcp" || kind === "graphql") {
+                                            const base = form.getValues(`dataProviders.${i}.baseUrl`);
+                                            const ep = form.getValues(`dataProviders.${i}.endpoint`);
+                                            if (!ep?.trim() && base?.trim()) {
+                                              form.setValue(`dataProviders.${i}.endpoint`, base.trim());
+                                              form.setValue(`dataProviders.${i}.baseUrl`, "");
+                                            }
+                                          }
+                                          void form.trigger(`dataProviders.${i}`);
+                                        }}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="rest">REST</SelectItem>
+                                          <SelectItem value="graphql">GraphQL</SelectItem>
+                                          <SelectItem value="mcp">MCP</SelectItem>
+                                        </SelectContent>
+                                      </Select>
                                     </FormItem>
                                   )}
                                 />
@@ -1632,7 +1704,10 @@ export function BusinessConfigForm({
                                           apiKey?: string | null;
                                           warnings: string[];
                                         };
-                                        const kind = parsed.kind === "graphql" ? "graphql" : "rest";
+                                        const kind =
+                                          parsed.kind === "graphql" || parsed.kind === "mcp"
+                                            ? parsed.kind
+                                            : "rest";
                                         form.setValue(`dataProviders.${i}.kind`, kind);
                                         if (kind === "rest" && parsed.baseUrl?.trim()) {
                                           form.setValue(`dataProviders.${i}.baseUrl`, parsed.baseUrl.trim());
@@ -1696,6 +1771,27 @@ export function BusinessConfigForm({
                                     </FormItem>
                                   )}
                                 />
+                              ) : form.watch(`dataProviders.${i}.kind`) === "mcp" ? (
+                                <FormField
+                                  control={form.control}
+                                  name={`dataProviders.${i}.endpoint`}
+                                  render={({ field: f }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-xs">URL del servidor MCP</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="text"
+                                          inputMode="url"
+                                          autoComplete="url"
+                                          placeholder="https://mcp.ejemplo.com/mcp"
+                                          {...f}
+                                          value={f.value ?? ""}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                               ) : (
                                 <FormField
                                   control={form.control}
@@ -1725,21 +1821,31 @@ export function BusinessConfigForm({
                                   render={({ field: f }) => (
                                     <FormItem>
                                       <FormLabel className="text-xs">Auth tipo</FormLabel>
-                                      <FormControl>
-                                        <select
-                                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                          value={f.value ?? "bearer"}
-                                          onChange={(e) => {
-                                            f.onChange(e.target.value as "header" | "bearer");
-                                            if (!form.getValues(`dataProviders.${i}.auth`)) {
-                                              form.setValue(`dataProviders.${i}.auth`, { type: e.target.value as "header" | "bearer", headerName: "", apiKey: "" });
-                                            }
-                                          }}
-                                        >
-                                          <option value="bearer">Bearer</option>
-                                          <option value="header">Header</option>
-                                        </select>
-                                      </FormControl>
+                                      <Select
+                                        value={f.value && f.value !== "none" ? f.value : "none"}
+                                        onValueChange={(v) => {
+                                          const type = v as "header" | "bearer" | "none";
+                                          f.onChange(type);
+                                          if (!form.getValues(`dataProviders.${i}.auth`)) {
+                                            form.setValue(`dataProviders.${i}.auth`, { type, headerName: "", apiKey: "" });
+                                          }
+                                          if (type === "none") {
+                                            form.setValue(`dataProviders.${i}.auth.headerName`, "");
+                                            form.setValue(`dataProviders.${i}.auth.apiKey`, "");
+                                          }
+                                        }}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Ninguno" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="none">Ninguno</SelectItem>
+                                          <SelectItem value="bearer">Bearer</SelectItem>
+                                          <SelectItem value="header">Header</SelectItem>
+                                        </SelectContent>
+                                      </Select>
                                     </FormItem>
                                   )}
                                 />
@@ -1757,6 +1863,7 @@ export function BusinessConfigForm({
                                     )}
                                   />
                                 )}
+                                {form.watch(`dataProviders.${i}.auth.type`) !== "none" && (
                                 <FormField
                                   control={form.control}
                                   name={`dataProviders.${i}.auth.apiKey`}
@@ -1769,6 +1876,7 @@ export function BusinessConfigForm({
                                     </FormItem>
                                   )}
                                 />
+                                )}
                               </div>
                             </Card>
                           ))}
