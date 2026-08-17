@@ -156,6 +156,7 @@ const dataProviderSchema = z
     kind: z.enum(["rest", "graphql", "mcp"]),
     baseUrl: z.string().optional().or(z.literal("")),
     endpoint: z.string().optional().or(z.literal("")),
+    authMode: z.enum(["static", "user_passthrough"]).optional(),
     auth: dataProviderAuthSchema.optional(),
   })
   .superRefine((p, ctx) => {
@@ -636,6 +637,12 @@ export function BusinessConfigForm({
           kind: p.kind,
           baseUrl: p.baseUrl ?? "",
           endpoint: p.endpoint ?? "",
+          authMode:
+            p.kind === "mcp" && p.authMode === "user_passthrough"
+              ? ("user_passthrough" as const)
+              : p.kind === "mcp"
+                ? ("static" as const)
+                : undefined,
           auth: {
             type: p.auth?.type === "header" || p.auth?.type === "bearer" ? p.auth.type : ("none" as const),
             headerName: p.auth?.headerName ?? "",
@@ -729,6 +736,15 @@ export function BusinessConfigForm({
             return { id, kind, baseUrl: (p.baseUrl ?? "").trim(), auth };
           }
           const endpoint = (p.endpoint?.trim() || p.baseUrl?.trim() || "");
+          if (kind === "mcp") {
+            return {
+              id,
+              kind,
+              endpoint,
+              auth,
+              authMode: p.authMode === "user_passthrough" ? "user_passthrough" : "static",
+            };
+          }
           return { id, kind, endpoint, auth };
         }),
         userMemory: {
@@ -1772,26 +1788,56 @@ export function BusinessConfigForm({
                                   )}
                                 />
                               ) : form.watch(`dataProviders.${i}.kind`) === "mcp" ? (
-                                <FormField
-                                  control={form.control}
-                                  name={`dataProviders.${i}.endpoint`}
-                                  render={({ field: f }) => (
-                                    <FormItem>
-                                      <FormLabel className="text-xs">URL del servidor MCP</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="text"
-                                          inputMode="url"
-                                          autoComplete="url"
-                                          placeholder="https://mcp.ejemplo.com/mcp"
-                                          {...f}
-                                          value={f.value ?? ""}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                <>
+                                  <FormField
+                                    control={form.control}
+                                    name={`dataProviders.${i}.endpoint`}
+                                    render={({ field: f }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-xs">URL del servidor MCP</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="text"
+                                            inputMode="url"
+                                            autoComplete="url"
+                                            placeholder="https://mcp.ejemplo.com/mcp"
+                                            {...f}
+                                            value={f.value ?? ""}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`dataProviders.${i}.authMode`}
+                                    render={({ field: f }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-xs">Auth MCP</FormLabel>
+                                        <Select
+                                          value={f.value === "user_passthrough" ? "user_passthrough" : "static"}
+                                          onValueChange={(v) =>
+                                            f.onChange(v as "static" | "user_passthrough")
+                                          }
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="static">API key del proveedor</SelectItem>
+                                            <SelectItem value="user_passthrough">
+                                              JWT usuario (embed api-v2)
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </>
                               ) : (
                                 <FormField
                                   control={form.control}

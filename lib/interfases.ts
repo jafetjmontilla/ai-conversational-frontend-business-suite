@@ -90,6 +90,8 @@ export interface DataProvider {
   kind: "rest" | "graphql" | "mcp";
   baseUrl?: string | null;
   endpoint?: string | null;
+  /** MCP: static (API key) o user_passthrough (JWT embed api-v2). */
+  authMode?: "static" | "user_passthrough" | null;
   auth?: DataProviderAuth | null;
 }
 
