@@ -748,11 +748,11 @@ export function BusinessConfigForm({
           return { id, kind, endpoint, auth };
         }),
         userMemory: {
-          enabled: values.userMemory.enabled,
+          enabled: values.userMemory.enabled === true,
           maxFacts: values.userMemory.maxFacts,
           maxFactLength: values.userMemory.maxFactLength,
           maxTotalCharsInjected: values.userMemory.maxTotalCharsInjected,
-          extractOnMessage: values.userMemory.extractOnMessage,
+          extractOnMessage: values.userMemory.extractOnMessage === true,
         },
         ragSearch: {
           rerank: values.ragSearch.rerank,
@@ -808,7 +808,7 @@ export function BusinessConfigForm({
           placeholders: values.earlyResponse.placeholders,
         },
       };
-      await fetchApiV1({
+      const saved = await fetchApiV1({
         query: queries.updateBusiness,
         type: "json",
         variables: {
@@ -816,6 +816,9 @@ export function BusinessConfigForm({
           args: { config },
         },
       });
+      if (!saved) {
+        throw new Error("No se pudo guardar la configuración");
+      }
       toast.success("Configuración guardada");
       let fresh: Business | null = (await fetchApiV1({
         query: queries.getBusiness,
@@ -1970,7 +1973,10 @@ export function BusinessConfigForm({
                               <p className="text-xs text-muted-foreground">Si está desactivada, el resto de opciones no tiene efecto.</p>
                             </div>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value === true}
+                                onCheckedChange={(checked) => field.onChange(checked === true)}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -2026,7 +2032,10 @@ export function BusinessConfigForm({
                               <p className="text-xs text-muted-foreground">Coste adicional por mensaje (Gemini).</p>
                             </div>
                             <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              <Switch
+                                checked={field.value === true}
+                                onCheckedChange={(checked) => field.onChange(checked === true)}
+                              />
                             </FormControl>
                           </FormItem>
                         )}

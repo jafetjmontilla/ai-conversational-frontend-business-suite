@@ -101,6 +101,7 @@ const conector: CallableFunction = async ({ api, query = ``, variables = {}, typ
     }
   } catch (error) {
     console.log(error);
+    throw error;
   }
 };
 
@@ -978,6 +979,15 @@ export const queries = {
       }
       createdAt
       updatedAt
+      config {
+        userMemory {
+          enabled
+          maxFacts
+          maxFactLength
+          maxTotalCharsInjected
+          extractOnMessage
+        }
+      }
     }
   }`,
   parseDataProviderConfigFromDocumentation: `mutation parseDataProviderConfigFromDocumentation($rawText: String!) {
