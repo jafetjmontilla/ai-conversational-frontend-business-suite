@@ -447,7 +447,7 @@ export type BusinessConfigForUpdate = Omit<BusinessConfig, "llm"> & {
   llm?: LlmConfigForUpdate;
 };
 
-export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic";
+export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic" | "voice";
 export type ChannelAgentEngine = "cse" | "pae";
 
 export interface BusinessChannel {

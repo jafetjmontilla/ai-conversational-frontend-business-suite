@@ -37,6 +37,7 @@ import {
   MessageSquare,
   Globe,
   Radio,
+  Phone,
   X,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ const CHANNEL_TYPE_LABEL: Record<ChannelType, string> = {
   whatsapp_cloud: "WhatsApp Cloud API",
   whatsapp_baileys: "WhatsApp (Baileys)",
   generic: "Genérico",
+  voice: "Voz",
 };
 
 function BaileysConnectionBadge({ entry }: { entry: BaileysStatusEntry | undefined }) {
@@ -89,6 +91,7 @@ function BaileysConnectionBadge({ entry }: { entry: BaileysStatusEntry | undefin
 function ChannelTypeIcon({ type }: { type: ChannelType }) {
   if (type === "whatsapp_cloud") return <MessageSquare className="h-4 w-4" />;
   if (type === "whatsapp_baileys") return <Smartphone className="h-4 w-4" />;
+  if (type === "voice") return <Phone className="h-4 w-4" />;
   return <Globe className="h-4 w-4" />;
 }
 
