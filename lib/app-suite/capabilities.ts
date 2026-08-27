@@ -35,6 +35,8 @@ export const CAPABILITIES = {
   SUPPLIER_MANAGE: "supplier.manage",
   RECIPE_BOM: "recipe.bom",
   COMMERCE_CHECKOUT: "commerce.checkout",
+  LANDING_CMS: "landing.cms",
+  APPOINTMENTS_BOOK: "appointments.book",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -42,7 +44,7 @@ export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 export type AppSuiteAppId = (typeof APP_SUITE_MODULES)[number]["id"];
 
 export const APP_CAPABILITIES: Record<string, Capability[]> = {
-  "gestion-citas": [],
+  "gestion-citas": [CAPABILITIES.APPOINTMENTS_BOOK],
   "organizador-eventos": [],
   "facturacion-inventario": [CAPABILITIES.BILLING_INVOICE],
   "gestion-proveedores": [CAPABILITIES.SUPPLIER_MANAGE],
@@ -56,7 +58,7 @@ export const APP_CAPABILITIES: Record<string, Capability[]> = {
     CAPABILITIES.AI_TOOLS,
   ],
   "agente-asistente-personal": [CAPABILITIES.AI_MEMORY],
-  "landing-page": [],
+  "landing-page": [CAPABILITIES.LANDING_CMS],
   "catalogo-web": [CAPABILITIES.PRODUCT_SELLABLE, CAPABILITIES.CATALOG_PUBLISH],
   "finanzas-personales": [],
 };
@@ -73,6 +75,8 @@ export const CAPABILITY_REQUIRED_APPS: Partial<Record<Capability, AppSuiteAppId[
   [CAPABILITIES.SUPPLIER_MANAGE]: ["gestion-proveedores"],
   [CAPABILITIES.RECIPE_BOM]: ["procesadora-alimentos"],
   [CAPABILITIES.COMMERCE_CHECKOUT]: ["tienda-online"],
+  [CAPABILITIES.LANDING_CMS]: ["landing-page"],
+  [CAPABILITIES.APPOINTMENTS_BOOK]: ["gestion-citas"],
 };
 
 export function isActiveInstalledApp(record: BusinessInstalledApp): boolean {

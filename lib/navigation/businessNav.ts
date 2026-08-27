@@ -17,6 +17,7 @@ import {
   ScanSearch,
   House,
   LayoutGrid,
+  Monitor,
 } from "lucide-react";
 
 /** Permiso requerido para mostrar un ítem del menú de negocio. */
@@ -173,6 +174,14 @@ export function buildBusinessNavGroups(
           label: "Canales",
           icon: MessageSquare,
           permission: "negocio:editar",
+        },
+        {
+          id: "sitio-publico",
+          href: `${base}/sitio-publico`,
+          label: "Sitio público",
+          icon: Monitor,
+          permission: "negocio:editar",
+          matchPrefix: true,
         },
       ],
     },

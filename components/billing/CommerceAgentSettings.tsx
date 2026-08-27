@@ -28,7 +28,9 @@ import {
 } from "@/lib/billing/commerceDefaults";
 import { CommerceCheckoutGuide } from "@/components/billing/CommerceCheckoutGuide";
 import { sanitizeBusinessConfigForUpdate } from "@/lib/sanitizeBusinessConfigForUpdate";
-import { listStorefrontThemes, DEFAULT_STOREFRONT_THEME_ID } from "@/lib/storefront/themes/registry";
+
+const TENANT_PUBLIC_BASE =
+  process.env.NEXT_PUBLIC_TENANT_PUBLIC_URL?.replace(/\/$/, "") || "http://localhost:3020";
 
 type Props = {
   businessSlug: string;
@@ -70,11 +72,7 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
     "pickup" | "delivery"
   >(cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery");
   const [webCheckoutEnabled, setWebCheckoutEnabled] = useState(cf?.webCheckoutEnabled ?? false);
-  const [storefrontTheme, setStorefrontTheme] = useState(
-    cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID
-  );
   const [saving, setSaving] = useState(false);
-  const storefrontThemes = listStorefrontThemes();
 
   useEffect(() => {
     setEnabled(cf?.enabled ?? false);
@@ -83,7 +81,6 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
     setReservationTtl(String(cf?.stockReservationTtlMinutes ?? 30));
     setDefaultFulfillment(cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery");
     setWebCheckoutEnabled(cf?.webCheckoutEnabled ?? false);
-    setStorefrontTheme(cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID);
   }, [
     cf?.enabled,
     cf?.commerceInstructions,
@@ -91,7 +88,6 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
     cf?.stockReservationTtlMinutes,
     cf?.defaultFulfillmentMethod,
     cf?.webCheckoutEnabled,
-    cf?.storefrontTheme,
   ]);
 
   const canEdit = canEditCurrentBusiness?.();
@@ -112,8 +108,7 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
     notifyStaff !== (cf?.notifyStaffOnAgentInvoice !== false) ||
     reservationTtl !== String(cf?.stockReservationTtlMinutes ?? 30) ||
     defaultFulfillment !== (cf?.defaultFulfillmentMethod === "pickup" ? "pickup" : "delivery") ||
-    webCheckoutEnabled !== (cf?.webCheckoutEnabled ?? false) ||
-    storefrontTheme !== (cf?.storefrontTheme ?? DEFAULT_STOREFRONT_THEME_ID);
+    webCheckoutEnabled !== (cf?.webCheckoutEnabled ?? false);
 
   const handleSave = async () => {
     if (!businessIdDoc || !canEdit) return;
@@ -131,7 +126,8 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
             ),
             defaultFulfillmentMethod: defaultFulfillment,
             webCheckoutEnabled,
-            storefrontTheme,
+            // Tema visual vive en Sitio público (TenantTheme); se conserva el valor previo si existe.
+            storefrontTheme: cf?.storefrontTheme || "default",
           },
         })
       );
@@ -219,7 +215,16 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
             <div className="space-y-0.5">
               <Label>Checkout web público</Label>
               <p className="text-sm text-muted-foreground">
-                Habilita la tienda en /{businessSlug}/tienda con carrito y pago Stripe.
+                Habilita carrito y pago Stripe en el sitio público{" "}
+                <a
+                  className="underline underline-offset-2 hover:text-foreground"
+                  href={`${TENANT_PUBLIC_BASE}/t/${businessSlug}/es/tienda`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  /t/{businessSlug}/es/tienda
+                </a>
+                . El look &amp; feel se configura en Sitio público.
               </p>
             </div>
             <Switch
@@ -228,32 +233,6 @@ export function CommerceAgentSettings({ businessSlug }: Props) {
               disabled={!canEdit}
             />
           </div>
-
-          {webCheckoutEnabled ? (
-            <div className="space-y-2 rounded-lg border p-4">
-              <Label>Tema de la tienda</Label>
-              <Select
-                value={storefrontTheme}
-                onValueChange={setStorefrontTheme}
-                disabled={!canEdit}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {storefrontThemes.map((theme) => (
-                    <SelectItem key={theme.id} value={theme.id}>
-                      {theme.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {storefrontThemes.find((theme) => theme.id === storefrontTheme)?.description ??
-                  "Tema visual de la tienda pública."}
-              </p>
-            </div>
-          ) : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">

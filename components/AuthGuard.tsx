@@ -15,13 +15,9 @@ const SYSTEM_SCOPE_SEGMENTS = ['dashboard', 'users', 'businesses', 'profile'];
 
 const AUTH_PAGES = ['/login', '/register-invitation', '/forgot-password', '/register'];
 
-function isStorefrontPath(pathname: string | null): boolean {
-  return /^\/[^/]+\/tienda(\/|$)/.test(pathname ?? '');
-}
-
-/** Rutas accesibles sin sesión (login/registro + tienda pública). */
+/** Rutas accesibles sin sesión (login/registro). */
 function isAuthExemptPath(pathname: string | null): boolean {
-  return AUTH_PAGES.includes(pathname ?? '') || isStorefrontPath(pathname);
+  return AUTH_PAGES.includes(pathname ?? '');
 }
 
 /** Redirige a usuario con rol de negocio a su primer negocio. Usa meData.business si existe (una sola llamada getMe); si no, getMyBusinessMemberships + getBusiness. */

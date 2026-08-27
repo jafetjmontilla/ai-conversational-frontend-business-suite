@@ -252,6 +252,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 310,
     icon: Monitor,
     iconGradient: "from-fuchsia-500 to-pink-600",
+    routePath: "/sitio-publico",
     features: [
       "Estructura Drag & Drop fácil y rápida",
       "Optimización móvil total de forma automática",
