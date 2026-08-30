@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { Pencil, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { GenerateDescriptionInterviewDialog } from "@/components/business/GenerateDescriptionInterviewDialog";
 import { ProductCategoriesImportDialog } from "@/components/business/ProductCategoriesImportDialog";
 import { PageHeader } from "@/components/layouts/PageHeader";
+import { LogoUploadField, type LogoUploadFieldRef } from "@/components/storage/LogoUploadField";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -499,6 +500,8 @@ export function BusinessEditPageContent() {
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const logoUploadRef = useRef<LogoUploadFieldRef>(null);
+  const [hasPendingLogo, setHasPendingLogo] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [aiDescriptionOpen, setAiDescriptionOpen] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
@@ -571,10 +574,13 @@ export function BusinessEditPageContent() {
     defaultValues: businessToFormValues(null),
   });
   const isDirty = form.formState.isDirty;
-  useUnsavedChangesWarning(isDirty);
+  const hasUnsavedChanges = isDirty || hasPendingLogo;
+  useUnsavedChangesWarning(hasUnsavedChanges);
 
   const handleDiscard = () => {
     if (!business) return;
+    logoUploadRef.current?.reset();
+    setHasPendingLogo(false);
     form.reset(businessToFormValues(business));
     setDiscardDialogOpen(false);
   };
@@ -628,6 +634,11 @@ export function BusinessEditPageContent() {
     if (!business) return;
     setSaving(true);
     try {
+      let logoUrl: string | undefined = values.logoUrl?.trim() || undefined;
+      if (logoUploadRef.current?.hasPendingFile()) {
+        logoUrl = await logoUploadRef.current.uploadPendingIfAny();
+      }
+
       const address = values.address && (values.address.street || values.address.city || values.address.country)
         ? {
           street: values.address.street || undefined,
@@ -658,7 +669,7 @@ export function BusinessEditPageContent() {
             legalName: values.legalName || undefined,
             taxId: values.taxId || undefined,
             slogan: values.slogan || undefined,
-            logoUrl: values.logoUrl || undefined,
+            logoUrl: logoUrl || undefined,
             email: values.email || undefined,
             phone: values.phone || undefined,
             address: Object.keys(address || {}).length ? address : undefined,
@@ -682,6 +693,7 @@ export function BusinessEditPageContent() {
       const updatedBusiness: Business = {
         ...business,
         ...values,
+        logoUrl: logoUrl || undefined,
         address,
         invoiceNumbering,
         billingBaseCurrency: (values.billingBaseCurrency || undefined) as Business["billingBaseCurrency"],
@@ -690,6 +702,8 @@ export function BusinessEditPageContent() {
         billingCustomExchangeRate: values.billingExchangeRateSource === "custom" ? (values.billingCustomExchangeRate ?? undefined) : undefined,
       };
       setBusiness(updatedBusiness);
+      logoUploadRef.current?.reset();
+      setHasPendingLogo(false);
       form.reset(businessToFormValues(updatedBusiness));
     } catch (e: any) {
       toast.error(e?.message || "Error al guardar");
@@ -767,7 +781,20 @@ export function BusinessEditPageContent() {
                           <FormItem><FormLabel>Eslogan (opcional)</FormLabel><FormControl><Input placeholder="Para personalización de marca" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                          <FormItem><FormLabel>Logo</FormLabel><FormControl><Input placeholder="URL de la imagen (SVG o PNG transparente)" {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem>
+                            <FormLabel>Logo</FormLabel>
+                            <FormControl>
+                              <LogoUploadField
+                                ref={logoUploadRef}
+                                businessId={businessId}
+                                logoUrl={field.value ?? ""}
+                                onLogoUrlChange={field.onChange}
+                                onPendingChange={setHasPendingLogo}
+                                disabled={saving}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
                         )} />
                         <FormField control={form.control} name="description" render={({ field }) => (
                           <FormItem>
@@ -1008,7 +1035,7 @@ export function BusinessEditPageContent() {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      disabled={saving || !isDirty}
+                      disabled={saving || !hasUnsavedChanges}
                       onClick={() => setDiscardDialogOpen(true)}
                     >
                       Descartar cambios
@@ -1018,7 +1045,7 @@ export function BusinessEditPageContent() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={saving || !isDirty}
+                      disabled={saving || !hasUnsavedChanges}
                     >
                       {saving ? "Guardando..." : "Guardar cambios"}
                     </Button>

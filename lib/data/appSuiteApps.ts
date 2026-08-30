@@ -3,7 +3,6 @@ import {
   Calendar,
   Ticket,
   FileText,
-  ChefHat,
   ShoppingBag,
   MessageSquare,
   Zap,
@@ -15,7 +14,7 @@ import {
   Package,
 } from "lucide-react";
 
-export type AppSuiteCategory = "All" | "IA" | "Negocios" | "Productividad" | "Finanzas";
+export type AppSuiteCategory = "All" | "IA" | "Negocios" | "Inventario" | "Finanzas";
 
 export type AppSuiteModule = {
   id: string;
@@ -40,7 +39,7 @@ export const APP_SUITE_CATEGORIES: { value: AppSuiteCategory; label: string }[] 
   { value: "All", label: "Todas" },
   { value: "IA", label: "Inteligencia Artificial" },
   { value: "Negocios", label: "Negocios y Ventas" },
-  { value: "Productividad", label: "Productividad y Gestión" },
+  { value: "Inventario", label: "Inventario y Servicios" },
   { value: "Finanzas", label: "Finanzas y Control" },
 ];
 
@@ -53,8 +52,8 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Permite que tus clientes reserven, cancelen y reprogramen sus citas las 24 horas del día de manera autónoma. Sincroniza calendarios personales, envía notificaciones automáticas y mitiga inasistencias de manera impecable.",
     audience:
       "Profesionales independientes, centros de estética, clínicas médicas, consultores y academias que venden su tiempo por horas.",
-    category: "Productividad",
-    categoryLabel: "Productividad y Gestión",
+    category: "Negocios",
+    categoryLabel: "Negocios y Ventas",
     rating: 4.9,
     reviews: 245,
     icon: Calendar,
@@ -74,8 +73,8 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Gestiona cronogramas detallados paso a paso, listas dinámicas de invitados con control de acceso, flujos presupuestarios de gastos, y una libreta integrada de proveedores clave para coordinar eventos corporativos o fiestas privadas.",
     audience:
       "Event planners, agencias de marketing, departamentos de RRHH, empresas de catering y particulares organizadores.",
-    category: "Productividad",
-    categoryLabel: "Productividad y Gestión",
+    category: "Negocios",
+    categoryLabel: "Negocios y Ventas",
     rating: 4.7,
     reviews: 184,
     icon: Ticket,
@@ -117,8 +116,8 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Centraliza la comunicación, compras y auditoría de tu red de abastecimiento. Registra catálogos de productos por proveedor, genera órdenes de compra automatizadas según tus niveles de stock y evalúa tiempos de entrega y costos para asegurar siempre las mejores condiciones comerciales.",
     audience:
       "Empresas comerciales, fabricantes, constructoras y negocios con cadenas de suministro que necesitan controlar compras y abastecimiento.",
-    category: "Productividad",
-    categoryLabel: "Productividad y Gestión",
+    category: "Finanzas",
+    categoryLabel: "Finanzas y Control",
     rating: 4.7,
     reviews: 168,
     icon: Truck,
@@ -138,8 +137,8 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Administra el corazón de tu cadena productiva con un inventario especializado para recursos en estado bruto. Registra entradas de materiales, calcula costos promedio de adquisición, gestiona el porcentaje de merma o desperdicio, y establece alertas críticas de reabastecimiento para que tu línea de producción nunca se detenga.",
     audience:
       "Fábricas, talleres de manufactura, laboratorios, constructoras y empresas de producción que transforman recursos en productos terminados.",
-    category: "Productividad",
-    categoryLabel: "Productividad y Gestión",
+    category: "Inventario",
+    categoryLabel: "Inventario y Servicios",
     rating: 4.7,
     reviews: 142,
     icon: Boxes,
@@ -149,27 +148,6 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Cálculo automatizado de costos de adquisición y almacenamiento",
       "Control de mermas, desperdicios y devoluciones de material",
       "Alertas de stock mínimo y órdenes automáticas de requisición",
-    ],
-  },
-  {
-    id: "procesadora-alimentos",
-    title: "Procesadora de Alimentos",
-    tagline: "Optimiza tu producción y receta al detalle.",
-    description:
-      "Lleva el control de la transformación de materia prima en producto terminado. Calcula costos precisos de producción, genera tablas nutricionales automáticamente y asegura la trazabilidad estricta por lotes para cumplir normativas alimentarias.",
-    audience:
-      "Restaurantes con producción propia, pastelerías, cervecerías artesanales, caterings y manufactureras de alimentos medianas.",
-    category: "Productividad",
-    categoryLabel: "Productividad y Gestión",
-    rating: 4.6,
-    reviews: 98,
-    icon: ChefHat,
-    iconGradient: "from-amber-500 to-orange-600",
-    features: [
-      "Gestión y estandarización exacta de recetas",
-      "Cálculo de mermas y balance de materias primas",
-      "Seguimiento estricto por lote y fecha de vencimiento",
-      "Generación rápida de fichas técnicas nutricionales",
     ],
   },
   {
@@ -268,8 +246,8 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Centraliza el inventario de artículos y servicios de tu negocio. Define precios, variantes, atributos y disponibilidad. El agente consulta el catálogo en tiempo real vía herramientas.",
     audience:
       "Cualquier negocio que vende productos físicos, servicios profesionales o una mezcla de ambos.",
-    category: "Negocios",
-    categoryLabel: "Negocios y Ventas",
+    category: "Inventario",
+    categoryLabel: "Inventario y Servicios",
     rating: 4.8,
     reviews: 278,
     icon: Package,

@@ -31,6 +31,7 @@ import { PWAUpdateDialog } from '@/components/PWAUpdateDialog';
 import { PageHeader } from '@/components/layouts/PageHeader';
 import { FieldHelpText } from '@/components/offerings/FieldHelpText';
 import { InventoryModeBadge } from '@/components/offerings/InventoryModeBadge';
+import { FileUploadDemo } from '@/components/storage/FileUploadDemo';
 import {
   TypographyH1,
   TypographyH2,
@@ -171,6 +172,7 @@ const SECTIONS = [
   { id: 'primitives', label: 'UI primitives' },
   { id: 'inputs', label: 'Inputs' },
   { id: 'overlays', label: 'Overlays' },
+  { id: 'archivos', label: 'Archivos' },
   { id: 'typography', label: 'Typography' },
   { id: 'shared', label: 'Shared' },
   { id: 'catalog', label: 'Catálogo' },
@@ -244,6 +246,10 @@ const COMPONENT_CATALOG: { folder: string; files: string[] }[] = [
   { folder: 'pae/', files: ['PaeContactsContent', 'PaeDevicesContent', 'PaeEpisodesContent', 'PaeProactiveContent', 'PaeSkillsContent', 'PaeWorkflowsContent'] },
   { folder: 'profile/', files: ['ProfilePageContent'] },
   { folder: 'sitio-publico/', files: ['SitioPublicoPageContent'] },
+  {
+    folder: 'storage/',
+    files: ['FileUpload', 'FileUploadDemo', 'FileUploadView', 'FilePreviewDialog', 'ImageUrlField'],
+  },
   { folder: 'user-memories/', files: ['UserMemoriesContent'] },
   { folder: 'users/', files: ['BusinessUsersPageContent', 'UsersAndInvitationsTable'] },
 ];
@@ -263,7 +269,7 @@ function DemoSection({
 }: {
   id: string;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   active?: boolean;
   children: React.ReactNode;
 }) {
@@ -812,6 +818,26 @@ export function UiDemoPageContent() {
               }}
               onDismiss={() => setPwaOpen(false)}
             />
+          </DemoSection>
+
+          <DemoSection
+            id="archivos"
+            title="Subida de archivos"
+            description="FileUploadView — demo local: documentos (botón único) e imágenes (cámara + álbum). En producción usar FileUpload con businessId y R2."
+            active={activeSection === 'archivos'}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">FileUpload (demo)</CardTitle>
+                <CardDescription>
+                  Modo files e imágenes según mockups. Sin backend; la variante con R2 está en
+                  components/storage/FileUpload.tsx.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUploadDemo />
+              </CardContent>
+            </Card>
           </DemoSection>
 
           <DemoSection

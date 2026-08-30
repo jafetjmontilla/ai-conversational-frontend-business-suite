@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, X, Loader2, CloudUpload } from 'lucide-react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
 import { toast } from 'sonner';
-import { fetchApiJaihomV1, fetchApiV1, queries } from '@/lib/Fetching';
+import { deleteStorageFile, uploadFileToStorage } from '@/lib/storage';
 
 export interface UploadedFile {
   _id: string;
@@ -28,6 +28,8 @@ export interface FileUploadRef {
 }
 
 interface FileUploadProps {
+  /** ID o slug del negocio (requerido para subir a R2) */
+  businessId: string;
   label?: string;
   multiple?: boolean;
   acceptedTypes?: string;
@@ -42,7 +44,6 @@ interface FileUploadProps {
   uploadOnSave?: boolean; // Si es true, los archivos se suben al guardar el formulario
 }
 
-// Extensiones soportadas por la API de Jaihom
 const SUPPORTED_EXTENSIONS = [
   'jpg', 'jpeg', 'png', 'webp', 'jfif', 'svg',
   'mp4', 'mp3',
@@ -54,6 +55,7 @@ const SUPPORTED_EXTENSIONS = [
 ];
 
 export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
+  businessId,
   label = 'Archivos adjuntos',
   multiple = true,
   acceptedTypes,
@@ -149,13 +151,7 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
       // Si el archivo fue subido al backend, eliminarlo del backend y la base de datos
       if (isUploadedFile) {
         try {
-          await fetchApiV1({
-            query: queries.deleteStorage,
-            type: 'json',
-            variables: {
-              _id: fileToDelete._id,
-            },
-          });
+          await deleteStorageFile(fileToDelete._id);
         } catch (deleteError: any) {
           // Si falla la eliminación en el backend, aún así eliminamos del estado local
           console.error('Error al eliminar archivo del backend:', deleteError);
@@ -189,23 +185,15 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
         setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
 
         try {
-          // Construir args como objeto para la API
-          const argsObj: any = {};
-          if (category) argsObj.category = category;
-          if (description) argsObj.description = description;
-          if (tags && tags.length > 0) argsObj.tags = tags;
-
-          const response = await fetchApiV1({
-            query: queries.uploadFile,
-            type: 'formData',
-            variables: {
-              file: file,
-              args: Object.keys(argsObj).length > 0 ? argsObj : null,
-            },
+          const response = await uploadFileToStorage({
+            businessId,
+            file,
+            category,
+            description,
+            tags
           });
 
-          // Agregar el archivo subido exitosamente al array
-          if (response && response._id) {
+          if (response?._id) {
             newUploadedFiles.push(response);
           }
         } catch (error: any) {
@@ -315,7 +303,7 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
     );
 
     if (!isSelected && payload.uploaded) {
-      const url = payload.uploaded.url || (payload.uploaded.path ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}${payload.uploaded.path}` : null);
+      const url = payload.uploaded.url || null;
       if (url) {
         return (
           <a
