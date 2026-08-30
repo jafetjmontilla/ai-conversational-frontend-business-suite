@@ -2,14 +2,14 @@
 
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.bubble.css';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.bubble.css';
+import 'react-quill-new/dist/quill.snow.css';
 import Picker, { EmojiStyle, SuggestionMode } from 'emoji-picker-react';
 import ClickAwayListener from 'react-click-away-listener';
 import { GrEmoji } from "react-icons/gr";
 import { customAlphabet } from 'nanoid';
 
-const ReactQuill = dynamic(() => import('react-quill'), {
+const ReactQuill = dynamic(() => import('react-quill-new'), {
   ssr: false,
 });
 

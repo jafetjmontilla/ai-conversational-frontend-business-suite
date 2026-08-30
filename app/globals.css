@@ -51,7 +51,7 @@
     /* Texto blanco sobre el color destructivo */
 
     /* Bordes, inputs y anillos */
-    --border: 215 10% 85%;
+    --border: 215 10% 90%;
     /* Gris sutil para bordes */
     --input: 215 10% 80%;
     /* Gris claro para el fondo de inputs */
@@ -103,7 +103,7 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 215 10% 20%;
+    --border: 215 10% 15%;
     --input: 215 10% 15%;
     --ring: 300 0% 45%;
     --chart-1: 215 100% 50%;

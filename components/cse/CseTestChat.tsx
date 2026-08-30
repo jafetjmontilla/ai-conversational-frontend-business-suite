@@ -155,7 +155,7 @@ export function CseTestChat({ businessId }: { businessId: string }) {
     <>
       <div
         className={cn(
-          "pointer-events-none fixed bottom-5 right-5 flex flex-col items-end gap-3",
+          "pointer-events-none fixed bottom-14 right-2 sm:bottom-[32px] sm:right-8 flex flex-col items-end gap-3",
           teachOpen ? "z-40" : "z-[60]"
         )}
       >
@@ -303,11 +303,11 @@ export function CseTestChat({ businessId }: { businessId: string }) {
                             : "rounded-tl-sm border border-border bg-card text-card-foreground",
                           m.interim && "opacity-80",
                           isSelected &&
-                            "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                          "ring-2 ring-primary ring-offset-2 ring-offset-background",
                           m.role === "assistant" &&
-                            canTeach &&
-                            !m.interim &&
-                            "cursor-pointer select-none"
+                          canTeach &&
+                          !m.interim &&
+                          "cursor-pointer select-none"
                         )}
                       >
                         <p className="whitespace-pre-wrap break-words">
@@ -388,7 +388,7 @@ export function CseTestChat({ businessId }: { businessId: string }) {
             type="button"
             size="icon"
             className={cn(
-              "h-14 w-14 rounded-full shadow-lg",
+              "h-10 w-10 rounded-full shadow-lg",
               open && "bg-muted text-foreground hover:bg-muted/90"
             )}
             onClick={() => setOpen((v) => !v)}

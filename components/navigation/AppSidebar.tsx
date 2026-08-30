@@ -39,6 +39,7 @@ import {
   isNavItemActive,
   type NavItem,
 } from "@/lib/navigation/businessNav"
+import { confirmLeaveIfUnsaved } from "@/lib/unsavedChangesGuard"
 import packageJson from '../../package.json' assert { type: 'json' };
 
 function NavMenuItems({
@@ -135,6 +136,7 @@ export function AppSidebar() {
 
   const handleNavigation = async (item: NavItem) => {
     if (isNavItemActive(pathname, item)) return;
+    if (!(await confirmLeaveIfUnsaved())) return;
     setLoading(true);
     setCurrentPath(item.href);
     router.push(item.href);

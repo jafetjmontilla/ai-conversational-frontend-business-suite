@@ -42,6 +42,7 @@ import {
   pushRecentBusiness,
   type RecentBusiness,
 } from "@/lib/recentBusinesses";
+import { confirmLeaveIfUnsaved } from "@/lib/unsavedChangesGuard";
 
 const ORGANIZATIONS_VALUE = "__organizations__"
 
@@ -142,6 +143,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
               <Select
                 value={selectValue}
                 onValueChange={async (value) => {
+                  if (!(await confirmLeaveIfUnsaved())) return;
                   if (value === ORGANIZATIONS_VALUE) {
                     router.push("/businesses");
                     return;
@@ -228,7 +230,12 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => router.push(getProfileHref(currentBusinessId))}>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (!(await confirmLeaveIfUnsaved())) return;
+                        router.push(getProfileHref(currentBusinessId));
+                      }}
+                    >
                       <User className="h-4 w-4 mr-2" />
                       Mi perfil
                     </DropdownMenuItem>
@@ -236,6 +243,7 @@ export function SidebarLayout({ children, defaultOpen }: { children: React.React
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive focus:bg-destructive/10"
                       onClick={async () => {
+                        if (!(await confirmLeaveIfUnsaved())) return;
                         try {
                           const response = await logout();
                           if (response.success) {
