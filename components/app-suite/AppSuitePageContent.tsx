@@ -31,6 +31,7 @@ export function AppSuitePageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState<AppSuiteCategory>("All");
   const [selectedApp, setSelectedApp] = useState<AppSuiteModule | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busyAppId, setBusyAppId] = useState<string | null>(null);
 
@@ -48,8 +49,16 @@ export function AppSuitePageContent() {
         app.audience.toLowerCase().includes(query) ||
         app.categoryLabel.toLowerCase().includes(query);
       return matchesCategory && matchesSearch;
+    }).sort((a, b) => {
+      const aInstalled = hasApp(a.id) ? 0 : 1;
+      const bInstalled = hasApp(b.id) ? 0 : 1;
+      return aInstalled - bInstalled;
     });
-  }, [searchQuery, category]);
+  }, [searchQuery, category, hasApp]);
+
+  const handleSelectCard = useCallback((app: AppSuiteModule) => {
+    setSelectedCardId(app.id);
+  }, []);
 
   const handleOpenDetails = useCallback((app: AppSuiteModule) => {
     setSelectedApp(app);
@@ -107,7 +116,7 @@ export function AppSuitePageContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <div className="px-4 md:px-2">
       <div className="mb-10 text-center md:text-left">
         <div className="mb-4 flex flex-wrap items-center justify-center gap-3 md:justify-between">
           <div />
@@ -179,18 +188,19 @@ export function AppSuitePageContent() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredApps.map((app) => (
             <AppSuiteAppCard
               key={app.id}
               app={app}
               isInstalled={hasApp(app.id)}
+              isSelected={selectedCardId === app.id}
               canManageApps={canEditCurrentBusiness()}
               installing={busyAppId === app.id}
+              onSelect={handleSelectCard}
               onOpenDetails={handleOpenDetails}
               onOpenModule={handleOpenModule}
               onInstall={handleInstall}
-              onUninstall={handleUninstall}
             />
           ))}
         </div>
