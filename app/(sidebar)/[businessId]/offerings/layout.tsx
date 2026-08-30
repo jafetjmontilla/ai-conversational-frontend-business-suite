@@ -9,10 +9,11 @@ import {
 import { OfferingsLayoutToolbar } from "@/components/offerings/OfferingsLayoutToolbar";
 
 const OFFERINGS_TABS = [
+  { id: "categories", label: "Categorías" },
+  { id: "attributes", label: "Atributos" },
+  { id: "modifiers", label: "Modificadores" },
   { id: "products", label: "Productos" },
   { id: "services", label: "Servicios" },
-  { id: "modifiers", label: "Modificadores" },
-  { id: "attributes", label: "Atributos" },
 ] as const;
 
 export default function OfferingsLayout({ children }: { children: React.ReactNode }) {

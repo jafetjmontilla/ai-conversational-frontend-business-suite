@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,233 +20,13 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
-import type { Business, ProductCategory, Attribute } from "@/lib/interfases";
-import { Pencil, Plus, Sparkles, Tag, Trash2, X } from "lucide-react";
+import type { Business } from "@/lib/interfases";
+import { Sparkles } from "lucide-react";
 import { GenerateDescriptionInterviewDialog } from "@/components/business/GenerateDescriptionInterviewDialog";
-import { ProductCategoriesImportDialog } from "@/components/business/ProductCategoriesImportDialog";
 import { PageHeader } from "@/components/layouts/PageHeader";
 import { LogoUploadField, type LogoUploadFieldRef } from "@/components/storage/LogoUploadField";
 import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import type { Layout } from "react-resizable-panels";
-import { useDefaultLayout } from "react-resizable-panels";
-import {
-  businessEditPanelsGroupId,
-  readDesktopPanelOpen,
-  writeDesktopPanelOpen,
-} from "@/lib/businessEditPanelPreferences";
-
-const DEFAULT_PANEL_LAYOUT: Layout = {
-  "panel-left": 65,
-  "panel-right": 35,
-};
-const RIGHT_PANEL_MIN_SIZE = 20;
-const RIGHT_PANEL_MAX_SIZE = 30;
-
-function RightPanelShell({
-  title,
-  onClose,
-  children,
-}: {
-  title?: string;
-  onClose?: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="relative shrink-0 border-b px-3 py-3">
-        {title ? <p className="pr-8 text-sm font-medium">{title}</p> : null}
-        {onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar panel"
-            className="absolute right-3 top-2.5 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Cerrar</span>
-          </button>
-        ) : null}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-type RightPanelContent =
-  | { kind: "idle" }
-  | { kind: "category"; category: ProductCategory | null };
-
-function CategoryFormPanel({
-  businessId,
-  editingCategory,
-  onSaved,
-  onCancel,
-}: {
-  businessId: string;
-  editingCategory: ProductCategory | null;
-  onSaved: () => void;
-  onCancel: () => void;
-}) {
-  const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [savingCat, setSavingCat] = useState(false);
-  const [catName, setCatName] = useState("");
-  const [catDescription, setCatDescription] = useState("");
-  const [catType, setCatType] = useState<"producto" | "servicio" | "ambos">("producto");
-  const [catPricingAttributeId, setCatPricingAttributeId] = useState<string>("__none__");
-
-  useEffect(() => {
-    if (!businessId) return;
-    fetchApiV1({
-      query: queries.getAttributes,
-      type: "json",
-      variables: { id: businessId },
-    })
-      .then((res: Attribute[] | null) => setAttributes(Array.isArray(res) ? res : []))
-      .catch(() => setAttributes([]));
-  }, [businessId]);
-
-  useEffect(() => {
-    if (editingCategory) {
-      setCatName(editingCategory.name);
-      setCatDescription(editingCategory.description || "");
-      setCatType(editingCategory.type);
-      setCatPricingAttributeId(editingCategory.pricingAttributeId ?? "__none__");
-      return;
-    }
-    setCatName("");
-    setCatDescription("");
-    setCatType("producto");
-    setCatPricingAttributeId("__none__");
-  }, [editingCategory]);
-
-  const handleSave = async () => {
-    if (!catName.trim()) {
-      toast.error("El nombre es requerido");
-      return;
-    }
-    setSavingCat(true);
-    try {
-      if (editingCategory) {
-        await fetchApiV1({
-          query: queries.updateProductCategory,
-          type: "json",
-          variables: {
-            _id: editingCategory._id,
-            id: businessId,
-            args: {
-              name: catName.trim(),
-              description: catDescription.trim() || undefined,
-              type: catType,
-              pricingAttributeId:
-                catPricingAttributeId === "__none__" ? null : catPricingAttributeId,
-            },
-          },
-        });
-        toast.success("Categoría actualizada");
-      } else {
-        await fetchApiV1({
-          query: queries.createProductCategory,
-          type: "json",
-          variables: {
-            id: businessId,
-            args: {
-              name: catName.trim(),
-              description: catDescription.trim() || undefined,
-              type: catType,
-              pricingAttributeId:
-                catPricingAttributeId === "__none__" ? null : catPricingAttributeId,
-            },
-          },
-        });
-        toast.success("Categoría creada");
-      }
-      onSaved();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al guardar categoría";
-      toast.error(message);
-    } finally {
-      setSavingCat(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Nombre</label>
-          <Input
-            placeholder="Ej. Electrónica, Consultoría"
-            value={catName}
-            onChange={(e) => setCatName(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Descripción</label>
-          <Input
-            placeholder="Opcional"
-            value={catDescription}
-            onChange={(e) => setCatDescription(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Tipo</label>
-          <Select value={catType} onValueChange={(v) => setCatType(v as typeof catType)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {categoryTypes.map((t) => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Atributo de precio para extras</label>
-          <p className="text-xs text-muted-foreground">
-            Ej. Tamaño en pizzas — los adicionales indexan precio por priceKey de sus valores.
-          </p>
-          <Select value={catPricingAttributeId} onValueChange={setCatPricingAttributeId}>
-            <SelectTrigger><SelectValue placeholder="Ninguno" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Ninguno</SelectItem>
-              {attributes.map((a) => (
-                <SelectItem key={a._id} value={a._id}>{a.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Button type="button" onClick={handleSave} disabled={savingCat} size="sm">
-          {savingCat ? "Guardando..." : editingCategory ? "Actualizar" : "Agregar"}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
-          Cancelar
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-const categoryTypes = [
-  { value: "producto", label: "Producto" },
-  { value: "servicio", label: "Servicio" },
-  { value: "ambos", label: "Ambos" },
-] as const;
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -369,128 +149,6 @@ function businessToFormValues(b: Business | null): FormValues {
   };
 }
 
-function CategoriesTab({
-  businessId,
-  onNewCategory,
-  onEditCategory,
-  refreshSignal,
-}: {
-  businessId: string;
-  onNewCategory: () => void;
-  onEditCategory: (category: ProductCategory) => void;
-  refreshSignal?: number;
-}) {
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [loadingCats, setLoadingCats] = useState(true);
-  const [importOpen, setImportOpen] = useState(false);
-
-  const fetchCategories = async () => {
-    setLoadingCats(true);
-    try {
-      const res = await fetchApiV1({
-        query: queries.getProductCategories,
-        type: "json",
-        variables: { id: businessId, includeInactive: true },
-      });
-      setCategories(res || []);
-    } catch {
-      toast.error("Error al cargar categorías");
-    } finally {
-      setLoadingCats(false);
-    }
-  };
-
-  useEffect(() => {
-    if (businessId) fetchCategories();
-  }, [businessId, refreshSignal]);
-
-  const handleDelete = async (catId: string) => {
-    if (!window.confirm("¿Desactivar esta categoría?")) return;
-    try {
-      await fetchApiV1({
-        query: queries.deleteProductCategory,
-        type: "json",
-        variables: { _id: catId, id: businessId },
-      });
-      toast.success("Categoría desactivada");
-      fetchCategories();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al desactivar categoría");
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Categorías para clasificar productos y servicios del inventario.
-        </p>
-        <div className="flex items-center gap-2">
-          <Button type="button" size="sm" onClick={onNewCategory}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva categoría
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Cargar con IA
-          </Button>
-        </div>
-      </div>
-
-      {loadingCats ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Tag className="h-10 w-10 mx-auto mb-2 opacity-40" />
-          <p>No hay categorías creadas</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {categories.map((cat) => (
-            <div
-              key={cat._id}
-              className={`flex items-center justify-between rounded-lg border p-3 ${!cat.active ? "opacity-50" : ""}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{cat.name}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                    {categoryTypes.find((t) => t.value === cat.type)?.label || cat.type}
-                  </span>
-                  {!cat.active && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-600">Inactiva</span>
-                  )}
-                </div>
-                {cat.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{cat.description}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-1 ml-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => onEditCategory(cat)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                {cat.active && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => handleDelete(cat._id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      <ProductCategoriesImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        businessId={businessId}
-        onImported={fetchCategories}
-      />
-    </div>
-  );
-}
-
 export function BusinessEditPageContent() {
   const params = useParams();
   const router = useRouter();
@@ -505,69 +163,6 @@ export function BusinessEditPageContent() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [aiDescriptionOpen, setAiDescriptionOpen] = useState(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
-  const isMobile = useIsMobile();
-  const [desktopPanelOpen, setDesktopPanelOpen] = useState(() => readDesktopPanelOpen(businessId));
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-  const [rightPanelContent, setRightPanelContent] = useState<RightPanelContent>({ kind: "idle" });
-  const [categoriesRefreshSignal, setCategoriesRefreshSignal] = useState(0);
-  const panelsGroupId = businessEditPanelsGroupId(businessId);
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: panelsGroupId,
-    storage: typeof window !== "undefined" ? localStorage : undefined,
-    panelIds: ["panel-left", "panel-right"],
-  });
-
-  const openCategoryPanel = (category: ProductCategory | null) => {
-    setRightPanelContent({ kind: "category", category });
-    if (isMobile) {
-      setMobilePanelOpen(true);
-      return;
-    }
-    setDesktopPanelOpen(true);
-    writeDesktopPanelOpen(businessId, true);
-  };
-
-  const closeRightPanel = () => {
-    setRightPanelContent({ kind: "idle" });
-    if (isMobile) {
-      setMobilePanelOpen(false);
-      return;
-    }
-    setDesktopPanelOpen(false);
-    writeDesktopPanelOpen(businessId, false);
-  };
-
-  const handleCategorySaved = () => {
-    setCategoriesRefreshSignal((signal) => signal + 1);
-    closeRightPanel();
-  };
-
-  const rightPanelTitle =
-    rightPanelContent.kind === "category"
-      ? rightPanelContent.category
-        ? "Editar categoría"
-        : "Nueva categoría"
-      : undefined;
-
-  const rightPanelNode =
-    rightPanelContent.kind === "category" ? (
-      <CategoryFormPanel
-        businessId={businessId}
-        editingCategory={rightPanelContent.category}
-        onSaved={handleCategorySaved}
-        onCancel={closeRightPanel}
-      />
-    ) : null;
-
-  const showDesktopRightPanel =
-    rightPanelContent.kind === "category" && desktopPanelOpen && !isMobile;
-
-  useEffect(() => {
-    if (!businessId) return;
-    setDesktopPanelOpen(readDesktopPanelOpen(businessId));
-    setRightPanelContent({ kind: "idle" });
-    setMobilePanelOpen(false);
-  }, [businessId]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -739,32 +334,18 @@ export function BusinessEditPageContent() {
 
   return (
     <div className="h-full min-h-0 w-full overflow-hidden">
-      <ResizablePanelGroup
-        key={showDesktopRightPanel ? "with-right-panel" : "without-right-panel"}
-        id={panelsGroupId}
-        orientation="horizontal"
-        className="h-full min-h-0 w-full"
-        defaultLayout={
-          showDesktopRightPanel
-            ? defaultLayout ?? DEFAULT_PANEL_LAYOUT
-            : { "panel-left": 100 }
-        }
-        onLayoutChanged={onLayoutChanged}
-      >
-        <ResizablePanel id="panel-left" minSize="35" className="min-w-0">
-          <div className="flex h-full min-h-0 flex-col overflow-hidden sm:relative">
-            <PageHeader title="Editar negocio" />
+      <div className="flex h-full min-h-0 flex-col overflow-hidden sm:relative">
+        <PageHeader title="Editar negocio" />
 
-            <Form {...form} >
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <Tabs defaultValue="identity" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <TabsList variant="line" className="h-auto sm:w-[calc(100%-300px)] shrink-0 flex-wrap gap-x-2 gap-y-1">
-                    <TabsTrigger variant="line" value="identity">Identidad</TabsTrigger>
-                    <TabsTrigger variant="line" value="contact">Contacto</TabsTrigger>
-                    <TabsTrigger variant="line" value="regional">Regional</TabsTrigger>
-                    <TabsTrigger variant="line" value="billing">Facturación</TabsTrigger>
-                    <TabsTrigger variant="line" value="categories">Categorías</TabsTrigger>
-                  </TabsList>
+        <Form {...form} >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <Tabs defaultValue="identity" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <TabsList variant="line" className="h-auto sm:w-[calc(100%-300px)] shrink-0 flex-wrap gap-x-2 gap-y-1">
+                <TabsTrigger variant="line" value="identity">Identidad</TabsTrigger>
+                <TabsTrigger variant="line" value="contact">Contacto</TabsTrigger>
+                <TabsTrigger variant="line" value="regional">Regional</TabsTrigger>
+                <TabsTrigger variant="line" value="billing">Facturación</TabsTrigger>
+              </TabsList>
                   <Card className="min-h-0 flex-1 overflow-y-auto border-none">
                     <CardContent className="!py-0 max-w-6xl">
                       <TabsContent value="identity" className="space-y-2">
@@ -1018,14 +599,6 @@ export function BusinessEditPageContent() {
                           )} />
                         </div>
                       </TabsContent>
-                      <TabsContent value="categories" className="pt-4">
-                        <CategoriesTab
-                          businessId={business._id}
-                          onNewCategory={() => openCategoryPanel(null)}
-                          onEditCategory={(category) => openCategoryPanel(category)}
-                          refreshSignal={categoriesRefreshSignal}
-                        />
-                      </TabsContent>
                     </CardContent>
                   </Card>
                 </Tabs>
@@ -1071,44 +644,7 @@ export function BusinessEditPageContent() {
               confirmButtonText="Descartar cambios"
               cancelButtonText="Cancelar"
             />
-          </div>
-        </ResizablePanel>
-        {showDesktopRightPanel ? (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              id="panel-right"
-              minSize={`${RIGHT_PANEL_MIN_SIZE}`}
-              maxSize={`${RIGHT_PANEL_MAX_SIZE}`}
-              className="min-w-0"
-            >
-              <aside className="relative flex h-full min-h-0 flex-col bg-card">
-                <RightPanelShell title={rightPanelTitle} onClose={closeRightPanel}>
-                  {rightPanelNode}
-                </RightPanelShell>
-              </aside>
-            </ResizablePanel>
-          </>
-        ) : null}
-      </ResizablePanelGroup>
-      <Sheet
-        open={isMobile && mobilePanelOpen && rightPanelContent.kind === "category"}
-        onOpenChange={(open) => {
-          if (!open) closeRightPanel();
-          else setMobilePanelOpen(true);
-        }}
-      >
-        <SheetContent side="right" className="flex h-full w-[85vw] max-w-md flex-col gap-0 p-0 sm:max-w-md">
-          <SheetHeader className="sr-only">
-            <SheetTitle>{rightPanelTitle ?? "Panel"}</SheetTitle>
-          </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col pt-10">
-            <RightPanelShell title={rightPanelTitle}>
-              {rightPanelNode}
-            </RightPanelShell>
-          </div>
-        </SheetContent>
-      </Sheet>
+      </div>
     </div>
   );
 }

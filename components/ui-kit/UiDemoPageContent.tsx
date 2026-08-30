@@ -219,7 +219,7 @@ const COMPONENT_CATALOG: { folder: string; files: string[] }[] = [
     ],
   },
   { folder: 'business-config/', files: ['BusinessCacheTabContent', 'BusinessConfigForm'] },
-  { folder: 'catalog/', files: ['AttributesCatalogContent', 'ProductEditPanel', 'ProductsCatalogContent', 'ServicesCatalogContent'] },
+  { folder: 'catalog/', files: ['AttributesCatalogContent', 'CategoriesCatalogContent', 'ProductEditPanel', 'ProductsCatalogContent', 'ServicesCatalogContent'] },
   { folder: 'channels/', files: ['ChannelAgentEngineSelect', 'ChannelsPageContent'] },
   { folder: 'cse/', files: ['CseTestChat', 'TeachFromChatModal'] },
   { folder: 'inventory/', files: ['QuantityUpdateDialog'] },
