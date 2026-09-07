@@ -60,44 +60,44 @@ export function ProductInventorySection({
   };
 
   return (
-    <div className="space-y-4 rounded-lg border p-4">
+    <div className="space-y-2">
       <div>
         <p className="text-sm font-medium">{INVENTORY_HELP.productSectionTitle}</p>
         <FieldHelpText className="mt-1">{INVENTORY_HELP.productSectionDescription}</FieldHelpText>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <div className="space-y-2 rounded-md border p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1 flex-1">
+          <div className="flex flex-col gap-3">
+            <div className="flex space-y-1">
               <Label htmlFor="trackInventory" className="cursor-pointer">
                 {INVENTORY_HELP.trackInventoryLabel}
               </Label>
-              <FieldHelpText>{INVENTORY_HELP.trackInventoryHelp}</FieldHelpText>
+              <Switch
+                id="trackInventory"
+                checked={trackInventory}
+                onCheckedChange={handleTrackChange}
+                disabled={disabled || hasBillOfMaterials}
+              />
             </div>
-            <Switch
-              id="trackInventory"
-              checked={trackInventory}
-              onCheckedChange={handleTrackChange}
-              disabled={disabled || hasBillOfMaterials}
-            />
+            <FieldHelpText>{INVENTORY_HELP.trackInventoryHelp}</FieldHelpText>
           </div>
         </div>
 
         <div className="space-y-2 rounded-md border p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1 flex-1">
+          <div className="flex flex-col gap-3">
+            <div className="flex space-y-1">
               <Label htmlFor="hasBillOfMaterials" className="cursor-pointer">
                 {INVENTORY_HELP.hasBillOfMaterialsLabel}
               </Label>
-              <FieldHelpText>{INVENTORY_HELP.hasBillOfMaterialsHelp}</FieldHelpText>
+              <Switch
+                id="hasBillOfMaterials"
+                checked={hasBillOfMaterials}
+                onCheckedChange={handleBomChange}
+                disabled={disabled || trackInventory}
+              />
             </div>
-            <Switch
-              id="hasBillOfMaterials"
-              checked={hasBillOfMaterials}
-              onCheckedChange={handleBomChange}
-              disabled={disabled || trackInventory}
-            />
+            <FieldHelpText>{INVENTORY_HELP.hasBillOfMaterialsHelp}</FieldHelpText>
           </div>
         </div>
       </div>

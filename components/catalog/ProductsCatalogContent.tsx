@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import { Plus, Package, Settings2 } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { InventoryModeBadge } from "@/components/offerings/InventoryModeBadge";
 import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
-import { ProductEditPanel } from "@/components/catalog/ProductEditPanel";
+import { ProductFormPanel } from "@/components/catalog/ProductFormPanel";
 import { cn } from "@/lib/utils";
 import { OfferingArchivedSection } from "@/components/offerings/OfferingArchivedSection";
 
@@ -41,6 +40,7 @@ export function ProductsCatalogContent() {
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
   const [selected, setSelected] = useState<ProductWithVariants | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
   const businessIdDoc = business?._id;
@@ -120,7 +120,39 @@ export function ProductsCatalogContent() {
 
   const selectProduct = (product: ProductWithVariants, openMobile = false) => {
     setSelected(product);
+    setCreateOpen(false);
     if (openMobile) setMobilePanelOpen(true);
+  };
+
+  const openNewProduct = () => {
+    setSelected(null);
+    setCreateOpen(true);
+    setMobilePanelOpen(true);
+  };
+
+  const closeRightPanel = () => {
+    setCreateOpen(false);
+    setMobilePanelOpen(false);
+  };
+
+  const handleProductCreated = async (product: ProductWithVariants) => {
+    if (!businessIdDoc) return;
+    try {
+      const full = (await fetchApiV1({
+        query: queries.getProduct,
+        type: "json",
+        variables: { id: businessIdDoc, _id: product._id },
+      })) as ProductWithVariants | null;
+      const next = full ?? { ...product, variants: product.variants ?? [] };
+      setProducts((prev) => [next, ...prev]);
+      setSelected(next);
+      setCreateOpen(false);
+    } catch {
+      setProducts((prev) => [{ ...product, variants: product.variants ?? [] }, ...prev]);
+      setSelected({ ...product, variants: product.variants ?? [] });
+      setCreateOpen(false);
+    }
+    setMobilePanelOpen(false);
   };
 
   const handleProductUpdated = (updated: ProductWithVariants) => {
@@ -131,6 +163,7 @@ export function ProductsCatalogContent() {
   const handleProductDeleted = async (productId: string) => {
     setProducts((prev) => prev.filter((p) => p._id !== productId));
     setSelected(null);
+    setCreateOpen(false);
     setMobilePanelOpen(false);
     if (!businessIdDoc) return;
     try {
@@ -184,18 +217,39 @@ export function ProductsCatalogContent() {
     ? { duration: 0 }
     : { type: "tween" as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] as const };
 
-  const renderEditPanel = (options?: { className?: string; onClose?: () => void }) => (
-    <ProductEditPanel
-      businessId={businessId}
-      businessIdDoc={businessIdDoc}
-      productId={selected?._id ?? null}
-      canEdit={canEdit}
-      className={options?.className}
-      onClose={options?.onClose}
-      onProductUpdated={handleProductUpdated}
-      onProductDeleted={handleProductDeleted}
-    />
-  );
+  const renderRightPanel = (options?: { className?: string; onClose?: () => void }) => {
+    const handleClose = () => {
+      closeRightPanel();
+      options?.onClose?.();
+    };
+
+    if (selected || (createOpen && canEdit)) {
+      return (
+        <ProductFormPanel
+          businessId={businessId}
+          businessIdDoc={businessIdDoc}
+          productId={selected?._id ?? null}
+          canEdit={canEdit}
+          className={options?.className}
+          onClose={options?.onClose ? handleClose : createOpen && !selected ? () => setCreateOpen(false) : undefined}
+          onProductCreated={handleProductCreated}
+          onProductUpdated={handleProductUpdated}
+          onProductDeleted={handleProductDeleted}
+        />
+      );
+    }
+    return (
+      <Card id="card-right" className={cn("flex h-full flex-col border-none", options?.className)}>
+        <CardContent className="flex flex-1 items-center justify-center p-6">
+          <p className="text-center text-muted-foreground text-sm">
+            {canEdit
+              ? "Selecciona un producto de la tabla o pulsa Nuevo para crear uno."
+              : "Selecciona un producto de la tabla."}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (!businessId) return null;
   if (!canViewCurrentBusiness?.()) {
@@ -223,11 +277,16 @@ export function ProductsCatalogContent() {
               Productos
             </div>
             {canEdit && (
-              <Button asChild size="sm" className="shrink-0" disabled={!businessIdDoc || loading}>
-                <Link href={`/${businessId}/offerings/products/nuevo`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar producto
-                </Link>
+              <Button
+                type="button"
+                size="sm"
+                variant={createOpen && !selected ? "default" : "outline"}
+                className="shrink-0"
+                disabled={!businessIdDoc || loading}
+                onClick={openNewProduct}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo
               </Button>
             )}
           </CardTitle>
@@ -264,7 +323,7 @@ export function ProductsCatalogContent() {
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {query ? "Sin resultados con el filtro." : "No hay productos. Agrega uno."}
+                      {query ? "Sin resultados con el filtro." : "No hay productos. Pulsa Nuevo para crear uno."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -350,11 +409,11 @@ export function ProductsCatalogContent() {
       </Card>
 
       <div id="section-right" className="hidden md:block w-full max-w-[33vw] shrink-0 overflow-y-auto">
-        {renderEditPanel()}
+        {renderRightPanel()}
       </div>
 
       <AnimatePresence>
-        {mobilePanelOpen && selected ? (
+        {mobilePanelOpen && (selected || createOpen) ? (
           <>
             <motion.button
               type="button"
@@ -364,7 +423,7 @@ export function ProductsCatalogContent() {
               exit={{ opacity: 0 }}
               transition={mobilePanelTransition}
               className="fixed inset-0 z-40 bg-black/50 md:hidden"
-              onClick={() => setMobilePanelOpen(false)}
+              onClick={closeRightPanel}
             />
             <motion.div
               initial={{ x: prefersReducedMotion ? 0 : "100%" }}
@@ -373,9 +432,9 @@ export function ProductsCatalogContent() {
               transition={mobilePanelTransition}
               className="fixed inset-y-0 right-0 z-50 w-full max-w-md md:hidden shadow-xl"
             >
-              {renderEditPanel({
+              {renderRightPanel({
                 className: "h-full rounded-none border-0 border-l",
-                onClose: () => setMobilePanelOpen(false),
+                onClose: closeRightPanel,
               })}
             </motion.div>
           </>

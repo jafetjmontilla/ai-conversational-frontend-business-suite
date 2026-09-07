@@ -24,7 +24,7 @@ export function ProductSellableField({
   const canSell = hasCapability(installedApps, "product.sellable");
   const canRaw = hasCapability(installedApps, "product.rawMaterial");
   const canCatalog = canUseOfferingsCatalogProduct(installedApps);
-  const { label, hint } = getProductSellableFieldCopy(installedApps, businessId);
+  const { capabilityHint } = getProductSellableFieldCopy(installedApps, businessId);
 
   const switchDisabled = checked ? !canRaw && !canCatalog : !canSell;
 
@@ -35,22 +35,25 @@ export function ProductSellableField({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-start space-x-2">
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <Label htmlFor={id} className="cursor-pointer font-medium">
+          Vendible
+        </Label>
         <Switch
           id={id}
           checked={checked}
           onCheckedChange={handleChange}
           disabled={switchDisabled}
-          className="mt-0.5"
         />
-        <Label htmlFor={id} className="cursor-pointer leading-snug">
-          {label}
-        </Label>
       </div>
-      {hint && (
-        <p className="text-xs text-muted-foreground pl-10">
-          {hint}{" "}
+      <p className="text-xs text-muted-foreground">
+        Activado aparece en catálogo de ventas. Si está desactivado, queda en tu catálogo interno
+        (Productos y Servicios)
+      </p>
+      {capabilityHint ? (
+        <p className="text-xs text-muted-foreground">
+          {capabilityHint}{" "}
           <Link
             href={`/${businessId}/app-suite`}
             className="text-primary underline-offset-2 hover:underline"
@@ -58,7 +61,7 @@ export function ProductSellableField({
             Ir a Suite
           </Link>
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

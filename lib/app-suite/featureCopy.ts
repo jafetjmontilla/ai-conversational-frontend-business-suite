@@ -38,42 +38,20 @@ export function getCapabilityHintPlain(capability: Capability): string {
 export function getProductSellableFieldCopy(
   installedApps: BusinessInstalledApp[] | null | undefined,
   _businessId: string
-): { label: string; hint?: string } {
+): { capabilityHint?: string } {
   const canSell = hasCapability(installedApps, "product.sellable");
   const canRaw = hasCapability(installedApps, "product.rawMaterial");
   const canCatalog = canUseOfferingsCatalogProduct(installedApps);
-
-  const sellApps = CAPABILITY_REQUIRED_APPS["product.sellable"] ?? [];
-  const rawApps = CAPABILITY_REQUIRED_APPS["product.rawMaterial"] ?? [];
-
-  let sellPart: string;
-  if (canSell) {
-    sellPart = "aparece en catálogo de ventas";
-  } else {
-    sellPart = `requiere ${formatAppList(sellApps).replace(/\*\*/g, "")}`;
-  }
-
-  let rawPart: string;
-  if (canRaw) {
-    rawPart = "puede usarse como insumo/materia prima";
-  } else if (canCatalog) {
-    rawPart = "queda en tu catálogo interno (Productos y Servicios)";
-  } else {
-    rawPart = `como insumo/materia prima requiere ${formatAppList(rawApps).replace(/\*\*/g, "")}`;
-  }
-
-  const label = `Vendible (${sellPart}). Si está desactivado, ${rawPart}.`;
 
   const hints: string[] = [];
   if (!canSell) {
     hints.push(getCapabilityHintPlain("product.sellable"));
   }
-  if (!canRaw) {
-    if (!canCatalog) hints.push(getCapabilityHintPlain("product.rawMaterial"));
+  if (!canRaw && !canCatalog) {
+    hints.push(getCapabilityHintPlain("product.rawMaterial"));
   }
 
   return {
-    label,
-    hint: hints.length > 0 ? `${hints.join(" ")} Ver Suite de aplicaciones.` : undefined,
+    capabilityHint: hints.length > 0 ? hints.join(" ") : undefined,
   };
 }
