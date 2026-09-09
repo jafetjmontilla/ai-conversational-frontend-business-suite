@@ -13,6 +13,7 @@ import {
 } from "@/lib/billing/modifiers";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { Label } from "@/components/ui/label";
+import { formatMinor, type CurrencyCode } from "@/lib/money";
 
 type InvoiceLineModifiersProps = {
   businessId: string;
@@ -24,6 +25,7 @@ type InvoiceLineModifiersProps = {
   onChange: (modifiers: InvoiceSelectedModifier[]) => void;
   disabled?: boolean;
   className?: string;
+  currency?: CurrencyCode;
 };
 
 function sectionSelectionCount(
@@ -68,6 +70,7 @@ export function InvoiceLineModifiers({
   onChange,
   disabled,
   className,
+  currency = "USD",
 }: InvoiceLineModifiersProps) {
   const [groups, setGroups] = useState<ModifierGroup[]>([]);
   const [loading, setLoading] = useState(false);
@@ -196,7 +199,7 @@ export function InvoiceLineModifiers({
                   {section.options.map((opt) => {
                     const selected = isSelected(group._id, section, opt.catalogItemId);
                     const name = opt.catalogItem?.name ?? "Opción";
-                    const price = opt.priceOverride ?? opt.catalogItem?.price ?? 0;
+                    const priceMinor = opt.priceOverrideMinor ?? opt.catalogItem?.priceMinor ?? 0;
                     if (section.selectionType === "SINGLE") {
                       return (
                         <button
@@ -212,7 +215,7 @@ export function InvoiceLineModifiers({
                           )}
                         >
                           {name}
-                          {price > 0 ? ` (+${price.toFixed(2)})` : ""}
+                          {priceMinor > 0 ? ` (+${formatMinor(priceMinor, currency)})` : ""}
                         </button>
                       );
                     }
@@ -235,7 +238,7 @@ export function InvoiceLineModifiers({
                           }
                         />
                         {name}
-                        {price > 0 ? ` (+${price.toFixed(2)})` : ""}
+                        {priceMinor > 0 ? ` (+${formatMinor(priceMinor, currency)})` : ""}
                       </label>
                     );
                   })}

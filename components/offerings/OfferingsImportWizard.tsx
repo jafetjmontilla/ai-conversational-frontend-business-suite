@@ -37,6 +37,8 @@ import {
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { formatMinor, majorToMinor, minorToMajor, toCurrencyCode, type CurrencyCode } from "@/lib/money";
+import { useBusiness } from "@/lib/hooks/useBusiness";
 
 type Step = "input" | "preview" | "done";
 
@@ -48,7 +50,7 @@ type OfferingsImportWizardProps = {
   onImported?: () => void;
 };
 
-function formatVariantSummary(prod: ParsedProductDraft): string | null {
+function formatVariantSummary(prod: ParsedProductDraft, currency: CurrencyCode): string | null {
   if (!prod.needs_variants || !prod.variants?.length) return null;
   const attrs =
     prod.variant_attributes?.map((a) => `${a.name}: ${a.values.join(", ")}`).join(" · ") ?? "";
@@ -58,8 +60,8 @@ function formatVariantSummary(prod: ParsedProductDraft): string | null {
     .map((v) => {
       const label = v.attribute_values.map((av) => av.value).join(" / ");
       const price =
-        v.price_override != null && v.price_override !== prod.base_price
-          ? ` $${v.price_override}`
+        v.price_override_minor != null && v.price_override_minor !== prod.base_price_minor
+          ? ` ${formatMinor(v.price_override_minor, currency)}`
           : "";
       return `${v.sku ?? label}${price}`;
     })
@@ -70,13 +72,13 @@ function formatVariantSummary(prod: ParsedProductDraft): string | null {
     : `${count} variantes — ej: ${samples}${more}`;
 }
 
-function formatModifierGroupSummary(group: ParsedModifierGroupDraft): string {
+function formatModifierGroupSummary(group: ParsedModifierGroupDraft, currency: CurrencyCode): string {
   const opts = group.options
     .map((o) => {
-      const matrix = o.price_matrix?.length
-        ? ` [${o.price_matrix.map((m) => `${m.priceKey}: $${m.price}`).join(", ")}]`
+      const matrix = o.price_matrix_minor?.length
+        ? ` [${o.price_matrix_minor.map((m) => `${m.priceKey}: ${formatMinor(m.priceMinor, currency)}`).join(", ")}]`
         : "";
-      return `${o.name} ($${o.price})${matrix}`;
+      return `${o.name} (${formatMinor(o.priceMinor, currency)})${matrix}`;
     })
     .join(" · ");
   const rules =
@@ -110,6 +112,8 @@ export function OfferingsImportWizard({
   onImported,
 }: OfferingsImportWizardProps) {
   const router = useRouter();
+  const { business } = useBusiness(businessId);
+  const currency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
   const [step, setStep] = useState<Step>("input");
   const [scope, setScope] = useState<OfferingsImportScope>("ALL");
   const [rawText, setRawText] = useState("");
@@ -198,7 +202,7 @@ export function OfferingsImportWizard({
           ({
             name,
             description,
-            base_price,
+            base_price_minor,
             brand,
             category_hint,
             pricing_attribute_hint,
@@ -209,7 +213,7 @@ export function OfferingsImportWizard({
           }) => ({
             name,
             description,
-            base_price,
+            base_price_minor,
             brand,
             category_hint,
             pricing_attribute_hint,
@@ -251,9 +255,9 @@ export function OfferingsImportWizard({
             includedQuantity,
             options: options.map((o) => ({
               name: o.name,
-              price: o.price,
+              priceMinor: o.priceMinor,
               isDefault: o.isDefault,
-              price_matrix: (o.price_matrix ?? []).filter((m) => m.priceKey.trim()),
+              price_matrix_minor: (o.price_matrix_minor ?? []).filter((m) => m.priceKey.trim()),
             })),
             product_hints: product_hints ?? [],
             service_hints: service_hints ?? [],
@@ -469,13 +473,13 @@ export function OfferingsImportWizard({
 
               <TabsContent value="products" className="mt-3 space-y-2 max-h-64 overflow-y-auto">
                 {draft.products.map((prod, i) => {
-                  const variantSummary = formatVariantSummary(prod);
+                  const variantSummary = formatVariantSummary(prod, currency);
                   return (
                   <div
                     key={i}
                     className={cn(
                       "flex gap-2 items-start rounded-lg border p-2",
-                      prod.base_price == null && "border-amber-500/50 bg-amber-500/5"
+                      prod.base_price_minor == null && "border-amber-500/50 bg-amber-500/5"
                     )}
                   >
                     <input
@@ -495,12 +499,16 @@ export function OfferingsImportWizard({
                       <Input
                         type="number"
                         step="0.01"
-                        value={prod.base_price ?? ""}
-                        onChange={(e) =>
-                          updateProduct(i, {
-                            base_price: e.target.value ? parseFloat(e.target.value) : null,
-                          })
-                        }
+                        value={prod.base_price_minor == null ? "" : minorToMajor(prod.base_price_minor)}
+                        onChange={(e) => {
+                          try {
+                            updateProduct(i, {
+                              base_price_minor: e.target.value ? majorToMinor(e.target.value) : null,
+                            });
+                          } catch {
+                            // Se conserva el último importe válido.
+                          }
+                        }}
                         className="h-8"
                         placeholder="Precio"
                       />
@@ -543,7 +551,7 @@ export function OfferingsImportWizard({
                       />
                       <p className="text-xs text-muted-foreground">
                         Opciones:{" "}
-                        {svc.options.map((o) => `${o.name} ($${o.price})`).join(" · ")}
+                        {svc.options.map((o) => `${o.name} (${formatMinor(o.priceMinor, currency)})`).join(" · ")}
                       </p>
                     </div>
                   </div>
@@ -567,7 +575,7 @@ export function OfferingsImportWizard({
                         className="h-8"
                         placeholder="Nombre del grupo"
                       />
-                      <p className="text-xs text-muted-foreground">{formatModifierGroupSummary(grp)}</p>
+                      <p className="text-xs text-muted-foreground">{formatModifierGroupSummary(grp, currency)}</p>
                     </div>
                   </div>
                 ))}

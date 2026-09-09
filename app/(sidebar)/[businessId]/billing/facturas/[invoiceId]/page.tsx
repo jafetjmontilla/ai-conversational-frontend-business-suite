@@ -17,19 +17,20 @@ import { PaymentDialog } from "@/components/invoice/PaymentDialog";
 import { InvoiceLineModifiers } from "@/components/invoice/InvoiceLineModifiers";
 import { InvoiceLineNoteField } from "@/components/invoice/InvoiceLineNoteField";
 import {
-  computeLineTotal,
+  computeLineTotalMinor,
   mapLineToInvoiceItemInput,
   type InvoiceLineDraft,
 } from "@/lib/billing/invoiceLine";
 import { AgentInvoiceBanner } from "@/components/billing/AgentInvoiceBanner";
+import { formatMinor, toCurrencyCode } from "@/lib/money";
 
 type SellableVariantRow = {
   _id: string;
   product_id: string;
   sku: string;
-  price_override: number | null;
+  price_override_minor: number | null;
   stock_quantity: number;
-  product?: { name: string; base_price?: number } | null;
+  product?: { name: string; base_price_minor?: number } | null;
 };
 
 export default function InvoiceEditorPage() {
@@ -54,6 +55,8 @@ export default function InvoiceEditorPage() {
     business?.billingExchangeRateSource === "custom" && business?.billingCustomExchangeRate
       ? business.billingCustomExchangeRate
       : 1;
+  const baseCurrency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
+  const displayCurrency = toCurrencyCode(business?.billingDisplayCurrency, baseCurrency);
 
   const canEdit = canEditCurrentBusiness?.() && invoice?.status === "draft";
 
@@ -84,8 +87,8 @@ export default function InvoiceEditorPage() {
           itemType: it.itemType ?? "product_variant",
           description: it.description || "",
           quantity: it.quantity || 0,
-          unitPrice: it.unitPrice || 0,
-          total: it.total || computeLineTotal(it.quantity || 0, it.unitPrice || 0, it.selectedModifiers),
+          unitPriceMinor: it.unitPriceMinor || 0,
+          totalMinor: it.totalMinor || computeLineTotalMinor(it.quantity || 0, it.unitPriceMinor || 0, it.selectedModifiers),
           lineNote: it.lineNote || "",
           selectedModifiers: it.selectedModifiers || [],
         }))
@@ -101,7 +104,7 @@ export default function InvoiceEditorPage() {
     if (businessIdDoc) loadInvoice();
   }, [businessIdDoc, loadInvoice]);
 
-  const totalBs = items.reduce((s, it) => s + computeLineTotal(it.quantity, it.unitPrice, it.selectedModifiers), 0);
+  const totalMinor = items.reduce((s, it) => s + computeLineTotalMinor(it.quantity, it.unitPriceMinor, it.selectedModifiers), 0);
 
   const addItem = () => {
     setItems(prev => [...prev, {
@@ -112,8 +115,8 @@ export default function InvoiceEditorPage() {
       itemType: "product_variant",
       description: "",
       quantity: 0,
-      unitPrice: 0,
-      total: 0,
+      unitPriceMinor: 0,
+      totalMinor: 0,
       lineNote: "",
       selectedModifiers: [],
     }]);
@@ -128,11 +131,11 @@ export default function InvoiceEditorPage() {
       const updated = [...prev];
       const row = { ...updated[idx], [field]: value } as InvoiceLineDraft;
       if (field === "quantity" || field === "selectedModifiers") {
-        row.total = computeLineTotal(row.quantity, row.unitPrice, row.selectedModifiers);
+        row.totalMinor = computeLineTotalMinor(row.quantity, row.unitPriceMinor, row.selectedModifiers);
       }
       if (field === "description" && (!value || String(value).trim() === "")) {
-        row.unitPrice = 0;
-        row.total = 0;
+        row.unitPriceMinor = 0;
+        row.totalMinor = 0;
         row.productVariantId = undefined;
         row.productId = undefined;
         row.lineNote = "";
@@ -177,7 +180,7 @@ export default function InvoiceEditorPage() {
   const selectInventoryItem = (idx: number, row: SellableVariantRow) => {
     const productName = row.product?.name ?? "";
     const description = row.sku ? `${productName} - ${row.sku}`.trim() : productName || row.sku || "Sin nombre";
-    const unitPrice = row.price_override ?? row.product?.base_price ?? 0;
+    const unitPriceMinor = row.price_override_minor ?? row.product?.base_price_minor ?? 0;
     setItems(prev => {
       const updated = [...prev];
       updated[idx] = {
@@ -187,8 +190,8 @@ export default function InvoiceEditorPage() {
         productId: row.product_id,
         itemType: "product_variant",
         description,
-        unitPrice: Number(unitPrice),
-        total: computeLineTotal(updated[idx].quantity, Number(unitPrice), []),
+        unitPriceMinor,
+        totalMinor: computeLineTotalMinor(updated[idx].quantity, unitPriceMinor, []),
         selectedModifiers: [],
         searchResults: [],
         searchTerm: "",
@@ -270,7 +273,7 @@ export default function InvoiceEditorPage() {
                     <Save className="h-4 w-4 mr-1" />
                     {saving ? "Guardando..." : "Guardar"}
                   </Button>
-                  {items.length > 0 && totalBs > 0 && (
+                  {items.length > 0 && totalMinor > 0 && (
                     <Button variant="outline" onClick={() => setPaymentDialogOpen(true)}>
                       <CreditCard className="h-4 w-4 mr-1" />
                       Pagar
@@ -340,7 +343,7 @@ export default function InvoiceEditorPage() {
                             {(item.searchResults?.length ?? 0) > 0 && (
                               <div className="absolute z-10 bg-popover border rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto w-[90%]">
                                 {(item.searchResults as SellableVariantRow[] | undefined)?.map(row => {
-                                  const price = row.price_override ?? row.product?.base_price ?? 0;
+                                  const priceMinor = row.price_override_minor ?? row.product?.base_price_minor ?? 0;
                                   const label = row.product?.name ? `${row.product.name} - ${row.sku}` : row.sku;
                                   return (
                                     <div
@@ -348,7 +351,7 @@ export default function InvoiceEditorPage() {
                                       className="px-3 py-2 hover:bg-accent cursor-pointer text-sm"
                                       onClick={() => selectInventoryItem(idx, row)}
                                     >
-                                      <span className="font-medium">{label}</span> (Disp: {(row.stock_quantity ?? 0).toFixed(0)}, Precio: {Number(price).toFixed(2)})
+                                      <span className="font-medium">{label}</span> (Disp: {(row.stock_quantity ?? 0).toFixed(0)}, Precio: {formatMinor(priceMinor, baseCurrency)})
                                     </div>
                                   );
                                 })}
@@ -373,10 +376,10 @@ export default function InvoiceEditorPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {item.unitPrice.toFixed(2)}
+                        {formatMinor(item.unitPriceMinor, baseCurrency)}
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        {computeLineTotal(item.quantity, item.unitPrice, item.selectedModifiers).toFixed(2)}
+                        {formatMinor(computeLineTotalMinor(item.quantity, item.unitPriceMinor, item.selectedModifiers), baseCurrency)}
                       </TableCell>
                       {canEdit && (
                         <TableCell>
@@ -404,6 +407,7 @@ export default function InvoiceEditorPage() {
                               value={item.selectedModifiers ?? []}
                               onChange={(mods) => updateItem(idx, "selectedModifiers", mods)}
                               disabled={!canEdit}
+                              currency={baseCurrency}
                             />
                           </div>
                         </TableCell>
@@ -418,12 +422,12 @@ export default function InvoiceEditorPage() {
 
           <div className="flex justify-end">
             <div className="bg-muted/50 rounded-lg p-4 text-right">
-              <p className="text-sm text-muted-foreground">Total Bs</p>
-              <p className="text-2xl font-bold">{totalBs.toFixed(2)}</p>
-              {exchangeRate > 1 && (
+              <p className="text-sm text-muted-foreground">Total {baseCurrency}</p>
+              <p className="text-2xl font-bold">{formatMinor(totalMinor, baseCurrency)}</p>
+              {displayCurrency !== baseCurrency && exchangeRate > 0 && (
                 <>
-                  <p className="text-sm text-muted-foreground mt-1">Total USD (tasa: {exchangeRate})</p>
-                  <p className="text-lg">{(totalBs / exchangeRate).toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Total {displayCurrency} (tasa: {exchangeRate})</p>
+                  <p className="text-lg">{formatMinor(Math.round(totalMinor * exchangeRate), displayCurrency)}</p>
                 </>
               )}
             </div>
@@ -434,9 +438,19 @@ export default function InvoiceEditorPage() {
         <PaymentDialog
           isOpen={paymentDialogOpen}
           onClose={() => setPaymentDialogOpen(false)}
-          invoice={{ ...invoice, totalBs, items: items as any }}
+          invoice={{
+            ...invoice,
+            baseCurrency: invoice.baseCurrency,
+            displayCurrency: invoice.displayCurrency,
+            exchangeRate: invoice.exchangeRate,
+            totalBaseMinor: totalMinor,
+            totalDisplayMinor: Math.round(totalMinor * invoice.exchangeRate),
+            items: items as any,
+          }}
           businessId={businessIdDoc}
-          exchangeRate={exchangeRate}
+          exchangeRate={invoice.exchangeRate}
+          baseCurrency={invoice.baseCurrency}
+          displayCurrency={invoice.displayCurrency}
           onSuccess={() => { setPaymentDialogOpen(false); loadInvoice(); }}
         />
       )}

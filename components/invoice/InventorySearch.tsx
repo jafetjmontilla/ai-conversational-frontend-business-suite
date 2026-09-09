@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { fetchApiV1, queries } from '@/lib/Fetching';
+import { formatMinor, type CurrencyCode } from '@/lib/money';
 
 /** Item seleccionable para una línea de factura (variante de producto vendible). */
 export interface InvoiceVariantSelection {
   productVariantId: string;
   productId?: string;
   description: string;
-  unitPrice: number;
+  unitPriceMinor: number;
   sku?: string;
 }
 
@@ -20,19 +21,19 @@ interface InventorySearchProps {
   className?: string;
   /** _id del negocio (Business document). */
   businessId: string;
-  exchangeRate: number;
+  currency: CurrencyCode;
 }
 
 type SellableVariantRow = {
   _id: string;
   product_id: string;
   sku: string;
-  price_override: number | null;
+  price_override_minor: number | null;
   stock_quantity: number;
-  product?: { _id: string; name: string; base_price?: number } | null;
+  product?: { _id: string; name: string; base_price_minor?: number } | null;
 };
 
-export function InventorySearch({ value, onChange, onSelectItem, className = "", businessId }: InventorySearchProps) {
+export function InventorySearch({ value, onChange, onSelectItem, className = "", businessId, currency }: InventorySearchProps) {
   const [searchResults, setSearchResults] = useState<SellableVariantRow[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isFocus, setIsFocus] = useState(false);
@@ -81,12 +82,12 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
   const toSelection = useCallback((row: SellableVariantRow): InvoiceVariantSelection => {
     const productName = row.product?.name ?? '';
     const desc = row.sku ? `${productName} - ${row.sku}`.trim() : productName || row.sku || 'Sin nombre';
-    const unitPrice = row.price_override ?? row.product?.base_price ?? 0;
+    const unitPriceMinor = row.price_override_minor ?? row.product?.base_price_minor ?? 0;
     return {
       productVariantId: row._id,
       productId: row.product_id,
       description: desc,
-      unitPrice: Number(unitPrice),
+      unitPriceMinor,
       sku: row.sku,
     };
   }, []);
@@ -203,7 +204,7 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
             </div>
           ) : (
             searchResults.map((row, index) => {
-              const price = row.price_override ?? row.product?.base_price ?? 0;
+              const priceMinor = row.price_override_minor ?? row.product?.base_price_minor ?? 0;
               const label = row.product?.name ? `${row.product.name} - ${row.sku}` : row.sku;
               return (
                 <div
@@ -216,7 +217,7 @@ export function InventorySearch({ value, onChange, onSelectItem, className = "",
                       <div className="font-medium">{label}</div>
                     </div>
                     <div className="font-semibold w-[55px] text-right">
-                      {Number(price).toFixed(2)}
+                      {formatMinor(priceMinor, currency)}
                     </div>
                     <div className="w-5 flex justify-center text-green-600">
                       ({(row.stock_quantity ?? 0).toFixed(0)})

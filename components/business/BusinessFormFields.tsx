@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CURRENCY_CODES } from "@/lib/money";
 import type { PrimaryUserInfo } from "@/lib/business/primaryUser";
 import type {
   BaseBusinessFormValues,
@@ -410,9 +412,14 @@ export function SharedBusinessTabs({ form }: SharedBusinessTabsProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Moneda</FormLabel>
-              <FormControl>
-                <Input placeholder="USD, VES, EUR" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger></FormControl>
+                <SelectContent>
+                  {CURRENCY_CODES.map((currency) => (
+                    <SelectItem key={currency} value={currency}>{currency}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

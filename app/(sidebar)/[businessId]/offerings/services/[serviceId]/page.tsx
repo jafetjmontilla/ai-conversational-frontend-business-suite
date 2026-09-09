@@ -25,6 +25,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ArrowLeft, Briefcase, Plus, Trash2, AlertTriangle, Package, DollarSign, TrendingUp } from "lucide-react";
 import { InputSearch } from "@/components/InputSearch";
 import { useMemo } from "react";
+import { formatMinor, majorToMinor, toCurrencyCode } from "@/lib/money";
 
 /** Unidades que permiten cantidad decimal (kg, litro, etc.). Si no está en la lista, se usan enteros (unidad, etc.). */
 function allowsDecimalQuantity(unit: string | undefined): boolean {
@@ -66,7 +67,7 @@ export default function ServiceDetailPage() {
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
   const [deleteOptionTarget, setDeleteOptionTarget] = useState<ServiceOption | null>(null);
   const [archivedOptions, setArchivedOptions] = useState<
-    { _id: string; name: string; price: number }[]
+    { _id: string; name: string; priceMinor: number }[]
   >([]);
   const [restoringOptionId, setRestoringOptionId] = useState<string | null>(null);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
@@ -81,6 +82,7 @@ export default function ServiceDetailPage() {
   const [previewOptionId, setPreviewOptionId] = useState<string>("");
 
   const businessIdDoc = business?._id;
+  const currency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
 
   useEffect(() => {
     if (!businessId) return;
@@ -287,13 +289,16 @@ export default function ServiceDetailPage() {
 
   const handleAddOption = async () => {
     if (!businessIdDoc || !serviceId) return;
-    const price = parseFloat(newOptionPrice);
+    let priceMinor: number;
     if (!newOptionName.trim()) {
       toast.error("Nombre de la opción es requerido");
       return;
     }
-    if (Number.isNaN(price) || price < 0) {
-      toast.error("Precio debe ser un número ≥ 0");
+    try {
+      priceMinor = majorToMinor(newOptionPrice);
+      if (priceMinor < 0) throw new RangeError("Precio debe ser ≥ 0");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Precio inválido");
       return;
     }
     setAddingOption(true);
@@ -306,7 +311,7 @@ export default function ServiceDetailPage() {
           args: {
             service_id: serviceId,
             name: newOptionName.trim(),
-            price,
+            priceMinor,
             durationMinutes: newOptionDuration.trim() ? parseInt(newOptionDuration, 10) || null : null,
           },
         },
@@ -372,12 +377,18 @@ export default function ServiceDetailPage() {
     const first = service.options.find((o) => o.status !== false);
     if (first) setPreviewOptionId(first._id);
   }, [service?.options, previewOptionId]);
-  const totalCost = productionCost?.totalProductionCost ?? 0;
-  const minOptionPrice = options.length > 0 ? Math.min(...options.map((o) => o.price ?? 0)) : 0;
-  const grossProfit = minOptionPrice - totalCost;
+  const totalCostMinor = productionCost?.totalProductionCostMinor ?? 0;
+  const minOptionPriceMinor = options.length > 0 ? Math.min(...options.map((o) => o.priceMinor ?? 0)) : 0;
+  const grossProfitMinor = minOptionPriceMinor - totalCostMinor;
   const marginPercent =
-    minOptionPrice > 0 ? ((minOptionPrice - totalCost) / minOptionPrice) * 100 : 0;
-  const costExceedsPrice = totalCost > 0 && minOptionPrice > 0 && totalCost >= minOptionPrice;
+    minOptionPriceMinor > 0 ? ((minOptionPriceMinor - totalCostMinor) / minOptionPriceMinor) * 100 : 0;
+  const costExceedsPrice = totalCostMinor > 0 && minOptionPriceMinor > 0 && totalCostMinor >= minOptionPriceMinor;
+  let draftOptionPriceMinor: number | null = null;
+  try {
+    draftOptionPriceMinor = newOptionPrice.trim() ? majorToMinor(newOptionPrice) : null;
+  } catch {
+    draftOptionPriceMinor = null;
+  }
 
   const filteredVariants = useMemo(() => {
     const q = materialSearchQuery.trim().toLowerCase();
@@ -441,7 +452,7 @@ export default function ServiceDetailPage() {
             <div>
               <p className="font-medium text-destructive">El costo de producción supera el precio de venta</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Costo por unidad: ${totalCost.toFixed(2)}. Precio mínimo de opción: ${minOptionPrice.toFixed(2)}.
+                Costo por unidad: {formatMinor(totalCostMinor, currency)}. Precio mínimo de opción: {formatMinor(minOptionPriceMinor, currency)}.
                 Sube el precio de las opciones o reduce insumos antes de guardar.
               </p>
             </div>
@@ -533,7 +544,7 @@ export default function ServiceDetailPage() {
                 <SelectContent>
                   {activeOptions.map((o) => (
                     <SelectItem key={o._id} value={o._id}>
-                      {o.name} — ${(o.price ?? 0).toFixed(2)}
+                      {o.name} — {formatMinor(o.priceMinor ?? 0, currency)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -582,8 +593,8 @@ export default function ServiceDetailPage() {
                   <TableRow key={b.variantId}>
                     <TableCell className="font-mono text-sm">{b.sku}</TableCell>
                     <TableCell>{b.quantity}</TableCell>
-                    <TableCell>${(b.costPrice ?? 0).toFixed(4)}</TableCell>
-                    <TableCell>${(b.subtotal ?? 0).toFixed(4)}</TableCell>
+                    <TableCell>{formatMinor(b.costPriceMinor ?? 0, currency)}</TableCell>
+                    <TableCell>{formatMinor(b.subtotalMinor ?? 0, currency)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -686,8 +697,8 @@ export default function ServiceDetailPage() {
                 </TableRow>
               ) : (
                 options.map((opt) => {
-                  const optPrice = opt.price ?? 0;
-                  const belowCost = totalCost > 0 && optPrice < totalCost;
+                  const optPriceMinor = opt.priceMinor ?? 0;
+                  const belowCost = totalCostMinor > 0 && optPriceMinor < totalCostMinor;
                   return (
                   <TableRow key={opt._id}>
                     <TableCell className="font-medium">
@@ -696,7 +707,7 @@ export default function ServiceDetailPage() {
                         <span className="ml-2 text-xs text-destructive font-normal">(precio &lt; costo)</span>
                       )}
                     </TableCell>
-                    <TableCell>${optPrice.toFixed(2)}</TableCell>
+                          <TableCell>{formatMinor(optPriceMinor, currency)}</TableCell>
                     <TableCell>{opt.durationMinutes != null ? opt.durationMinutes : "—"}</TableCell>
                     <TableCell>
                       {opt.status && (
@@ -723,7 +734,7 @@ export default function ServiceDetailPage() {
             items={archivedOptions.map((o) => ({
               id: o._id,
               title: o.name,
-              subtitle: `$${(o.price ?? 0).toFixed(2)}`,
+              subtitle: formatMinor(o.priceMinor ?? 0, currency),
               onRestore: () => void handleRestoreOption(o._id, o.name),
             }))}
             description="Opciones archivadas por estar en facturas. Puedes restaurarlas para volver a venderlas."
@@ -744,22 +755,22 @@ export default function ServiceDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-xs text-muted-foreground">Costo total de producción (por unidad)</p>
-                <p className="text-xl font-semibold">${totalCost.toFixed(4)}</p>
+                <p className="text-xl font-semibold">{formatMinor(totalCostMinor, currency)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Precio mín. venta (opciones)</p>
-                <p className="text-xl font-semibold">{minOptionPrice > 0 ? `$${minOptionPrice.toFixed(2)}` : "—"}</p>
+                <p className="text-xl font-semibold">{minOptionPriceMinor > 0 ? formatMinor(minOptionPriceMinor, currency) : "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Utilidad bruta (por unidad)</p>
-                <p className={`text-xl font-semibold ${grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                  {minOptionPrice > 0 ? `$${grossProfit.toFixed(2)}` : "—"}
+                <p className={`text-xl font-semibold ${grossProfitMinor >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                  {minOptionPriceMinor > 0 ? formatMinor(grossProfitMinor, currency) : "—"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Margen</p>
                 <p className={`text-xl font-semibold ${marginPercent >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                  {minOptionPrice > 0 ? `${marginPercent.toFixed(1)}%` : "—"}
+                  {minOptionPriceMinor > 0 ? `${marginPercent.toFixed(1)}%` : "—"}
                 </p>
               </div>
               {costExceedsPrice && (
@@ -800,9 +811,9 @@ export default function ServiceDetailPage() {
                 placeholder="0.00"
                 className="mt-1"
               />
-              {totalCost > 0 && parseFloat(newOptionPrice) < totalCost && (
+              {totalCostMinor > 0 && draftOptionPriceMinor != null && draftOptionPriceMinor < totalCostMinor && (
                 <p className="text-sm text-destructive mt-1">
-                  El precio no puede ser menor que el costo de producción (${totalCost.toFixed(2)}). Sube el precio para poder guardar.
+                  El precio no puede ser menor que el costo de producción ({formatMinor(totalCostMinor, currency)}). Sube el precio para poder guardar.
                 </p>
               )}
             </div>
@@ -827,7 +838,7 @@ export default function ServiceDetailPage() {
               disabled={
                 addingOption ||
                 !newOptionName.trim() ||
-                (totalCost > 0 && (Number.isNaN(parseFloat(newOptionPrice)) || parseFloat(newOptionPrice) < totalCost))
+                (totalCostMinor > 0 && (draftOptionPriceMinor == null || draftOptionPriceMinor < totalCostMinor))
               }
             >
               {addingOption ? "Agregando…" : "Agregar opción"}

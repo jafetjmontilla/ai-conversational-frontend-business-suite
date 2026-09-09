@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { formatMinor, type CurrencyCode } from "@/lib/money";
 
 export type OrderRow = {
   _id: string;
@@ -22,7 +23,11 @@ export type OrderRow = {
   fulfillmentMethod?: string;
   clientName?: string;
   clientPhone?: string;
-  totalUsd: number;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
+  exchangeRate: number;
+  totalBaseMinor: number;
+  totalDisplayMinor: number;
   summary?: string;
   invoiceId?: string;
   reservedUntil?: string;
@@ -32,7 +37,7 @@ export type OrderRow = {
     reference?: string;
     phone?: string;
   };
-  lines?: Array<{ sku: string; description: string; quantity: number; total: number }>;
+  lines?: Array<{ sku: string; description: string; quantity: number; unitPriceMinor: number; totalMinor: number }>;
   createdAt?: string;
 };
 
@@ -150,7 +155,10 @@ export function OrdersContent({ businessId, businessSlug }: Props) {
               <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
                 <div>
                   <CardTitle className="text-base">
-                    {order.clientName || "Cliente"} · ${order.totalUsd.toFixed(2)}
+                    {order.clientName || "Cliente"} · {formatMinor(
+                      order.totalDisplayMinor,
+                      order.displayCurrency
+                    )}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">
                     {order.summary || order.lines?.map((l) => l.description).join(", ")}

@@ -15,6 +15,7 @@ import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed"
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
 import { OfferingsGenerateDialog } from "@/components/offerings/OfferingsGenerateDialog";
 import type { OfferingsImportDraft, ParsedServiceOptionDraft } from "@/lib/offerings/importTypes";
+import { formatMinor, toCurrencyCode } from "@/lib/money";
 
 export default function NewServicePage() {
   const params = useParams();
@@ -22,7 +23,8 @@ export default function NewServicePage() {
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
-  const { businessIdDoc } = useBusinessApps(businessId);
+  const { business, businessIdDoc } = useBusinessApps(businessId);
+  const currency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -80,7 +82,7 @@ export default function NewServicePage() {
             args: {
               service_id: created._id,
               name: opt.name.trim(),
-              price: opt.price ?? 0,
+              priceMinor: opt.priceMinor ?? 0,
               durationMinutes: opt.durationMinutes ?? undefined,
             },
           },
@@ -184,7 +186,7 @@ export default function NewServicePage() {
                 <ul className="mt-1 text-muted-foreground list-disc pl-5">
                   {pendingOptions.map((o, i) => (
                     <li key={i}>
-                      {o.name} — ${o.price}
+                      {o.name} — {formatMinor(o.priceMinor, currency)}
                       {o.durationMinutes ? ` (${o.durationMinutes} min)` : ""}
                     </li>
                   ))}

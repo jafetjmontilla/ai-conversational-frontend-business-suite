@@ -54,6 +54,7 @@ import { OfferingsGenerateDialog } from "@/components/offerings/OfferingsGenerat
 import type { OfferingsImportDraft } from "@/lib/offerings/importTypes";
 import { ModifierGroupsLinker } from "@/components/offerings/ModifierGroupsLinker";
 import { ProductPhotosField, uploadProductPhotos } from "@/components/catalog/ProductPhotosField";
+import { formatMinor, majorToMinor, minorToMajor, toCurrencyCode } from "@/lib/money";
 
 const PRODUCT_TABS = ["general", "variants", "modifiers", "availability"] as const;
 type ProductTab = (typeof PRODUCT_TABS)[number];
@@ -65,7 +66,7 @@ function createEmptyProduct(isSellableDefault: boolean): ProductWithDetails {
     description: "",
     category_id: null,
     pricingAttributeId: null,
-    base_price: 0,
+    base_price_minor: 0,
     brand: "",
     is_sellable: isSellableDefault,
     trackInventory: true,
@@ -87,7 +88,7 @@ const roundToTwo = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 type ProductListSummary = Product & {
   category?: { _id: string; name: string } | null;
-  variants?: { _id: string; sku: string; stock_quantity: number; price_override: number | null }[];
+  variants?: { _id: string; sku: string; stock_quantity: number; price_override_minor: number | null }[];
 };
 
 export type ProductFormPanelProps = {
@@ -114,8 +115,9 @@ export function ProductFormPanel({
   onProductDeleted,
 }: ProductFormPanelProps) {
   const isCreate = productId === null;
-  const { businessIdDoc: businessIdDocFromHook, installedApps } = useBusinessApps(businessId);
+  const { business, businessIdDoc: businessIdDocFromHook, installedApps } = useBusinessApps(businessId);
   const businessIdDoc = businessIdDocProp ?? businessIdDocFromHook;
+  const currency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(!isCreate);
@@ -257,7 +259,7 @@ export function ProductFormPanel({
       const base = prev ?? createEmptyProduct(hasCapability(installedApps, "product.sellable"));
       const next = { ...base, name: prod.name, description: prod.description ?? "" };
       next.brand = prod.brand ?? "";
-      if (prod.base_price != null) next.base_price = prod.base_price;
+      if (prod.base_price_minor != null) next.base_price_minor = prod.base_price_minor;
       if (prod.is_sellable != null) next.is_sellable = prod.is_sellable;
       if (prod.category_hint && categories.length) {
         const match = categories.find(
@@ -290,7 +292,7 @@ export function ProductFormPanel({
             name: product.name.trim(),
             description: product.description?.trim() || undefined,
             category_id: product.category_id || undefined,
-            base_price: roundToTwo(product.base_price ?? 0),
+            base_price_minor: product.base_price_minor ?? 0,
             brand: product.brand?.trim() || undefined,
             is_sellable: product.is_sellable !== false,
             trackInventory: product.is_sellable !== false ? (product.trackInventory ?? true) : undefined,
@@ -351,7 +353,7 @@ export function ProductFormPanel({
             description: product.description,
             category_id: product.category_id ?? null,
             pricingAttributeId: product.pricingAttributeId ?? null,
-            base_price: product.base_price,
+            base_price_minor: product.base_price_minor,
             brand: product.brand,
             is_sellable: product.is_sellable !== false,
             trackInventory: product.is_sellable !== false ? (product.trackInventory ?? true) : undefined,
@@ -375,7 +377,7 @@ export function ProductFormPanel({
           _id: v._id,
           sku: v.sku,
           stock_quantity: v.stock_quantity,
-          price_override: v.price_override,
+          price_override_minor: v.price_override_minor,
         })),
       });
     } catch (e: unknown) {
@@ -420,7 +422,7 @@ export function ProductFormPanel({
     }
     setPreviewLoading(true);
     try {
-      const input = buildPreviewInput(product._id, product.name, product.base_price ?? 0, options);
+      const input = buildPreviewInput(product._id, product.name, product.base_price_minor ?? 0, options);
       const combinations = await fetchVariantsPreview(businessIdDoc, input);
       setPreviewRows(combinations as VariantPreviewRow[]);
     } catch (e: unknown) {
@@ -528,7 +530,7 @@ export function ProductFormPanel({
     }
   };
 
-  const updatePreviewRow = (index: number, field: "price_override" | "stock_quantity", value: number | null) => {
+  const updatePreviewRow = (index: number, field: "price_override_minor" | "stock_quantity", value: number | null) => {
     setPreviewRows((prev) =>
       prev.map((r, i) =>
         i === index
@@ -540,22 +542,29 @@ export function ProductFormPanel({
 
   const openEditVariant = (v: ProductVariant) => {
     setEditingVariant(v._id);
-    setEditPrice(String(v.price_override ?? ""));
+    setEditPrice(v.price_override_minor == null ? "" : String(minorToMajor(v.price_override_minor)));
     setEditStock(String(v.stock_quantity));
-    setEditCost(String(v.cost_price ?? ""));
+    setEditCost(v.cost_price_minor == null ? "" : String(minorToMajor(v.cost_price_minor)));
     setEditUnitOfMeasure(v.unit_of_measure ?? "unidad");
   };
 
   const handleSaveVariant = async (variant: ProductVariant) => {
     if (!businessIdDoc || editingVariant !== variant._id) return;
     const stock = editStock === "" ? undefined : roundToTwo(parseFloat(editStock));
-    const price = editPrice === "" ? undefined : parseFloat(editPrice);
-    const cost = editCost === "" ? undefined : roundToTwo(parseFloat(editCost));
+    let priceMinor: number | undefined;
+    let costMinor: number | undefined;
+    try {
+      priceMinor = editPrice === "" ? undefined : majorToMinor(editPrice);
+      costMinor = editCost === "" ? undefined : majorToMinor(editCost);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Importe inválido");
+      return;
+    }
     const unit = editUnitOfMeasure.trim() || undefined;
     const currentUnit = (variant.unit_of_measure ?? "unidad").toLowerCase();
-    const priceChanged = price !== undefined && price !== (variant.price_override ?? basePrice);
+    const priceChanged = priceMinor !== undefined && priceMinor !== (variant.price_override_minor ?? basePriceMinor);
     const stockChanged = stock !== undefined && stock !== variant.stock_quantity;
-    const costChanged = cost !== undefined && cost !== (variant.cost_price ?? null);
+    const costChanged = costMinor !== undefined && costMinor !== (variant.cost_price_minor ?? null);
     const unitChanged = unit !== undefined && unit.toLowerCase() !== currentUnit;
     const hasChange = priceChanged || stockChanged || costChanged || unitChanged;
     if (!hasChange) {
@@ -566,13 +575,13 @@ export function ProductFormPanel({
       const item: {
         variant_id: string;
         stock_quantity?: number;
-        price_override?: number | null;
-        cost_price?: number | null;
+        price_override_minor?: number | null;
+        cost_price_minor?: number | null;
         unit_of_measure?: string;
       } = { variant_id: variant._id };
       if (stockChanged) item.stock_quantity = stock;
-      if (priceChanged) item.price_override = price;
-      if (costChanged) item.cost_price = cost;
+      if (priceChanged) item.price_override_minor = priceMinor;
+      if (costChanged) item.cost_price_minor = costMinor;
       if (unitChanged) item.unit_of_measure = unit;
       await bulkUpdateVariants(businessIdDoc, [item]);
       setProduct((prev) => {
@@ -584,8 +593,8 @@ export function ProductFormPanel({
               ? {
                 ...v,
                 stock_quantity: stockChanged && stock !== undefined ? stock : v.stock_quantity,
-                price_override: priceChanged && price !== undefined ? price : v.price_override,
-                cost_price: costChanged && cost !== undefined ? cost : v.cost_price,
+                price_override_minor: priceChanged && priceMinor !== undefined ? priceMinor : v.price_override_minor,
+                cost_price_minor: costChanged && costMinor !== undefined ? costMinor : v.cost_price_minor,
                 unit_of_measure: unitChanged && unit !== undefined ? unit : v.unit_of_measure,
               }
               : v
@@ -629,7 +638,7 @@ export function ProductFormPanel({
     );
   }
 
-  const basePrice = product.base_price ?? 0;
+  const basePriceMinor = product.base_price_minor ?? 0;
   const inventoryMode = getProductInventoryMode(product);
   const defaultVariant = (product.variants ?? []).find((v) => v.status !== false && !v.deleted_at)
     ?? product.variants?.[0];
@@ -793,8 +802,15 @@ export function ProductFormPanel({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={product.base_price ?? ""}
-                  onChange={(e) => setProduct((p) => (p ? { ...p, base_price: e.target.value ? parseFloat(e.target.value) : 0 } : null))}
+                  value={minorToMajor(product.base_price_minor ?? 0)}
+                  onChange={(e) => {
+                    try {
+                      const basePriceMinor = e.target.value ? majorToMinor(e.target.value) : 0;
+                      setProduct((p) => (p ? { ...p, base_price_minor: basePriceMinor } : null));
+                    } catch {
+                      // Se conserva el último importe válido.
+                    }
+                  }}
                   className="mt-1"
                   disabled={saving}
                 />
@@ -943,8 +959,8 @@ export function ProductFormPanel({
                       ) : (
                         (product.variants || []).map((v) => {
                           const isEditing = editingVariant === v._id;
-                          const effectivePrice = v.price_override ?? basePrice;
-                          const displayCost = v.cost_price ?? "";
+                          const effectivePriceMinor = v.price_override_minor ?? basePriceMinor;
+                          const displayCostMinor = v.cost_price_minor;
                           const displayUnit = v.unit_of_measure ?? "unidad";
                           return (
                             <TableRow key={v._id}>
@@ -958,11 +974,11 @@ export function ProductFormPanel({
                                     value={editPrice}
                                     onChange={(e) => setEditPrice(e.target.value)}
                                     className="h-8 w-24"
-                                    placeholder={String(effectivePrice)}
+                                    placeholder={String(minorToMajor(effectivePriceMinor))}
                                   />
                                 ) : (
                                   <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
-                                    ${effectivePrice.toFixed(2)}
+                                    {formatMinor(effectivePriceMinor, currency)}
                                   </span>
                                 )}
                               </TableCell>
@@ -979,7 +995,7 @@ export function ProductFormPanel({
                                   />
                                 ) : (
                                   <span className="cursor-pointer" onClick={() => openEditVariant(v)}>
-                                    {displayCost !== "" ? `$${Number(displayCost).toFixed(2)}` : "—"}
+                                    {displayCostMinor != null ? formatMinor(displayCostMinor, currency) : "—"}
                                   </span>
                                 )}
                               </TableCell>
@@ -1168,8 +1184,14 @@ export function ProductFormPanel({
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={row.price_override ?? ""}
-                                onChange={(e) => updatePreviewRow(idx, "price_override", e.target.value ? parseFloat(e.target.value) : null)}
+                                value={row.price_override_minor == null ? "" : minorToMajor(row.price_override_minor)}
+                                onChange={(e) => {
+                                  try {
+                                    updatePreviewRow(idx, "price_override_minor", e.target.value ? majorToMinor(e.target.value) : null);
+                                  } catch {
+                                    // Se conserva el último importe válido.
+                                  }
+                                }}
                                 className="h-8 w-24"
                               />
                             </TableCell>

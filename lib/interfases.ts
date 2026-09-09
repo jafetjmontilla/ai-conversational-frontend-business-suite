@@ -1,3 +1,5 @@
+import type { CurrencyCode } from "@/lib/money";
+
 // Roles del sistema (suite general)
 export const systemRoles = ['system_admin', 'system_operator', 'system_viewer'] as const;
 export type SystemRole = typeof systemRoles[number];
@@ -497,7 +499,7 @@ export interface Business {
   email?: string;
   phone?: string;
   address?: BusinessAddress;
-  currency?: string;
+  currency?: CurrencyCode;
   /** País del negocio (configuración regional). */
   country?: string;
   timezone?: string;
@@ -507,10 +509,10 @@ export interface Business {
   taxRegime?: string;
   digitalSignatureOrStamp?: string;
   invoiceNumbering?: InvoiceNumbering;
-  /** Moneda base para los precios: USD, EUR, VES. */
-  billingBaseCurrency?: "USD" | "EUR" | "VES";
-  /** Moneda en la que mostrar precios: USD, EUR, VES. */
-  billingDisplayCurrency?: "USD" | "EUR" | "VES";
+  /** Moneda base para los precios. */
+  billingBaseCurrency?: CurrencyCode;
+  /** Moneda en la que mostrar precios. */
+  billingDisplayCurrency?: CurrencyCode;
   /** Fuente de tasa para el cambio: bcv_dolar, bcv_euro, binance, custom. */
   billingExchangeRateSource?: "bcv_dolar" | "bcv_euro" | "binance" | "custom";
   /** Tasa manual cuando la fuente es custom. */
@@ -553,8 +555,8 @@ export interface OptionSelect {
 }
 
 export interface PriceHistory {
-  value: number;
-  valorUsd: number;
+  valueMinor: number;
+  valueUsdMinor: number;
   updatedAt: string;
   userId: string;
 }
@@ -574,8 +576,8 @@ export interface InvoiceSelectedModifier {
   modifierSectionId?: string;
   catalogItemId: string;
   quantity: number;
-  unitPrice: number;
-  total: number;
+  unitPriceMinor: number;
+  totalMinor: number;
   /** Solo UI; no se persiste en API. */
   label?: string;
 }
@@ -585,8 +587,8 @@ export interface InvoiceItem {
   id: string;
   quantity: number;
   description: string;
-  unitPrice: number;
-  total: number;
+  unitPriceMinor: number;
+  totalMinor: number;
   inventoryId: string;
   itemType?: InvoiceItemType;
   productVariantId?: string;
@@ -606,8 +608,11 @@ export interface Invoice {
   clientId?: string;
   clientPhone?: string;
   items: InvoiceItem[];
-  totalBs: number;
-  totalUsd: number;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
+  exchangeRate: number;
+  totalBaseMinor: number;
+  totalDisplayMinor: number;
   status: "draft" | "paid" | "cancelled";
   createdBy: string;
   createdByName?: string;
@@ -628,8 +633,8 @@ export interface PaymentMethod {
   _id: string;
   id: string;
   name: string;
-  amountBs: number;
-  amountUsd: number;
+  amountMinor: number;
+  currency: CurrencyCode;
   paymentId?: string;
   urlSuport?: string;
   createdAt?: string;
@@ -640,7 +645,9 @@ export interface Payment {
   _id: string;
   invoiceId: string;
   paymentMethods: PaymentMethod[];
-  totalPaid: number;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
+  totalPaidMinor: number;
   exchangeRate: number;
   status: string;
   createdAt: string;
@@ -658,10 +665,10 @@ export interface InventoryItem {
   type: "mercancia" | "servicio";
   category?: string;
   quantity: number;
-  unitCost: number;
-  salesPrice: number;
-  unitCostUsd: number;
-  salesPriceUsd: number;
+  unitCostMinor: number;
+  salesPriceMinor: number;
+  unitCostUsdMinor: number;
+  salesPriceUsdMinor: number;
   profitPercentage: number;
   status: boolean;
   costHistory: PriceHistory[];
@@ -699,7 +706,7 @@ export interface Product {
   name: string;
   description: string;
   category_id: string | null;
-  base_price: number;
+  base_price_minor: number;
   brand: string;
   /** Si false, es insumo: no aparece en catálogo de ventas; sí en recetas. Default true. */
   is_sellable?: boolean;
@@ -742,8 +749,8 @@ export interface ProductVariant {
   _id: string;
   product_id: string;
   sku: string;
-  price_override: number | null;
-  cost_price?: number | null;
+  price_override_minor: number | null;
+  cost_price_minor?: number | null;
   unit_of_measure?: string;
   stock_quantity: number;
   image_url: string | null;
@@ -761,7 +768,7 @@ export interface VariantPreviewItem {
   sku: string;
   attributeValues: { attributeName: string; value: string; attributeValueId?: string }[];
   attribute_value_ids?: string[];
-  price_override: number | null;
+  price_override_minor: number | null;
   stock_quantity: number;
 }
 
@@ -805,7 +812,7 @@ export interface PaymentFiltersInput {
 export interface ServiceOption {
   _id: string;
   name: string;
-  price: number;
+  priceMinor: number;
   durationMinutes?: number | null;
   status: boolean;
 }
@@ -817,7 +824,7 @@ export interface ServiceMaterial {
   business_id: string;
   product_variant_id: string;
   quantity_required: number;
-  productVariant?: { _id: string; sku: string; cost_price?: number | null; unit_of_measure?: string } | null;
+  productVariant?: { _id: string; sku: string; cost_price_minor?: number | null; unit_of_measure?: string } | null;
 }
 
 /** Variante para selector de insumos (con nombre de producto para búsqueda). */
@@ -825,7 +832,7 @@ export interface ProductVariantForMaterial {
   _id: string;
   product_id: string;
   sku: string;
-  cost_price?: number | null;
+  cost_price_minor?: number | null;
   unit_of_measure?: string;
   product?: { _id: string; name: string } | null;
 }
@@ -849,8 +856,8 @@ export interface Service {
 
 /** Resultado del costo de producción dinámico de un servicio. */
 export interface ProductionCostResult {
-  totalProductionCost: number;
-  breakdown: Array<{ variantId: string; sku: string; quantity: number; costPrice: number; subtotal: number }>;
+  totalProductionCostMinor: number;
+  breakdown: Array<{ variantId: string; sku: string; quantity: number; costPriceMinor: number; subtotalMinor: number }>;
 }
 
 /** Registro del kardex (auditoría de movimientos de stock). */
@@ -872,7 +879,7 @@ export type ModifierPriceBehavior = "ADDITIONAL" | "INCLUDED";
 
 export interface PriceMatrixEntry {
   priceKey: string;
-  price: number;
+  priceMinor: number;
 }
 
 export interface ModifierCatalogItem {
@@ -880,8 +887,8 @@ export interface ModifierCatalogItem {
   sku: string;
   name: string;
   type: string;
-  price: number;
-  priceMatrix?: PriceMatrixEntry[];
+  priceMinor: number;
+  priceMatrixMinor?: PriceMatrixEntry[];
   trackInventory: boolean;
   hasBillOfMaterials: boolean;
   requiredMaterials?: RequiredMaterial[];
@@ -894,8 +901,8 @@ export interface ModifierCatalogItem {
 
 export interface ModifierGroupOption {
   catalogItemId: string;
-  priceOverride?: number | null;
-  priceMatrix?: PriceMatrixEntry[];
+  priceOverrideMinor?: number | null;
+  priceMatrixMinor?: PriceMatrixEntry[];
   sortOrder: number;
   isDefault: boolean;
   catalogItem?: ModifierCatalogItem | null;
@@ -936,11 +943,11 @@ export interface ModifierPriceLine {
   modifierSectionId?: string;
   catalogItemId: string;
   quantity: number;
-  unitPrice: number;
-  total: number;
+  unitPriceMinor: number;
+  totalMinor: number;
 }
 
 export interface ModifierPricingResult {
   lines: ModifierPriceLine[];
-  additionalTotal: number;
+  additionalTotalMinor: number;
 }

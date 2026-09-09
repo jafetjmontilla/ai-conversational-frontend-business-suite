@@ -10,13 +10,16 @@ import { InvoiceLineModifiers } from './InvoiceLineModifiers';
 import { InvoiceLineNoteField } from './InvoiceLineNoteField';
 import { fetchApiV1, queries } from '@/lib/Fetching';
 import { toast } from 'sonner';
-import { computeLineTotal, mapLineToInvoiceItemInput, roundToTwoDecimals } from '@/lib/billing/invoiceLine';
+import { computeLineTotalMinor, mapLineToInvoiceItemInput, roundToTwoDecimals } from '@/lib/billing/invoiceLine';
+import { assertMinorUnits, formatMinor, type CurrencyCode } from '@/lib/money';
 
 interface InvoiceCardProps {
   invoice: Invoice;
   onUpdate: (updatedInvoice: Partial<Invoice>) => void;
   onRemove: () => void;
   exchangeRate: number;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   /** _id del negocio (Business document). */
   businessId: string;
   setLocalInvoices: Dispatch<SetStateAction<Invoice[]>>;
@@ -47,11 +50,14 @@ function rescaleModifiers(
   return (modifiers ?? []).map((m) => ({
     ...m,
     quantity: qty,
-    total: roundToTwoDecimalsLocal(qty * (m.unitPrice ?? 0)),
+    totalMinor: assertMinorUnits(
+      Math.round(qty * (m.unitPriceMinor ?? 0)),
+      "totalMinor"
+    ),
   }));
 }
 
-export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, businessId, setLocalInvoices, onPaymentSuccess }: InvoiceCardProps) {
+export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, baseCurrency, displayCurrency, businessId, setLocalInvoices, onPaymentSuccess }: InvoiceCardProps) {
   const [localInvoice, setLocalInvoice] = useState<Invoice>(invoice);
   const [disablePay, setDisablePay] = useState(true);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -65,8 +71,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
       id: `item-${i}`,
       quantity: 0,
       description: '',
-      unitPrice: 0,
-      total: 0,
+      unitPriceMinor: 0,
+      totalMinor: 0,
       inventoryId: '',
       itemType: 'product_variant' as const,
       productVariantId: '',
@@ -79,7 +85,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
 
   useEffect(() => {
     const invoiceIdChanged = localInvoice._id !== invoice._id;
-    setDisablePay(localInvoice.totalBs === 0);
+    setDisablePay(localInvoice.totalBaseMinor === 0);
     if (!invoiceIdChanged) return;
     setLocalInvoice(invoice);
     if (invoice.items && invoice.items.length > 0) {
@@ -90,8 +96,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
             ...updatedTableItems[index],
             quantity: item.quantity || 0,
             description: item.description || '',
-            unitPrice: item.unitPrice || 0,
-            total: item.total || 0,
+            unitPriceMinor: item.unitPriceMinor || 0,
+            totalMinor: item.totalMinor || 0,
             inventoryId: item.inventoryId || '',
             itemType: item.itemType || 'product_variant',
             productVariantId: item.productVariantId || '',
@@ -118,20 +124,20 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
       return prevItems.map(item => {
         if (item.id === itemId) {
           const updatedItem = { ...item, [field]: value };
-          if (field === 'quantity' || field === 'unitPrice') {
+          if (field === 'quantity' || field === 'unitPriceMinor') {
             const quantity = updatedItem.quantity || 0;
-            const unitPrice = updatedItem.unitPrice || 0;
+            const unitPriceMinor = updatedItem.unitPriceMinor || 0;
             updatedItem.selectedModifiers = rescaleModifiers(updatedItem.selectedModifiers, quantity);
-            updatedItem.total = computeLineTotal(quantity, unitPrice, updatedItem.selectedModifiers);
+            updatedItem.totalMinor = computeLineTotalMinor(quantity, unitPriceMinor, updatedItem.selectedModifiers);
           }
           if (field === 'lineNote' || field === 'selectedModifiers') {
             const quantity = updatedItem.quantity || 0;
-            const unitPrice = updatedItem.unitPrice || 0;
-            updatedItem.total = computeLineTotal(quantity, unitPrice, updatedItem.selectedModifiers);
+            const unitPriceMinor = updatedItem.unitPriceMinor || 0;
+            updatedItem.totalMinor = computeLineTotalMinor(quantity, unitPriceMinor, updatedItem.selectedModifiers);
           }
           if (field === 'description' && (!value || value.trim() === '')) {
-            updatedItem.unitPrice = 0;
-            updatedItem.total = 0;
+            updatedItem.unitPriceMinor = 0;
+            updatedItem.totalMinor = 0;
             updatedItem.inventoryId = '';
             updatedItem.productVariantId = '';
             updatedItem.productId = '';
@@ -146,8 +152,10 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
   };
 
   useEffect(() => {
-    const totalBs = roundToTwoDecimals(tableItems.reduce((sum, item) => sum + (item.total || 0), 0));
-    const totalUsd = exchangeRate > 0 ? roundToTwoDecimals(totalBs / exchangeRate) : 0;
+    const totalBaseMinor = tableItems.reduce((sum, item) => sum + (item.totalMinor || 0), 0);
+    const totalDisplayMinor = exchangeRate > 0
+      ? assertMinorUnits(Math.round(totalBaseMinor * exchangeRate), "totalDisplayMinor")
+      : totalBaseMinor;
     const invoiceItems: InvoiceItem[] = tableItems
       .filter(item => item.description.trim() !== '' || item.quantity > 0)
       .map(item => ({
@@ -155,8 +163,8 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
         id: item.id,
         quantity: roundToTwoDecimals(item.quantity || 0),
         description: item.description || '',
-        unitPrice: roundToTwoDecimals(item.unitPrice || 0),
-        total: computeLineTotal(item.quantity || 0, item.unitPrice || 0, item.selectedModifiers),
+        unitPriceMinor: item.unitPriceMinor || 0,
+        totalMinor: computeLineTotalMinor(item.quantity || 0, item.unitPriceMinor || 0, item.selectedModifiers),
         inventoryId: item.inventoryId || '',
         itemType: item.productVariantId ? 'product_variant' : (item.itemType || 'inventory'),
         productVariantId: item.productVariantId || undefined,
@@ -168,8 +176,11 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
     const updatedInvoice = {
       ...localInvoice,
       items: invoiceItems,
-      totalBs,
-      totalUsd,
+      baseCurrency,
+      displayCurrency,
+      exchangeRate,
+      totalBaseMinor,
+      totalDisplayMinor,
     };
     setLocalInvoice(updatedInvoice);
     onUpdate(updatedInvoice);
@@ -182,7 +193,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
           const updatedItem = {
             ...item,
             description: selection.description,
-            unitPrice: roundToTwoDecimalsLocal(selection.unitPrice),
+            unitPriceMinor: selection.unitPriceMinor,
             inventoryId: '',
             itemType: 'product_variant' as const,
             productVariantId: selection.productVariantId,
@@ -192,7 +203,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
             id: selection.sku || item.id,
           };
           const quantity = updatedItem.quantity || 0;
-          updatedItem.total = computeLineTotal(quantity, selection.unitPrice, []);
+          updatedItem.totalMinor = computeLineTotalMinor(quantity, selection.unitPriceMinor, []);
           return updatedItem;
         }
         return item;
@@ -353,14 +364,14 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
                       onSelectItem={(inventoryItem) => handleInventoryItemSelect(item.id, inventoryItem)}
                       className="border-0"
                       businessId={businessId}
-                      exchangeRate={exchangeRate}
+                      currency={baseCurrency}
                     />
                   </td>
                   <td className='border-[1px] border-ring bg-white dark:bg-gray-100 p-0'>
                     <input
                       id={`unitPrice-${index}`}
                       type="text"
-                      value={item.unitPrice !== 0 ? formatNumber(item.unitPrice) : ""}
+                      value={item.unitPriceMinor !== 0 ? formatMinor(item.unitPriceMinor, baseCurrency) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 px-1'
                     />
@@ -369,7 +380,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
                     <input
                       id={`total-${index}`}
                       type="text"
-                      value={item.total !== 0 ? formatNumber(item.total) : ""}
+                      value={item.totalMinor !== 0 ? formatMinor(item.totalMinor, baseCurrency) : ""}
                       readOnly
                       className='w-full bg-gray-100 dark:bg-gray-100 text-right border-0 px-1'
                     />
@@ -398,6 +409,7 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
                       lineQuantity={it.quantity || 0}
                       value={it.selectedModifiers ?? []}
                       onChange={(mods) => updateTableItem(it.id, "selectedModifiers", mods)}
+                      currency={baseCurrency}
                     />
                   </div>
                 ))}
@@ -407,17 +419,20 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
           <div className="flex flex-col">
             <div className="flex justify-between text-xs">
               <div className="flex-1" />
-              <span className="font-medium">TOTAL Bs:</span>
+              <span className="font-medium">TOTAL {baseCurrency}:</span>
               <span className="font-bold w-[60px] text-right pr-1">
-                {formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0))}
+                {formatMinor(tableItems.reduce((sum, item) => sum + (item.totalMinor || 0), 0), baseCurrency)}
               </span>
             </div>
             {exchangeRate > 0 && (
               <div className="flex justify-between text-xs">
                 <div className="flex-1" />
-                <span className="font-medium">TOTAL $:</span>
+                <span className="font-medium">TOTAL {displayCurrency}:</span>
                 <span className="font-bold w-[60px] text-right pr-1">
-                  {formatNumber(tableItems.reduce((sum, item) => sum + (item.total || 0), 0) / exchangeRate)}
+                  {formatMinor(
+                    Math.round(tableItems.reduce((sum, item) => sum + (item.totalMinor || 0), 0) * exchangeRate),
+                    displayCurrency
+                  )}
                 </span>
               </div>
             )}
@@ -442,7 +457,9 @@ export function InvoiceCard({ invoice, onUpdate, onRemove, exchangeRate, busines
           }}
           invoice={savedInvoice}
           businessId={businessId}
-          exchangeRate={exchangeRate}
+          exchangeRate={savedInvoice.exchangeRate}
+          baseCurrency={savedInvoice.baseCurrency}
+          displayCurrency={savedInvoice.displayCurrency}
           onSuccess={() => {
             setLocalInvoices(prev => prev.filter(inv => inv._id !== localInvoice._id));
             setIsPaymentDialogOpen(false);

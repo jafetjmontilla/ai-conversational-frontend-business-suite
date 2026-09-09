@@ -9,6 +9,7 @@ import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Input } from "@/components/ui/input";
 import { COUNTRY_OPTIONS, resolveDefaultCountry } from "@/lib/countries";
 import { resolveDefaultTimezone, TIMEZONE_OPTIONS } from "@/lib/timezones";
+import { CURRENCY_CODES } from "@/lib/money";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,7 +56,7 @@ const formSchema = z.object({
   email: z.union([z.string().email("Correo inválido"), z.literal("")]).optional(),
   phone: z.string().optional(),
   address: addressSchema.optional(),
-  currency: z.string().optional(),
+  currency: z.union([z.enum(CURRENCY_CODES), z.literal("")]).optional(),
   country: z.string().min(1, "Requerido"),
   timezone: z.string().min(1, "Requerido"),
   language: z.string().optional(),
@@ -64,8 +65,8 @@ const formSchema = z.object({
   taxRegime: z.string().optional(),
   digitalSignatureOrStamp: z.string().optional(),
   invoiceNumbering: invoiceNumberingSchema.optional(),
-  billingBaseCurrency: z.union([z.enum(["USD", "EUR", "VES"]), z.literal("")]).optional(),
-  billingDisplayCurrency: z.union([z.enum(["USD", "EUR", "VES"]), z.literal("")]).optional(),
+  billingBaseCurrency: z.union([z.enum(CURRENCY_CODES), z.literal("")]).optional(),
+  billingDisplayCurrency: z.union([z.enum(CURRENCY_CODES), z.literal("")]).optional(),
   billingExchangeRateSource: z.union([z.enum(["bcv_dolar", "bcv_euro", "binance", "custom"]), z.literal("")]).optional(),
   billingCustomExchangeRate: z.number().optional().nullable(),
 });
@@ -288,6 +289,7 @@ export function BusinessEditPageContent() {
       const updatedBusiness: Business = {
         ...business,
         ...values,
+        currency: (values.currency || undefined) as Business["currency"],
         logoUrl: logoUrl || undefined,
         address,
         invoiceNumbering,
@@ -467,7 +469,16 @@ export function BusinessEditPageContent() {
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="currency" render={({ field }) => (
-                          <FormItem><FormLabel>Moneda</FormLabel><FormControl><Input placeholder="ISO 4217: USD, VES, EUR, etc." {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem>
+                            <FormLabel>Moneda</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                {CURRENCY_CODES.map((currency) => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
                         )} />
                         <FormField control={form.control} name="timezone" render={({ field }) => (
                           <FormItem>
@@ -504,9 +515,7 @@ export function BusinessEditPageContent() {
                                     <SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="USD">USD</SelectItem>
-                                    <SelectItem value="EUR">EUR</SelectItem>
-                                    <SelectItem value="VES">VES</SelectItem>
+                                    {CURRENCY_CODES.map((currency) => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -524,9 +533,7 @@ export function BusinessEditPageContent() {
                                     <SelectTrigger><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="USD">USD</SelectItem>
-                                    <SelectItem value="EUR">EUR</SelectItem>
-                                    <SelectItem value="VES">VES</SelectItem>
+                                    {CURRENCY_CODES.map((currency) => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />

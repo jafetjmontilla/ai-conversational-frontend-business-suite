@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { CreditCard } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
+import { formatMinor, type CurrencyCode } from "@/lib/money";
 
 export function PaymentsReportContent() {
   const params = useParams();
@@ -65,11 +66,12 @@ export function PaymentsReportContent() {
     fetchPayments();
   }, [businessIdDoc, fetchPayments]);
 
-  const totalUsd = payments.reduce((s, p) => s + (p.totalPaid ?? 0), 0);
-  const totalBs = payments.reduce((s, p) => {
-    const pm = p.paymentMethods ?? [];
-    return s + pm.reduce((sm: number, m: { amountBs?: number }) => sm + (m.amountBs ?? 0), 0);
-  }, 0);
+  const totalsByCurrency = payments.reduce((totals, payment) => {
+    for (const method of payment.paymentMethods ?? []) {
+      totals.set(method.currency, (totals.get(method.currency) ?? 0) + method.amountMinor);
+    }
+    return totals;
+  }, new Map<CurrencyCode, number>());
 
   if (!businessId) return null;
   if (!canViewCurrentBusiness?.()) {
@@ -110,8 +112,8 @@ export function PaymentsReportContent() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>ID Pago</TableHead>
                     <TableHead>ID Factura</TableHead>
-                    <TableHead>Total pagado (USD)</TableHead>
-                    <TableHead>Total Bs</TableHead>
+                    <TableHead>Total pagado</TableHead>
+                    <TableHead>Desglose</TableHead>
                     <TableHead>Tasa</TableHead>
                     <TableHead>Estado</TableHead>
                   </TableRow>
@@ -136,9 +138,11 @@ export function PaymentsReportContent() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{p._id.slice(-8)}</TableCell>
                         <TableCell className="font-mono text-xs">{String(p.invoiceId).slice(-8)}</TableCell>
-                        <TableCell>{p.totalPaid?.toFixed(2) ?? "0.00"}</TableCell>
+                        <TableCell>{formatMinor(p.totalPaidMinor, p.baseCurrency)}</TableCell>
                         <TableCell>
-                          {(p.paymentMethods ?? []).reduce((s: number, m: { amountBs?: number }) => s + (m.amountBs ?? 0), 0).toFixed(2)}
+                          {(p.paymentMethods ?? []).map((method) =>
+                            formatMinor(method.amountMinor, method.currency)
+                          ).join(" · ") || "—"}
                         </TableCell>
                         <TableCell>{p.exchangeRate?.toFixed(2) ?? "—"}</TableCell>
                         <TableCell>{p.status ?? "—"}</TableCell>
@@ -153,7 +157,11 @@ export function PaymentsReportContent() {
                     {total} pago(s)
                   </span>
                   <span>
-                    Total USD: <strong>{totalUsd.toFixed(2)}</strong> · Total Bs: <strong>{totalBs.toFixed(2)}</strong>
+                    {[...totalsByCurrency].map(([currency, amountMinor]) => (
+                      <span key={currency} className="ml-2">
+                        Total {currency}: <strong>{formatMinor(amountMinor, currency)}</strong>
+                      </span>
+                    ))}
                   </span>
                 </div>
               )}

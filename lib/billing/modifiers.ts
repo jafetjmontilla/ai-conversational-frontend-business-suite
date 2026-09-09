@@ -1,17 +1,17 @@
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { InvoiceSelectedModifier } from "@/lib/interfases";
-import { roundToTwoDecimals } from "@/lib/billing/invoiceLine";
+import { assertMinorUnits } from "@/lib/money";
 
 export type ModifierCatalogItem = {
   _id: string;
   sku?: string;
   name: string;
-  price: number;
+  priceMinor: number;
 };
 
 export type ModifierGroupOption = {
   catalogItemId: string;
-  priceOverride?: number | null;
+  priceOverrideMinor?: number | null;
   catalogItem?: ModifierCatalogItem | null;
 };
 
@@ -56,10 +56,10 @@ export function getGroupSections(group: ModifierGroup): ModifierGroupSection[] {
 }
 
 export function resolveModifierOptionPrice(option: ModifierGroupOption): number {
-  if (option.priceOverride != null && option.priceOverride >= 0) {
-    return option.priceOverride;
+  if (option.priceOverrideMinor != null && option.priceOverrideMinor >= 0) {
+    return assertMinorUnits(option.priceOverrideMinor, "priceOverrideMinor");
   }
-  return option.catalogItem?.price ?? 0;
+  return assertMinorUnits(option.catalogItem?.priceMinor ?? 0, "priceMinor");
 }
 
 export function buildModifierSelection(
@@ -69,15 +69,18 @@ export function buildModifierSelection(
   lineQuantity: number
 ): InvoiceSelectedModifier {
   const quantity = Math.max(1, lineQuantity || 1);
-  const unitPrice = roundToTwoDecimals(resolveModifierOptionPrice(option));
-  const total = roundToTwoDecimals(quantity * unitPrice);
+  const unitPriceMinor = resolveModifierOptionPrice(option);
+  const totalMinor = assertMinorUnits(
+    Math.round(quantity * unitPriceMinor),
+    "totalMinor"
+  );
   return {
     modifierGroupId: group._id,
     modifierSectionId: section.sectionId === DEFAULT_SECTION_ID ? undefined : section.sectionId,
     catalogItemId: option.catalogItemId,
     quantity,
-    unitPrice,
-    total,
+    unitPriceMinor,
+    totalMinor,
     label: option.catalogItem?.name ?? "Modificador",
   };
 }

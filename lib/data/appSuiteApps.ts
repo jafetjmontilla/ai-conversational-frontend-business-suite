@@ -91,7 +91,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     title: "Facturación Interna",
     tagline: "Facturas y cobros para tu operación diaria, sin complejidad fiscal.",
     description:
-      "Registra ventas, emite facturas internas y cobra en Bs o USD. Se integra con tu catálogo, descuenta stock al cobrar y conecta pedidos del agente IA con tus cobros.",
+      "Registra ventas, emite facturas internas y cobra en las monedas configuradas. Se integra con tu catálogo, descuenta stock al cobrar y conecta pedidos del agente IA con tus cobros.",
     audience:
       "Negocios que necesitan llevar control de ventas y cobros en la plataforma.",
     category: "Finanzas",

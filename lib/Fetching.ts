@@ -1177,9 +1177,12 @@ export const queries = {
         clientName
         clientId
         clientPhone
-        items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } createdAt updatedAt }
-        totalBs
-        totalUsd
+        items { _id id quantity description unitPriceMinor totalMinor inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId modifierSectionId catalogItemId quantity unitPriceMinor totalMinor } createdAt updatedAt }
+        baseCurrency
+        displayCurrency
+        exchangeRate
+        totalBaseMinor
+        totalDisplayMinor
         status
         createdBy
         createdByName
@@ -1198,9 +1201,12 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } createdAt updatedAt }
-      totalBs
-      totalUsd
+      items { _id id quantity description unitPriceMinor totalMinor inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId modifierSectionId catalogItemId quantity unitPriceMinor totalMinor } createdAt updatedAt }
+      baseCurrency
+      displayCurrency
+      exchangeRate
+      totalBaseMinor
+      totalDisplayMinor
       status
       createdBy
       createdByName
@@ -1219,9 +1225,8 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } }
-      totalBs
-      totalUsd
+      items { _id id quantity description unitPriceMinor totalMinor inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId modifierSectionId catalogItemId quantity unitPriceMinor totalMinor } }
+      baseCurrency displayCurrency exchangeRate totalBaseMinor totalDisplayMinor
       status
       createdBy
       createdAt
@@ -1234,9 +1239,8 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId catalogItemId quantity unitPrice total } }
-      totalBs
-      totalUsd
+      items { _id id quantity description unitPriceMinor totalMinor inventoryId invoiceId itemType productVariantId serviceOptionId lineNote selectedModifiers { modifierGroupId modifierSectionId catalogItemId quantity unitPriceMinor totalMinor } }
+      baseCurrency displayCurrency exchangeRate totalBaseMinor totalDisplayMinor
       status
       createdBy
       createdAt
@@ -1252,9 +1256,8 @@ export const queries = {
       clientName
       clientId
       clientPhone
-      items { _id id quantity description unitPrice total inventoryId invoiceId }
-      totalBs
-      totalUsd
+      items { _id id quantity description unitPriceMinor totalMinor inventoryId invoiceId }
+      baseCurrency displayCurrency exchangeRate totalBaseMinor totalDisplayMinor
       status
       createdBy
       createdAt
@@ -1268,8 +1271,10 @@ export const queries = {
       data {
         _id
         invoiceId
-        paymentMethods { _id id name amountBs amountUsd urlSuport createdAt updatedAt }
-        totalPaid
+        paymentMethods { _id id name amountMinor currency urlSuport createdAt updatedAt }
+        baseCurrency
+        displayCurrency
+        totalPaidMinor
         exchangeRate
         status
         createdAt
@@ -1285,13 +1290,16 @@ export const queries = {
       billingStatus
       clientName
       clientPhone
-      totalUsd
-      totalBs
+      baseCurrency
+      displayCurrency
+      exchangeRate
+      totalBaseMinor
+      totalDisplayMinor
       summary
       invoiceId
       reservedUntil
       shippingAddress { street city reference phone }
-      lines { sku description quantity total }
+      lines { sku description quantity unitPriceMinor totalMinor }
       createdAt
       updatedAt
     }
@@ -1304,12 +1312,16 @@ export const queries = {
       fulfillmentMethod
       clientName
       clientPhone
-      totalUsd
+      baseCurrency
+      displayCurrency
+      exchangeRate
+      totalBaseMinor
+      totalDisplayMinor
       summary
       invoiceId
       reservedUntil
       shippingAddress { street city reference phone }
-      lines { sku description quantity total }
+      lines { sku description quantity unitPriceMinor totalMinor }
       createdAt
     }
   }`,
@@ -1325,8 +1337,10 @@ export const queries = {
       results {
         _id
         invoiceId
-        paymentMethods { _id id name amountBs amountUsd urlSuport }
-        totalPaid
+        paymentMethods { _id id name amountMinor currency urlSuport }
+        baseCurrency
+        displayCurrency
+        totalPaidMinor
         exchangeRate
         status
         createdAt
@@ -1342,14 +1356,14 @@ export const queries = {
       type
       category
       quantity
-      unitCost
-      salesPrice
-      unitCostUsd
-      salesPriceUsd
+      unitCostMinor
+      salesPriceMinor
+      unitCostUsdMinor
+      salesPriceUsdMinor
       profitPercentage
       status
-      costHistory { value valorUsd updatedAt userId }
-      priceHistory { value valorUsd updatedAt userId }
+      costHistory { valueMinor valueUsdMinor updatedAt userId }
+      priceHistory { valueMinor valueUsdMinor updatedAt userId }
       quantityHistory { quantity concept updatedAt userId }
       createdBy
       createdAt
@@ -1363,14 +1377,14 @@ export const queries = {
       description
       type
       quantity
-      unitCost
-      salesPrice
-      unitCostUsd
-      salesPriceUsd
+      unitCostMinor
+      salesPriceMinor
+      unitCostUsdMinor
+      salesPriceUsdMinor
       profitPercentage
       status
-      costHistory { value valorUsd updatedAt userId }
-      priceHistory { value valorUsd updatedAt userId }
+      costHistory { valueMinor valueUsdMinor updatedAt userId }
+      priceHistory { valueMinor valueUsdMinor updatedAt userId }
       quantityHistory { quantity concept updatedAt userId }
       createdBy
       createdAt
@@ -1384,10 +1398,10 @@ export const queries = {
       description
       type
       quantity
-      unitCost
-      salesPrice
-      unitCostUsd
-      salesPriceUsd
+      unitCostMinor
+      salesPriceMinor
+      unitCostUsdMinor
+      salesPriceUsdMinor
       profitPercentage
       status
       createdBy
@@ -1403,10 +1417,10 @@ export const queries = {
       type
       category
       quantity
-      unitCost
-      salesPrice
-      unitCostUsd
-      salesPriceUsd
+      unitCostMinor
+      salesPriceMinor
+      unitCostUsdMinor
+      salesPriceUsdMinor
       profitPercentage
       status
       createdBy
@@ -1422,10 +1436,10 @@ export const queries = {
       type
       category
       quantity
-      unitCost
-      salesPrice
-      unitCostUsd
-      salesPriceUsd
+      unitCostMinor
+      salesPriceMinor
+      unitCostUsdMinor
+      salesPriceUsdMinor
       profitPercentage
       status
       createdBy
@@ -1450,8 +1464,8 @@ export const queries = {
       description
       type
       quantity
-      unitCost
-      salesPrice
+      unitCostMinor
+      salesPriceMinor
       createdAt
     }
   }`,
@@ -1507,22 +1521,22 @@ export const queries = {
   // Product (maestro) + Variants (SKUs)
   getProducts: `query getProducts($id: ID!, $skip: Int, $limit: Int, $includeInactive: Boolean, $includeNonSellable: Boolean) {
     getProducts(id: $id, skip: $skip, limit: $limit, includeInactive: $includeInactive, includeNonSellable: $includeNonSellable) {
-      _id name description category_id base_price brand is_sellable
+      _id name description category_id base_price_minor brand is_sellable
       trackInventory hasBillOfMaterials
       status createdBy createdAt updatedAt
       category { _id name }
-      variants { _id sku stock_quantity price_override }
+      variants { _id sku stock_quantity price_override_minor }
     }
   }`,
   getProduct: `query getProduct($_id: ID!, $id: ID!) {
     getProduct(_id: $_id, id: $id) {
-      _id name description category_id base_price brand is_sellable
+      _id name description category_id base_price_minor brand is_sellable
       trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       modifierGroupIds pricingAttributeId
       status createdBy createdAt updatedAt
       category { _id name pricingAttributeId }
-      variants { _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status
+      variants { _id product_id sku price_override_minor cost_price_minor unit_of_measure stock_quantity image_url status
         attribute_values { attribute_value_id }
       }
     }
@@ -1551,7 +1565,7 @@ export const queries = {
   }`,
   getProductVariants: `query getProductVariants($id: ID!, $product_id: ID, $includeDeleted: Boolean) {
     getProductVariants(id: $id, product_id: $product_id, includeDeleted: $includeDeleted) {
-      _id product_id sku price_override cost_price unit_of_measure stock_quantity image_url status deleted_at
+      _id product_id sku price_override_minor cost_price_minor unit_of_measure stock_quantity image_url status deleted_at
       attribute_values { attribute_value_id }
       product { _id name }
       createdBy createdAt updatedAt
@@ -1559,13 +1573,13 @@ export const queries = {
   }`,
   getSellableVariants: `query getSellableVariants($id: ID!, $search: String, $limit: Int) {
     getSellableVariants(id: $id, search: $search, limit: $limit) {
-      _id product_id sku price_override stock_quantity
-      product { _id name base_price }
+      _id product_id sku price_override_minor stock_quantity
+      product { _id name base_price_minor }
     }
   }`,
   getProductVariantBySku: `query getProductVariantBySku($id: ID!, $sku: String!) {
     getProductVariantBySku(id: $id, sku: $sku) {
-      _id product_id sku price_override stock_quantity image_url status
+      _id product_id sku price_override_minor stock_quantity image_url status
       attribute_values { attribute_value_id }
     }
   }`,
@@ -1582,12 +1596,12 @@ export const queries = {
   }`,
   generateVariantsPreview: `query generateVariantsPreview($id: ID!, $input: GenerateVariantsPreviewInput!) {
     generateVariantsPreview(id: $id, input: $input) {
-      combinations { sku attributeValues { attributeName value attributeValueId } attribute_value_ids price_override stock_quantity }
+      combinations { sku attributeValues { attributeName value attributeValueId } attribute_value_ids price_override_minor stock_quantity }
     }
   }`,
   createProduct: `mutation createProduct($id: ID!, $args: CreateProductInput!) {
     createProduct(id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable
+      _id name description category_id base_price_minor brand is_sellable
       trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       status createdBy createdAt updatedAt
@@ -1595,7 +1609,7 @@ export const queries = {
   }`,
   updateProduct: `mutation updateProduct($_id: ID!, $id: ID!, $args: UpdateProductInput!) {
     updateProduct(_id: $_id, id: $id, args: $args) {
-      _id name description category_id base_price brand is_sellable
+      _id name description category_id base_price_minor brand is_sellable
       trackInventory hasBillOfMaterials pricingAttributeId
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       status createdBy createdAt updatedAt
@@ -1609,7 +1623,7 @@ export const queries = {
   }`,
   getArchivedProducts: `query getArchivedProducts($id: ID!) {
     getArchivedProducts(id: $id) {
-      _id name description base_price brand deleted_at
+      _id name description base_price_minor brand deleted_at
       variants { _id sku }
     }
   }`,
@@ -1650,29 +1664,29 @@ export const queries = {
   }`,
   createProductVariant: `mutation createProductVariant($id: ID!, $args: CreateProductVariantInput!) {
     createProductVariant(id: $id, args: $args) {
-      _id product_id sku price_override stock_quantity image_url status
+      _id product_id sku price_override_minor stock_quantity image_url status
       attribute_values { attribute_value_id }
     }
   }`,
   updateProductVariant: `mutation updateProductVariant($_id: ID!, $id: ID!, $args: UpdateProductVariantInput!) {
     updateProductVariant(_id: $_id, id: $id, args: $args) {
-      _id product_id sku price_override stock_quantity image_url status
+      _id product_id sku price_override_minor stock_quantity image_url status
     }
   }`,
   bulkUpdateVariants: `mutation bulkUpdateVariants($id: ID!, $items: [BulkUpdateVariantItem!]!) {
     bulkUpdateVariants(id: $id, items: $items) {
-      _id sku price_override cost_price unit_of_measure stock_quantity
+      _id sku price_override_minor cost_price_minor unit_of_measure stock_quantity
     }
   }`,
   createProductWithVariants: `mutation createProductWithVariants($id: ID!, $product: CreateProductInput!, $variantsPreview: [VariantPreviewItemInput!]!) {
     createProductWithVariants(id: $id, product: $product, variantsPreview: $variantsPreview) {
-      _id name description category_id base_price brand is_sellable status
-      variants { _id sku price_override stock_quantity }
+      _id name description category_id base_price_minor brand is_sellable status
+      variants { _id sku price_override_minor stock_quantity }
     }
   }`,
   addVariantsToProduct: `mutation addVariantsToProduct($id: ID!, $product_id: ID!, $variants: [VariantPreviewItemInput!]!) {
     addVariantsToProduct(id: $id, product_id: $product_id, variants: $variants) {
-      _id product_id sku price_override stock_quantity status
+      _id product_id sku price_override_minor stock_quantity status
     }
   }`,
   softDeleteProductVariant: `mutation softDeleteProductVariant($id: ID!, $variant_id: ID!) {
@@ -1700,7 +1714,7 @@ export const queries = {
     getServices(id: $id, includeInactive: $includeInactive) {
       _id business_id name description is_available unit_of_measure
       hasBillOfMaterials cost_review_pending status createdBy createdAt updatedAt
-      options { _id name price durationMinutes status }
+      options { _id name priceMinor durationMinutes status }
       materials { _id }
     }
   }`,
@@ -1711,13 +1725,13 @@ export const queries = {
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       modifierGroupIds
       cost_review_pending status createdBy createdAt updatedAt
-      options { _id service_id name price durationMinutes status }
-      materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure } }
+      options { _id service_id name priceMinor durationMinutes status }
+      materials { _id service_id product_variant_id quantity_required productVariant { _id sku cost_price_minor unit_of_measure } }
     }
   }`,
   getServiceOptions: `query getServiceOptions($id: ID!, $service_id: ID) {
     getServiceOptions(id: $id, service_id: $service_id) {
-      _id service_id business_id name price durationMinutes status createdBy createdAt updatedAt
+      _id service_id business_id name priceMinor durationMinutes status createdBy createdAt updatedAt
     }
   }`,
   createService: `mutation createService($id: ID!, $args: CreateServiceInput!) {
@@ -1744,32 +1758,32 @@ export const queries = {
   }`,
   getArchivedServiceOptions: `query getArchivedServiceOptions($id: ID!) {
     getArchivedServiceOptions(id: $id) {
-      _id service_id serviceName name price deleted_at
+      _id service_id serviceName name priceMinor deleted_at
     }
   }`,
   getServiceMaterials: `query getServiceMaterials($id: ID!, $service_id: ID) {
     getServiceMaterials(id: $id, service_id: $service_id) {
-      _id service_id business_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure }
+      _id service_id business_id product_variant_id quantity_required productVariant { _id sku cost_price_minor unit_of_measure }
     }
   }`,
   getProductionCost: `query getProductionCost($id: ID!, $service_id: ID!) {
     getProductionCost(id: $id, service_id: $service_id) {
-      totalProductionCost breakdown { variantId sku quantity costPrice subtotal }
+      totalProductionCostMinor breakdown { variantId sku quantity costPriceMinor subtotalMinor }
     }
   }`,
   getServiceProfitabilityReport: `query getServiceProfitabilityReport($id: ID!, $fromDate: Date!, $toDate: Date!) {
     getServiceProfitabilityReport(id: $id, fromDate: $fromDate, toDate: $toDate) {
-      fromDate toDate items { service_id serviceName totalRevenue totalProductionCost grossProfit unitsSold }
+      fromDate toDate items { service_id serviceName totalRevenueMinor totalProductionCostMinor grossProfitMinor unitsSold }
     }
   }`,
   createServiceMaterial: `mutation createServiceMaterial($id: ID!, $args: CreateServiceMaterialInput!) {
     createServiceMaterial(id: $id, args: $args) {
-      _id service_id product_variant_id quantity_required productVariant { _id sku cost_price unit_of_measure }
+      _id service_id product_variant_id quantity_required productVariant { _id sku cost_price_minor unit_of_measure }
     }
   }`,
   updateServiceMaterial: `mutation updateServiceMaterial($id: ID!, $_id: ID!, $args: UpdateServiceMaterialInput!) {
     updateServiceMaterial(id: $id, _id: $_id, args: $args) {
-      _id quantity_required productVariant { _id sku cost_price unit_of_measure }
+      _id quantity_required productVariant { _id sku cost_price_minor unit_of_measure }
     }
   }`,
   deleteServiceMaterial: `mutation deleteServiceMaterial($id: ID!, $_id: ID!) {
@@ -1782,12 +1796,12 @@ export const queries = {
   }`,
   createServiceOption: `mutation createServiceOption($id: ID!, $args: CreateServiceOptionInput!) {
     createServiceOption(id: $id, args: $args) {
-      _id service_id name price durationMinutes status
+      _id service_id name priceMinor durationMinutes status
     }
   }`,
   updateServiceOption: `mutation updateServiceOption($id: ID!, $_id: ID!, $args: UpdateServiceOptionInput!) {
     updateServiceOption(id: $id, _id: $_id, args: $args) {
-      _id name price durationMinutes status
+      _id name priceMinor durationMinutes status
     }
   }`,
   deleteServiceOption: `mutation deleteServiceOption($id: ID!, $_id: ID!) {
@@ -2554,13 +2568,13 @@ export const queries = {
       attributes { name values }
       categoryPricing { category_name pricing_attribute_hint }
       products {
-        name description base_price brand category_hint pricing_attribute_hint is_sellable
+        name description base_price_minor brand category_hint pricing_attribute_hint is_sellable
         needs_variants
         variant_attributes { name values }
         variants {
           sku
           attribute_values { attribute_name value }
-          price_override
+          price_override_minor
           stock_quantity
         }
       }
@@ -2568,13 +2582,13 @@ export const queries = {
         name
         description
         unit_of_measure
-        options { name price durationMinutes }
+        options { name priceMinor durationMinutes }
       }
       modifierGroups {
         name isRequired selectionType minSelections maxSelections
         priceBehavior includedQuantity
         product_hints service_hints
-        options { name price isDefault price_matrix { priceKey price } }
+        options { name priceMinor isDefault price_matrix_minor { priceKey priceMinor } }
       }
       warnings
     }
@@ -2594,15 +2608,15 @@ export const queries = {
         sectionId name selectionType minSelections maxSelections
         priceBehavior includedQuantity sortOrder
         options {
-          catalogItemId priceOverride sortOrder isDefault
-          priceMatrix { priceKey price }
-          catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
+          catalogItemId priceOverrideMinor sortOrder isDefault
+          priceMatrixMinor { priceKey priceMinor }
+          catalogItem { _id sku name priceMinor type trackInventory hasBillOfMaterials isModifier priceMatrixMinor { priceKey priceMinor } }
         }
       }
       options {
-        catalogItemId priceOverride sortOrder isDefault
-        priceMatrix { priceKey price }
-        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier priceMatrix { priceKey price } }
+        catalogItemId priceOverrideMinor sortOrder isDefault
+        priceMatrixMinor { priceKey priceMinor }
+        catalogItem { _id sku name priceMinor type trackInventory hasBillOfMaterials isModifier priceMatrixMinor { priceKey priceMinor } }
       }
     }
   }`,
@@ -2614,21 +2628,21 @@ export const queries = {
         sectionId name selectionType minSelections maxSelections
         priceBehavior includedQuantity sortOrder
         options {
-          catalogItemId priceOverride sortOrder isDefault
-          priceMatrix { priceKey price }
-          catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
+          catalogItemId priceOverrideMinor sortOrder isDefault
+          priceMatrixMinor { priceKey priceMinor }
+          catalogItem { _id sku name priceMinor type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrixMinor { priceKey priceMinor } }
         }
       }
       options {
-        catalogItemId priceOverride sortOrder isDefault
-        priceMatrix { priceKey price }
-        catalogItem { _id sku name price type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrix { priceKey price } }
+        catalogItemId priceOverrideMinor sortOrder isDefault
+        priceMatrixMinor { priceKey priceMinor }
+        catalogItem { _id sku name priceMinor type trackInventory hasBillOfMaterials isModifier unitOfMeasure priceMatrixMinor { priceKey priceMinor } }
       }
     }
   }`,
   getModifierCatalogItems: `query getModifierCatalogItems($id: ID!, $includeInactive: Boolean) {
     getModifierCatalogItems(id: $id, includeInactive: $includeInactive) {
-      _id sku name type price priceMatrix { priceKey price }
+      _id sku name type priceMinor priceMatrixMinor { priceKey priceMinor }
       trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       isModifier isAvailable unitOfMeasure variantId status
@@ -2653,7 +2667,7 @@ export const queries = {
   }`,
   getArchivedModifierCatalogItems: `query getArchivedModifierCatalogItems($id: ID!) {
     getArchivedModifierCatalogItems(id: $id) {
-      _id sku name price deleted_at
+      _id sku name priceMinor deleted_at
     }
   }`,
   deleteModifierCatalogItem: `mutation deleteModifierCatalogItem($_id: ID!, $id: ID!) {
@@ -2664,14 +2678,14 @@ export const queries = {
   }`,
   createModifierCatalogItem: `mutation createModifierCatalogItem($id: ID!, $args: CreateModifierCatalogItemInput!) {
     createModifierCatalogItem(id: $id, args: $args) {
-      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials
+      _id sku name priceMinor priceMatrixMinor { priceKey priceMinor } type trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       isModifier isAvailable unitOfMeasure variantId status
     }
   }`,
   updateModifierCatalogItem: `mutation updateModifierCatalogItem($_id: ID!, $id: ID!, $args: UpdateModifierCatalogItemInput!) {
     updateModifierCatalogItem(_id: $_id, id: $id, args: $args) {
-      _id sku name price priceMatrix { priceKey price } type trackInventory hasBillOfMaterials
+      _id sku name priceMinor priceMatrixMinor { priceKey priceMinor } type trackInventory hasBillOfMaterials
       requiredMaterials { materialVariantId sku quantity unitOfMeasure }
       isModifier isAvailable unitOfMeasure variantId status
     }
@@ -2700,8 +2714,8 @@ export const queries = {
       quantity: $quantity
       selectedModifiers: $selectedModifiers
     ) {
-      additionalTotal
-      lines { modifierGroupId modifierSectionId catalogItemId quantity unitPrice total }
+      additionalTotalMinor
+      lines { modifierGroupId modifierSectionId catalogItemId quantity unitPriceMinor totalMinor }
     }
   }`,
 }

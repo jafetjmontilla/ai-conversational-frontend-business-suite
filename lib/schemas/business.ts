@@ -2,6 +2,7 @@ import * as z from "zod";
 import type { Business } from "@/lib/interfases";
 import { resolveDefaultCountry } from "@/lib/countries";
 import { resolveDefaultTimezone } from "@/lib/timezones";
+import { CURRENCY_CODES } from "@/lib/money";
 
 const addressSchema = z.object({
   street: z.string().optional(),
@@ -29,7 +30,7 @@ export const baseBusinessFormSchema = z.object({
   email: z.union([z.string().email("Correo inválido"), z.literal("")]).optional(),
   phone: z.string().optional(),
   address: addressSchema.optional(),
-  currency: z.string().optional(),
+  currency: z.union([z.enum(CURRENCY_CODES), z.literal("")]).optional(),
   country: z.string().min(1, "Requerido"),
   timezone: z.string().min(1, "Requerido"),
   language: z.string().optional(),

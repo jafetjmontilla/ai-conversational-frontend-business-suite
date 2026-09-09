@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PriceMatrixEntry } from "@/lib/interfases";
 import { Plus, Trash2 } from "lucide-react";
+import { majorToMinor, minorToMajor } from "@/lib/money";
 
 type PriceMatrixEditorProps = {
   value: PriceMatrixEntry[];
@@ -25,7 +26,7 @@ export function PriceMatrixEditor({
   };
 
   const addRow = (priceKey = "") => {
-    onChange([...value, { priceKey, price: 0 }]);
+    onChange([...value, { priceKey, priceMinor: 0 }]);
   };
 
   const removeRow = (index: number) => {
@@ -60,10 +61,16 @@ export function PriceMatrixEditor({
                 type="number"
                 min={0}
                 step="0.01"
-                value={row.price}
-                onChange={(e) =>
-                  updateRow(idx, { price: parseFloat(e.target.value) || 0 })
-                }
+                value={minorToMajor(row.priceMinor)}
+                onChange={(e) => {
+                  try {
+                    updateRow(idx, {
+                      priceMinor: e.target.value ? majorToMinor(e.target.value) : 0,
+                    });
+                  } catch {
+                    // El schema monetario validará el valor al guardar.
+                  }
+                }}
                 disabled={disabled}
                 className="h-8 w-24"
               />
@@ -107,5 +114,5 @@ export function PriceMatrixEditor({
 }
 
 export function priceMatrixToInput(entries: PriceMatrixEntry[] | undefined): PriceMatrixEntry[] {
-  return (entries ?? []).map((e) => ({ priceKey: e.priceKey, price: e.price }));
+  return (entries ?? []).map((e) => ({ priceKey: e.priceKey, priceMinor: e.priceMinor }));
 }

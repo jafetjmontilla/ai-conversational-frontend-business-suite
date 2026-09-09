@@ -16,12 +16,29 @@ import { toast } from "sonner";
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import type { Invoice } from "@/lib/interfases";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  formatMinor,
+  majorToMinor,
+  type CurrencyCode,
+} from "@/lib/money";
 
 interface PaymentMethodRow {
   id: string;
   name: string;
-  amountBs: number;
-  amountUsd: number;
+  amountMajor: string;
+  currency: CurrencyCode;
+}
+
+function createInitialMethods(
+  baseCurrency: CurrencyCode,
+  displayCurrency: CurrencyCode
+): PaymentMethodRow[] {
+  return [
+    { id: "1", name: `Efectivo ${baseCurrency}`, amountMajor: "", currency: baseCurrency },
+    ...(displayCurrency === baseCurrency
+      ? []
+      : [{ id: "2", name: `Efectivo ${displayCurrency}`, amountMajor: "", currency: displayCurrency }]),
+  ];
 }
 
 interface PaymentDialogProps {
@@ -31,6 +48,8 @@ interface PaymentDialogProps {
   /** _id del negocio (Business). */
   businessId: string;
   exchangeRate: number;
+  baseCurrency: CurrencyCode;
+  displayCurrency: CurrencyCode;
   onSuccess: () => void;
 }
 
@@ -40,46 +59,49 @@ export function PaymentDialog({
   invoice,
   businessId,
   exchangeRate,
+  baseCurrency,
+  displayCurrency,
   onSuccess,
 }: PaymentDialogProps) {
-  const [methods, setMethods] = useState<PaymentMethodRow[]>([
-    { id: "1", name: "Efectivo Bs", amountBs: 0, amountUsd: 0 },
-    { id: "2", name: "Efectivo USD", amountBs: 0, amountUsd: 0 },
-  ]);
+  const [methods, setMethods] = useState<PaymentMethodRow[]>(() =>
+    createInitialMethods(baseCurrency, displayCurrency)
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && invoice) {
-      setMethods([
-        { id: "1", name: "Efectivo Bs", amountBs: 0, amountUsd: 0 },
-        { id: "2", name: "Efectivo USD", amountBs: 0, amountUsd: 0 },
-      ]);
+      setMethods(createInitialMethods(baseCurrency, displayCurrency));
     }
-  }, [isOpen, invoice]);
+  }, [isOpen, invoice, baseCurrency, displayCurrency]);
 
-  const totalPaidBs = methods.reduce((s, m) => s + m.amountBs, 0);
-  const totalPaidUsd = methods.reduce((s, m) => s + m.amountUsd, 0);
-  const totalPaid = totalPaidUsd + totalPaidBs / (exchangeRate || 1);
+  const rowMinor = (row: PaymentMethodRow) =>
+    row.amountMajor.trim() ? majorToMinor(row.amountMajor) : 0;
+  const safeRowMinor = (row: PaymentMethodRow) => {
+    try {
+      return rowMinor(row);
+    } catch {
+      return 0;
+    }
+  };
+  const totalBaseMinor = methods.reduce((total, method) => {
+    const amountMinor = safeRowMinor(method);
+    if (method.currency === baseCurrency) return total + amountMinor;
+    if (method.currency === displayCurrency && exchangeRate > 0) {
+      return total + Math.round(amountMinor / exchangeRate);
+    }
+    return total;
+  }, 0);
 
   const addRow = () => {
     setMethods((prev) => [
       ...prev,
-      { id: `pm-${Date.now()}`, name: "Otro", amountBs: 0, amountUsd: 0 },
+      { id: `pm-${Date.now()}`, name: "Otro", amountMajor: "", currency: baseCurrency },
     ]);
   };
 
-  const updateRow = (id: string, field: keyof PaymentMethodRow, value: string | number) => {
+  const updateRow = (id: string, field: keyof PaymentMethodRow, value: string) => {
     setMethods((prev) =>
-      prev.map((m) => {
-        if (m.id !== id) return m;
-        const next = { ...m, [field]: value };
-        if (field === "amountBs") {
-          next.amountUsd = Number((Number(value) / (exchangeRate || 1)).toFixed(2));
-        } else if (field === "amountUsd") {
-          next.amountBs = Number((Number(value) * (exchangeRate || 1)).toFixed(2));
-        }
-        return next;
-      })
+      prev.map((m) => m.id === id ? { ...m, [field]: value } : m)
     );
   };
 
@@ -91,17 +113,29 @@ export function PaymentDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invoice || !businessId) return;
-    const paymentMethods = methods
-      .filter((m) => m.amountBs > 0 || m.amountUsd > 0)
+    let paymentMethods;
+    try {
+      paymentMethods = methods
+      .filter((m) => m.amountMajor.trim() !== "" && rowMinor(m) > 0)
       .map((m, i) => ({
         id: m.id || `pm-${i}`,
         name: m.name || "Pago",
-        amountBs: m.amountBs,
-        amountUsd: m.amountUsd,
+        amountMinor: rowMinor(m),
+        currency: m.currency,
         urlSuport: undefined as string | undefined,
       }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Monto inválido");
+      return;
+    }
     if (paymentMethods.length === 0) {
       toast.error("Indica al menos un método de pago con monto.");
+      return;
+    }
+    if (totalBaseMinor !== invoice.totalBaseMinor) {
+      toast.error(
+        `El pago debe completar exactamente ${formatMinor(invoice.totalBaseMinor, invoice.baseCurrency)}.`
+      );
       return;
     }
     setLoading(true);
@@ -114,7 +148,7 @@ export function PaymentDialog({
           args: {
             invoiceId: invoice._id,
             paymentMethods,
-            totalPaid: totalPaidUsd + totalPaidBs / (exchangeRate || 1),
+            totalPaidMinor: totalBaseMinor,
             exchangeRate: exchangeRate || 1,
           },
         },
@@ -135,10 +169,10 @@ export function PaymentDialog({
         <DialogHeader>
           <DialogTitle>Procesar pago</DialogTitle>
           <DialogDescription>
-            Factura: {invoice?.clientName || "Sin nombre"} — Total Bs: {invoice?.totalBs?.toFixed(2)} — Total USD:{" "}
-            {invoice?.totalUsd?.toFixed(2)}
+            Factura: {invoice?.clientName || "Sin nombre"} — Total{" "}
+            {invoice ? formatMinor(invoice.totalDisplayMinor, invoice.displayCurrency) : "—"}
             <br />
-            Tasa: 1 USD = {exchangeRate} Bs
+            Tasa: 1 {baseCurrency} = {exchangeRate} {displayCurrency}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,18 +190,9 @@ export function PaymentDialog({
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="Bs"
-                  value={m.amountBs || ""}
-                  onChange={(e) => updateRow(m.id, "amountBs", e.target.value === "" ? 0 : parseFloat(e.target.value))}
-                  className="w-24"
-                />
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="USD"
-                  value={m.amountUsd || ""}
-                  onChange={(e) => updateRow(m.id, "amountUsd", e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                  placeholder={`Monto ${m.currency}`}
+                  value={m.amountMajor}
+                  onChange={(e) => updateRow(m.id, "amountMajor", e.target.value)}
                   className="w-24"
                 />
                 <Button type="button" variant="ghost" size="icon" onClick={() => removeRow(m.id)} disabled={methods.length <= 1}>
@@ -181,7 +206,7 @@ export function PaymentDialog({
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            Total pagado: {totalPaidBs.toFixed(2)} Bs / {totalPaidUsd.toFixed(2)} USD (equiv. {totalPaid.toFixed(2)} USD)
+            Total equivalente: {formatMinor(totalBaseMinor, baseCurrency)}
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

@@ -17,10 +17,11 @@ import { getProductInventoryMode } from "@/lib/offerings/inventoryModeLabels";
 import { ProductFormPanel } from "@/components/catalog/ProductFormPanel";
 import { cn } from "@/lib/utils";
 import { OfferingArchivedSection } from "@/components/offerings/OfferingArchivedSection";
+import { formatMinor, toCurrencyCode } from "@/lib/money";
 
 type ProductWithVariants = Product & {
   category?: { _id: string; name: string } | null;
-  variants?: { _id: string; sku: string; stock_quantity: number; price_override: number | null }[];
+  variants?: { _id: string; sku: string; stock_quantity: number; price_override_minor: number | null }[];
 };
 
 type ArchivedProduct = ProductWithVariants & { deleted_at?: string };
@@ -364,7 +365,10 @@ export function ProductsCatalogContent() {
                           </div>
                         </TableCell>
                         <TableCell>{product.category?.name ?? "—"}</TableCell>
-                        <TableCell>${(product.base_price ?? 0).toFixed(2)}</TableCell>
+                        <TableCell>{formatMinor(
+                          product.base_price_minor ?? 0,
+                          toCurrencyCode(business?.billingBaseCurrency ?? business?.currency)
+                        )}</TableCell>
                         <TableCell>{product.variants?.length ?? 0}</TableCell>
                         <TableCell className="md:hidden">
                           <Button

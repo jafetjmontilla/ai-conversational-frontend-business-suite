@@ -15,8 +15,8 @@ Comportamiento del agente:
 - Si falta stock, ofrece alternativas del catálogo.
 
 Formas de pago (edita con los datos reales de tu negocio):
-- Transferencia Bs: Banco ___ | Titular: ___ | Cédula/RIF: ___ | Cuenta: ___ | Teléfono pago móvil: ___
-- Zelle / USD: correo o teléfono: ___
+- Transferencia bancaria: Banco ___ | Titular: ___ | Identificación fiscal: ___ | Cuenta: ___ | Teléfono: ___
+- Pago internacional: correo o teléfono: ___
 - Efectivo en caja: paga al retirar el pedido; trae el monto exacto y menciona tu número de pedido.
 - Retiro en local: dirección ___ | Horario: ___
 

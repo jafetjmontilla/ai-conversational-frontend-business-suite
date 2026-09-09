@@ -19,14 +19,14 @@ export type ParsedProductVariantAttributeValueDraft = {
 export type ParsedProductVariantDraft = {
   sku?: string | null;
   attribute_values: ParsedProductVariantAttributeValueDraft[];
-  price_override?: number | null;
+  price_override_minor?: number | null;
   stock_quantity?: number | null;
 };
 
 export type ParsedProductDraft = {
   name: string;
   description?: string | null;
-  base_price?: number | null;
+  base_price_minor?: number | null;
   brand?: string | null;
   category_hint?: string | null;
   pricing_attribute_hint?: string | null;
@@ -39,7 +39,7 @@ export type ParsedProductDraft = {
 
 export type PriceMatrixEntry = {
   priceKey: string;
-  price: number;
+  priceMinor: number;
 };
 
 export type ParsedCategoryPricingDraft = {
@@ -49,7 +49,7 @@ export type ParsedCategoryPricingDraft = {
 
 export type ParsedServiceOptionDraft = {
   name: string;
-  price: number;
+  priceMinor: number;
   durationMinutes?: number | null;
 };
 
@@ -63,8 +63,8 @@ export type ParsedServiceDraft = {
 
 export type ParsedModifierOptionDraft = {
   name: string;
-  price: number;
-  price_matrix?: PriceMatrixEntry[];
+  priceMinor: number;
+  price_matrix_minor?: PriceMatrixEntry[];
   isDefault?: boolean | null;
 };
 

@@ -49,7 +49,7 @@ export function InternalBillingAppPrompt({
       </h2>
       <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
         {billingModule?.description ??
-          "Registra ventas internas y cobros en Bs o USD. No sustituye tu facturación fiscal legal."}
+          "Registra ventas internas y cobros en las monedas configuradas. No sustituye tu facturación fiscal legal."}
       </p>
 
       {variant === "page" && billingModule?.features?.length ? (

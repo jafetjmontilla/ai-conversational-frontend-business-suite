@@ -44,6 +44,7 @@ import { offeringDeleteToast } from "@/components/offerings/OfferingArchivedSect
 import { fetchApiV1, queries } from "@/lib/Fetching";
 import { toast } from "sonner";
 import { Grid3X3, MoreVertical, Pencil, Plus, Trash2, Unlink } from "lucide-react";
+import { majorToMinor, minorToMajor, type CurrencyCode } from "@/lib/money";
 
 export type OptionDraft = {
   catalogItemId: string;
@@ -95,7 +96,7 @@ export function groupToSectionDrafts(
       catalogItemId: o.catalogItemId,
       itemName: item?.name ?? "",
       itemSku: item?.sku ?? "",
-      priceOverride: o.priceOverride != null ? String(o.priceOverride) : "",
+      priceOverride: o.priceOverrideMinor != null ? String(minorToMajor(o.priceOverrideMinor)) : "",
       sortOrder: o.sortOrder ?? idx,
       isDefault: o.isDefault ?? false,
     };
@@ -144,6 +145,7 @@ type ModifierGroupSectionsEditorProps = {
   onModifierItemsChange: (items: ModifierCatalogItem[]) => void;
   onCatalogItemDeleted?: () => void;
   suggestedPriceKeys: string[];
+  currency: CurrencyCode;
 };
 
 function resolveCatalogItem(
@@ -166,6 +168,7 @@ export function ModifierGroupSectionsEditor({
   onModifierItemsChange,
   onCatalogItemDeleted,
   suggestedPriceKeys,
+  currency,
 }: ModifierGroupSectionsEditorProps) {
   const [createItemOpen, setCreateItemOpen] = useState(false);
   const [createTargetSectionIdx, setCreateTargetSectionIdx] = useState<number | null>(null);
@@ -236,7 +239,7 @@ export function ModifierGroupSectionsEditor({
           id: businessIdDoc,
           args: {
             name: newItemName.trim(),
-            price: parseFloat(newItemPrice) || 0,
+            priceMinor: majorToMinor(newItemPrice || "0"),
             hasBillOfMaterials: newItemBom,
             requiredMaterials: newItemBom ? newItemMaterials : [],
           },
@@ -286,7 +289,7 @@ export function ModifierGroupSectionsEditor({
   const openMatrixEditor = (catalogItemId: string) => {
     const item = modifierItems.find((i) => i._id === catalogItemId);
     setMatrixItemId(catalogItemId);
-    setMatrixEntries(priceMatrixToInput(item?.priceMatrix));
+    setMatrixEntries(priceMatrixToInput(item?.priceMatrixMinor));
     setMatrixOpen(true);
   };
 
@@ -301,7 +304,7 @@ export function ModifierGroupSectionsEditor({
           id: businessIdDoc,
           _id: matrixItemId,
           args: {
-            priceMatrix: matrixEntries.filter((e) => e.priceKey.trim()),
+            priceMatrixMinor: matrixEntries.filter((e) => e.priceKey.trim()),
           },
         },
       })) as ModifierCatalogItem;
@@ -322,7 +325,7 @@ export function ModifierGroupSectionsEditor({
     if (!item) return;
     setEditItemId(catalogItemId);
     setEditItemName(item.name);
-    setEditItemPrice(String(item.price ?? 0));
+    setEditItemPrice(String(minorToMajor(item.priceMinor ?? 0)));
     setEditItemUnit(item.unitOfMeasure ?? "unidad");
     setEditItemAvailable(item.isAvailable !== false);
     setEditItemBom(item.hasBillOfMaterials ?? false);
@@ -342,7 +345,7 @@ export function ModifierGroupSectionsEditor({
           _id: editItemId,
           args: {
             name: editItemName.trim(),
-            price: parseFloat(editItemPrice) || 0,
+            priceMinor: majorToMinor(editItemPrice || "0"),
             unitOfMeasure: editItemUnit.trim() || "unidad",
             isAvailable: editItemAvailable,
             hasBillOfMaterials: editItemBom,
@@ -615,7 +618,7 @@ export function ModifierGroupSectionsEditor({
                         <TableCell>
                           {(() => {
                             const item = modifierItems.find((i) => i._id === o.catalogItemId);
-                            const count = item?.priceMatrix?.length ?? 0;
+                            const count = item?.priceMatrixMinor?.length ?? 0;
                             return (
                               <Button
                                 type="button"
@@ -719,7 +722,7 @@ export function ModifierGroupSectionsEditor({
               <Input value={newItemName} onChange={(e) => setNewItemName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Precio adicional</Label>
+              <Label>Precio adicional ({currency})</Label>
               <Input
                 type="number"
                 min={0}
@@ -849,7 +852,7 @@ export function ModifierGroupSectionsEditor({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Precio adicional</Label>
+                <Label>Precio adicional ({currency})</Label>
                 <Input
                   type="number"
                   min={0}

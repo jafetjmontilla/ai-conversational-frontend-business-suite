@@ -31,6 +31,7 @@ import {
   ModifierGroupSectionsEditor,
   type SectionDraft,
 } from "@/components/offerings/ModifierGroupSectionsEditor";
+import { majorToMinor, toCurrencyCode } from "@/lib/money";
 
 function sectionsToMutationInput(sections: SectionDraft[]) {
   return sections.map((section, idx) => ({
@@ -47,7 +48,7 @@ function sectionsToMutationInput(sections: SectionDraft[]) {
     sortOrder: idx,
     options: section.options.map((o, optIdx) => ({
       catalogItemId: o.catalogItemId,
-      priceOverride: o.priceOverride ? parseFloat(o.priceOverride) : undefined,
+      priceOverrideMinor: o.priceOverride ? majorToMinor(o.priceOverride) : undefined,
       sortOrder: optIdx,
       isDefault: o.isDefault,
     })),
@@ -77,7 +78,8 @@ export default function ModifierGroupDetailPage() {
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
   const canEdit = canEditCurrentBusiness();
-  const { businessIdDoc } = useBusinessApps(businessId);
+  const { business, businessIdDoc } = useBusinessApps(businessId);
+  const currency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
 
   const [group, setGroup] = useState<ModifierGroup | null>(null);
   const [modifierItems, setModifierItems] = useState<ModifierCatalogItem[]>([]);
@@ -294,6 +296,7 @@ export default function ModifierGroupDetailPage() {
         onSectionsChange={setSections}
         onModifierItemsChange={setModifierItems}
         suggestedPriceKeys={suggestedPriceKeys}
+        currency={currency}
       />
 
       {canEdit && (

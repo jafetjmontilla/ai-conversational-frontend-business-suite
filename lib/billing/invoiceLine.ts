@@ -1,4 +1,5 @@
 import type { InvoiceItemType, InvoiceSelectedModifier } from "@/lib/interfases";
+import { addMinor, assertMinorUnits } from "@/lib/money";
 
 export const roundToTwoDecimals = (num: number): number =>
   Math.round((num + Number.EPSILON) * 100) / 100;
@@ -13,26 +14,38 @@ export type InvoiceLineDraft = {
   itemType?: InvoiceItemType;
   description: string;
   quantity: number;
-  unitPrice: number;
-  total: number;
+  unitPriceMinor: number;
+  totalMinor: number;
   lineNote?: string;
   selectedModifiers?: InvoiceSelectedModifier[];
   searchTerm?: string;
   searchResults?: unknown[];
 };
 
-export function computeLineTotal(
+export function computeLineTotalMinor(
   quantity: number,
-  unitPrice: number,
+  unitPriceMinor: number,
   selectedModifiers?: InvoiceSelectedModifier[]
 ): number {
-  const base = quantity * unitPrice;
-  const mods = (selectedModifiers ?? []).reduce((s, m) => s + (m.total ?? 0), 0);
-  return roundToTwoDecimals(base + mods);
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    throw new TypeError("La cantidad debe ser finita y no negativa");
+  }
+  const baseMinor = assertMinorUnits(
+    Math.round(quantity * assertMinorUnits(unitPriceMinor, "unitPriceMinor")),
+    "lineBaseMinor"
+  );
+  return addMinor(
+    baseMinor,
+    ...(selectedModifiers ?? []).map((modifier) => modifier.totalMinor ?? 0)
+  );
 }
 
 export function mapLineToInvoiceItemInput(line: InvoiceLineDraft) {
-  const total = computeLineTotal(line.quantity, line.unitPrice, line.selectedModifiers);
+  const totalMinor = computeLineTotalMinor(
+    line.quantity,
+    line.unitPriceMinor,
+    line.selectedModifiers
+  );
   return {
     id: line.id,
     inventoryId: line.inventoryId || "",
@@ -45,15 +58,15 @@ export function mapLineToInvoiceItemInput(line: InvoiceLineDraft) {
     serviceOptionId: line.serviceOptionId || undefined,
     description: line.description,
     quantity: roundToTwoDecimals(line.quantity || 0),
-    unitPrice: roundToTwoDecimals(line.unitPrice || 0),
-    total,
+    unitPriceMinor: assertMinorUnits(line.unitPriceMinor || 0, "unitPriceMinor"),
+    totalMinor,
     lineNote: line.lineNote?.trim() || undefined,
     selectedModifiers: (line.selectedModifiers ?? []).map((m) => ({
       modifierGroupId: m.modifierGroupId,
       catalogItemId: m.catalogItemId,
       quantity: roundToTwoDecimals(m.quantity),
-      unitPrice: roundToTwoDecimals(m.unitPrice),
-      total: roundToTwoDecimals(m.total),
+      unitPriceMinor: assertMinorUnits(m.unitPriceMinor, "unitPriceMinor"),
+      totalMinor: assertMinorUnits(m.totalMinor, "totalMinor"),
     })),
   };
 }

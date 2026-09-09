@@ -12,12 +12,13 @@ import { Bot, Plus, Receipt } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
 import { normalizeBillingInternalFlow } from "@/lib/billing/flows";
-import { InvoiceCard, formatNumber } from "@/components/invoice/InvoiceCard";
+import { InvoiceCard } from "@/components/invoice/InvoiceCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import { cn } from "@/lib/utils";
+import { formatMinor, toCurrencyCode } from "@/lib/money";
 
 type SourceFilter = "all" | InvoiceSource;
 
@@ -46,6 +47,11 @@ export function InvoicesBillingContent() {
     business?.billingExchangeRateSource === "custom" && business?.billingCustomExchangeRate
       ? business.billingCustomExchangeRate
       : 1;
+  const baseCurrency = toCurrencyCode(business?.billingBaseCurrency ?? business?.currency);
+  const displayCurrency = toCurrencyCode(
+    business?.billingDisplayCurrency,
+    baseCurrency
+  );
 
   const fetchInvoices = useCallback(() => {
     if (!businessIdDoc) return;
@@ -124,8 +130,11 @@ export function InvoicesBillingContent() {
       clientId: "",
       clientPhone: "",
       items: [],
-      totalBs: 0,
-      totalUsd: 0,
+      baseCurrency,
+      displayCurrency,
+      exchangeRate,
+      totalBaseMinor: 0,
+      totalDisplayMinor: 0,
       status: "draft",
       createdBy: "",
       createdAt: new Date().toISOString(),
@@ -228,6 +237,8 @@ export function InvoicesBillingContent() {
                           onUpdate={(updatedInvoice) => updateLocalInvoice(invoice._id, updatedInvoice)}
                           onRemove={() => removeInvoice(invoice._id)}
                           exchangeRate={exchangeRate}
+                          baseCurrency={baseCurrency}
+                          displayCurrency={displayCurrency}
                           businessId={businessIdDoc!}
                           onPaymentSuccess={fetchInvoices}
                         />
@@ -299,10 +310,18 @@ export function InvoicesBillingContent() {
                           index === 0 && "border-t"
                         )}
                       >
-                        {formatNumber(invoice.totalBs)}
+                        {formatMinor(
+                          invoice.totalBaseMinor,
+                          invoice.baseCurrency
+                        )}
                       </span>
                       <span className={`flex items-center w-20 h-6 px-2 justify-end border-r border-b border-primary ${index === 0 ? "border-t" : ""}`}>
-                        {formatNumber(invoice.totalUsd)}
+                        {invoice.totalDisplayMinor != null
+                          ? formatMinor(
+                            invoice.totalDisplayMinor,
+                            invoice.displayCurrency
+                          )
+                          : "—"}
                       </span>
                       <span className={`flex items-center w-16 h-6 px-2 justify-center border-r border-b border-primary text-[10px] ${index === 0 ? "border-t" : ""} ${invoice.status === "paid" ? "text-green-600" : invoice.status === "cancelled" ? "text-red-600" : "text-muted-foreground"}`}>
                         {invoice.status === "paid" ? "Pagada" : invoice.status === "cancelled" ? "Anulada" : "Borrador"}

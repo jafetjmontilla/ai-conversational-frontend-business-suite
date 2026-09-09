@@ -11,11 +11,12 @@ import { toast } from "sonner";
 import { FileBarChart } from "lucide-react";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusiness } from "@/lib/hooks/useBusiness";
+import { formatMinor, type CurrencyCode } from "@/lib/money";
 
 interface MethodSummary {
   name: string;
-  totalUsd: number;
-  totalBs: number;
+  currency: CurrencyCode;
+  totalMinor: number;
   count: number;
 }
 
@@ -71,23 +72,23 @@ export function PaymentSummaryContent() {
       const methods = p.paymentMethods ?? [];
       for (const m of methods) {
         const name = m.name || "Sin nombre";
-        const existing = map.get(name);
-        const usd = m.amountUsd ?? 0;
-        const bs = m.amountBs ?? 0;
+        const key = `${name}:${m.currency}`;
+        const existing = map.get(key);
         if (existing) {
-          existing.totalUsd += usd;
-          existing.totalBs += bs;
+          existing.totalMinor += m.amountMinor;
           existing.count += 1;
         } else {
-          map.set(name, { name, totalUsd: usd, totalBs: bs, count: 1 });
+          map.set(key, { name, currency: m.currency, totalMinor: m.amountMinor, count: 1 });
         }
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.totalUsd - a.totalUsd);
+    return Array.from(map.values()).sort((a, b) => b.totalMinor - a.totalMinor);
   }, [payments]);
 
-  const totalUsd = byMethod.reduce((s, x) => s + x.totalUsd, 0);
-  const totalBs = byMethod.reduce((s, x) => s + x.totalBs, 0);
+  const totalsByCurrency = byMethod.reduce((totals, row) => {
+    totals.set(row.currency, (totals.get(row.currency) ?? 0) + row.totalMinor);
+    return totals;
+  }, new Map<CurrencyCode, number>());
   const totalCount = payments.length;
 
   if (!businessId) return null;
@@ -128,8 +129,8 @@ export function PaymentSummaryContent() {
                   <TableRow>
                     <TableHead>Forma de pago</TableHead>
                     <TableHead>Cantidad de pagos</TableHead>
-                    <TableHead>Total USD</TableHead>
-                    <TableHead>Total Bs</TableHead>
+                    <TableHead>Moneda</TableHead>
+                    <TableHead>Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -144,8 +145,8 @@ export function PaymentSummaryContent() {
                       <TableRow key={row.name}>
                         <TableCell className="font-medium">{row.name}</TableCell>
                         <TableCell>{row.count}</TableCell>
-                        <TableCell>{row.totalUsd.toFixed(2)}</TableCell>
-                        <TableCell>{row.totalBs.toFixed(2)}</TableCell>
+                        <TableCell>{row.currency}</TableCell>
+                        <TableCell>{formatMinor(row.totalMinor, row.currency)}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -154,8 +155,9 @@ export function PaymentSummaryContent() {
               {byMethod.length > 0 && (
                 <div className="p-4 mt-2 bg-muted/50 rounded-lg text-sm flex justify-between flex-wrap gap-2">
                   <span>Total de pagos: <strong>{totalCount}</strong></span>
-                  <span>Total USD: <strong>{totalUsd.toFixed(2)}</strong></span>
-                  <span>Total Bs: <strong>{totalBs.toFixed(2)}</strong></span>
+                  {[...totalsByCurrency].map(([currency, amountMinor]) => (
+                    <span key={currency}>Total {currency}: <strong>{formatMinor(amountMinor, currency)}</strong></span>
+                  ))}
                 </div>
               )}
             </>

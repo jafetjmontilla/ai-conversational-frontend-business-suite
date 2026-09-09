@@ -32,13 +32,13 @@ export interface AttributeOption {
 export function buildPreviewInput(
   productId: string,
   productName: string,
-  basePrice: number,
+  basePriceMinor: number,
   attributesWithValues: AttributeOption[]
 ) {
   return {
     product_id: productId,
     product_name: productName,
-    base_price: basePrice,
+    base_price_minor: basePriceMinor,
     attributes: attributesWithValues.map((a) => ({
       attributeId: a.attributeId,
       attributeName: a.attributeName,
@@ -89,7 +89,7 @@ export interface VariantPreviewRow extends VariantPreviewItem {
 export function buildVariantsPreviewInput(rows: VariantPreviewRow[]) {
   return rows.map((r) => ({
     sku: r.sku,
-    price_override: r.price_override ?? null,
+    price_override_minor: r.price_override_minor ?? null,
     stock_quantity: r.stock_quantity ?? 0,
     attribute_value_ids: r.attribute_value_ids ?? (r.attributeValues?.map((av: any) => av.attributeValueId).filter(Boolean) as string[]) ?? [],
   }));
@@ -100,7 +100,7 @@ export function buildVariantsPreviewInput(rows: VariantPreviewRow[]) {
  */
 export async function createProductWithVariants(
   businessId: string,
-  product: { name: string; description?: string; category_id?: string | null; base_price?: number; brand?: string },
+  product: { name: string; description?: string; category_id?: string | null; base_price_minor?: number; brand?: string },
   variantsPreview: VariantPreviewRow[]
 ): Promise<Product> {
   const payload = buildVariantsPreviewInput(variantsPreview);
@@ -113,7 +113,7 @@ export async function createProductWithVariants(
         name: product.name,
         description: product.description ?? "",
         category_id: product.category_id ?? null,
-        base_price: product.base_price ?? 0,
+        base_price_minor: product.base_price_minor ?? 0,
         brand: product.brand ?? "",
       },
       variantsPreview: payload,
@@ -129,9 +129,9 @@ export async function bulkUpdateVariants(
   businessId: string,
   items: {
     variant_id: string;
-    price_override?: number | null;
+    price_override_minor?: number | null;
     stock_quantity?: number;
-    cost_price?: number | null;
+    cost_price_minor?: number | null;
     unit_of_measure?: string;
   }[]
 ) {
