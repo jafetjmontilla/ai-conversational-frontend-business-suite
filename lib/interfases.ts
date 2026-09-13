@@ -753,6 +753,8 @@ export interface ProductVariant {
   cost_price_minor?: number | null;
   unit_of_measure?: string;
   stock_quantity: number;
+  /** Umbral de alerta de stock bajo (0 = sin alerta). */
+  min_stock?: number;
   image_url: string | null;
   attribute_values: VariantAttributeMapEntry[];
   status: boolean;
@@ -834,6 +836,7 @@ export interface ProductVariantForMaterial {
   sku: string;
   cost_price_minor?: number | null;
   unit_of_measure?: string;
+  stock_quantity?: number;
   product?: { _id: string; name: string } | null;
 }
 
@@ -860,7 +863,6 @@ export interface ProductionCostResult {
   breakdown: Array<{ variantId: string; sku: string; quantity: number; costPriceMinor: number; subtotalMinor: number }>;
 }
 
-/** Registro del kardex (auditoría de movimientos de stock). */
 export interface InventoryLog {
   _id: string;
   variant_id: string;
@@ -872,6 +874,39 @@ export interface InventoryLog {
   concept: string;
   userId: string;
   createdAt: string;
+}
+
+/** Fila del listado operativo de inventario (ProductVariant). */
+export interface InventoryStockRow {
+  variantId: string;
+  productId: string;
+  sku: string;
+  productName: string;
+  is_sellable: boolean;
+  trackInventory: boolean;
+  hasBillOfMaterials: boolean;
+  stock_quantity: number;
+  min_stock: number;
+  unit_of_measure: string;
+  lowStock: boolean;
+}
+
+export type StockDocumentType = 'INGRESO' | 'AJUSTE';
+
+export interface StockDocumentLine {
+  variantId: string;
+  sku: string;
+  quantity: number;
+}
+
+export interface StockDocument {
+  _id: string;
+  business_id: string;
+  type: StockDocumentType;
+  concept: string;
+  userId: string;
+  lines: StockDocumentLine[];
+  createdAt?: string;
 }
 
 export type ModifierSelectionType = "SINGLE" | "MULTIPLE";
@@ -950,4 +985,66 @@ export interface ModifierPriceLine {
 export interface ModifierPricingResult {
   lines: ModifierPriceLine[];
   additionalTotalMinor: number;
+}
+
+
+// ——— Compras / proveedores ———
+
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
+
+export interface Supplier {
+  _id: string;
+  business_id: string;
+  name: string;
+  taxId?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  status: boolean;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PurchaseOrderLine {
+  _id: string;
+  variantId: string;
+  sku: string;
+  description?: string;
+  quantityOrdered: number;
+  quantityReceived: number;
+  unitCostMinor: number;
+}
+
+export interface PurchaseOrder {
+  _id: string;
+  business_id: string;
+  supplierId: string;
+  supplier?: Supplier | null;
+  status: PurchaseOrderStatus;
+  notes?: string;
+  lines: PurchaseOrderLine[];
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PurchaseReceiptLine {
+  purchaseOrderLineId: string;
+  variantId: string;
+  sku: string;
+  quantity: number;
+  unitCostMinor: number;
+}
+
+export interface PurchaseReceipt {
+  _id: string;
+  business_id?: string;
+  purchaseOrderId: string;
+  supplierId: string;
+  stockDocumentId?: string | null;
+  concept: string;
+  userId: string;
+  lines: PurchaseReceiptLine[];
+  createdAt?: string;
 }

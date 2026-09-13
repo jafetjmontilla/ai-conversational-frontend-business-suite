@@ -18,6 +18,8 @@ import {
   House,
   LayoutGrid,
   Monitor,
+  Warehouse,
+  Truck,
 } from "lucide-react";
 
 /** Permiso requerido para mostrar un ítem del menú de negocio. */
@@ -200,6 +202,16 @@ export function buildBusinessNavGroups(
           requiredAnyApps: ["productos-servicios"],
         },
         {
+          id: "inventory",
+          href: `${base}/inventory/stock`,
+          activePrefix: `${base}/inventory`,
+          label: "Inventario",
+          icon: Warehouse,
+          permission: "negocio:ver",
+          matchPrefix: true,
+          requiredAnyApps: ["productos-servicios", "gestion-insumos-materia-prima"],
+        },
+        {
           id: "billing",
           href: `${base}/billing/facturas`,
           activePrefix: `${base}/billing`,
@@ -208,6 +220,16 @@ export function buildBusinessNavGroups(
           permission: "negocio:ver",
           matchPrefix: true,
           requiredAnyApps: ["facturacion-inventario"],
+        },
+        {
+          id: "purchasing",
+          href: `${base}/purchasing/suppliers`,
+          activePrefix: `${base}/purchasing`,
+          label: "Compras",
+          icon: Truck,
+          permission: "negocio:ver",
+          matchPrefix: true,
+          requiredAnyApps: ["gestion-proveedores"],
         },
       ],
     },

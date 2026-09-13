@@ -122,6 +122,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 168,
     icon: Truck,
     iconGradient: "from-slate-600 to-blue-600",
+    routePath: "/purchasing/suppliers",
     features: [
       "Historial completo de compras y órdenes generadas",
       "Evaluación de rendimiento, costos y tiempos de entrega (KPIs)",
@@ -143,6 +144,7 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
     reviews: 142,
     icon: Boxes,
     iconGradient: "from-stone-500 to-amber-600",
+    routePath: "/inventory/stock",
     features: [
       "Trazabilidad completa de lotes y fechas de caducidad de insumos",
       "Cálculo automatizado de costos de adquisición y almacenamiento",

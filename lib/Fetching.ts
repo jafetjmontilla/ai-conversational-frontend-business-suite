@@ -1347,7 +1347,8 @@ export const queries = {
       }
     }
   }`,
-  // Inventario (id = business _id)
+  // ——— Inventario legacy InventoryItem (DEPRECATED: no usar en código nuevo) ———
+  // Preferir getInventoryStockList / createStockDocument / getInventoryLogs / ProductVariant.
   getInventoryItems: `query getInventoryItems($id: ID!, $description: String, $skip: Int, $limit: Int) {
     getInventoryItems(id: $id, description: $description, skip: $skip, limit: $limit) {
       _id
@@ -1707,6 +1708,101 @@ export const queries = {
   getInventoryLogs: `query getInventoryLogs($id: ID!, $sku: String, $variantId: ID, $fromDate: Date, $toDate: Date, $limit: Int) {
     getInventoryLogs(id: $id, sku: $sku, variantId: $variantId, fromDate: $fromDate, toDate: $toDate, limit: $limit) {
       _id variant_id business_id sku type quantity_change balance_after concept userId createdAt
+    }
+  }`,
+  getInventoryStockList: `query getInventoryStockList($id: ID!, $q: String, $role: InventoryStockRole, $lowStockOnly: Boolean, $skip: Int, $limit: Int) {
+    getInventoryStockList(id: $id, q: $q, role: $role, lowStockOnly: $lowStockOnly, skip: $skip, limit: $limit) {
+      variantId productId sku productName is_sellable trackInventory hasBillOfMaterials
+      stock_quantity min_stock unit_of_measure lowStock
+    }
+  }`,
+  createStockDocument: `mutation createStockDocument($id: ID!, $input: CreateStockDocumentInput!) {
+    createStockDocument(id: $id, input: $input) {
+      _id business_id type concept userId
+      lines { variantId sku quantity }
+      createdAt
+    }
+  }`,
+  updateVariantMinStock: `mutation updateVariantMinStock($id: ID!, $variantId: ID!, $minStock: Float!) {
+    updateVariantMinStock(id: $id, variantId: $variantId, minStock: $minStock) {
+      variantId productId sku productName is_sellable trackInventory hasBillOfMaterials
+      stock_quantity min_stock unit_of_measure lowStock
+    }
+  }`,
+  // ——— Compras / proveedores (gestion-proveedores) ———
+  getSuppliers: `query getSuppliers($id: ID!, $q: String, $includeInactive: Boolean, $skip: Int, $limit: Int) {
+    getSuppliers(id: $id, q: $q, includeInactive: $includeInactive, skip: $skip, limit: $limit) {
+      _id business_id name taxId email phone notes status createdBy createdAt updatedAt
+    }
+  }`,
+  getSupplier: `query getSupplier($_id: ID!, $id: ID!) {
+    getSupplier(_id: $_id, id: $id) {
+      _id business_id name taxId email phone notes status createdBy createdAt updatedAt
+    }
+  }`,
+  createSupplier: `mutation createSupplier($id: ID!, $args: SupplierInput!) {
+    createSupplier(id: $id, args: $args) {
+      _id business_id name taxId email phone notes status createdBy createdAt updatedAt
+    }
+  }`,
+  updateSupplier: `mutation updateSupplier($_id: ID!, $id: ID!, $args: UpdateSupplierInput!) {
+    updateSupplier(_id: $_id, id: $id, args: $args) {
+      _id business_id name taxId email phone notes status createdBy createdAt updatedAt
+    }
+  }`,
+  getPurchaseOrders: `query getPurchaseOrders($id: ID!, $status: PurchaseOrderStatus, $supplierId: ID, $skip: Int, $limit: Int) {
+    getPurchaseOrders(id: $id, status: $status, supplierId: $supplierId, skip: $skip, limit: $limit) {
+      _id business_id supplierId status notes createdBy createdAt updatedAt
+      supplier { _id name }
+      lines { _id variantId sku description quantityOrdered quantityReceived unitCostMinor }
+    }
+  }`,
+  getPurchaseOrder: `query getPurchaseOrder($_id: ID!, $id: ID!) {
+    getPurchaseOrder(_id: $_id, id: $id) {
+      _id business_id supplierId status notes createdBy createdAt updatedAt
+      supplier { _id name taxId email phone }
+      lines { _id variantId sku description quantityOrdered quantityReceived unitCostMinor }
+    }
+  }`,
+  createPurchaseOrder: `mutation createPurchaseOrder($id: ID!, $args: CreatePurchaseOrderInput!) {
+    createPurchaseOrder(id: $id, args: $args) {
+      _id business_id supplierId status notes createdBy createdAt
+      lines { _id variantId sku description quantityOrdered quantityReceived unitCostMinor }
+    }
+  }`,
+  updatePurchaseOrder: `mutation updatePurchaseOrder($_id: ID!, $id: ID!, $args: UpdatePurchaseOrderInput!) {
+    updatePurchaseOrder(_id: $_id, id: $id, args: $args) {
+      _id business_id supplierId status notes
+      lines { _id variantId sku description quantityOrdered quantityReceived unitCostMinor }
+    }
+  }`,
+  placePurchaseOrder: `mutation placePurchaseOrder($_id: ID!, $id: ID!) {
+    placePurchaseOrder(_id: $_id, id: $id) {
+      _id status
+    }
+  }`,
+  cancelPurchaseOrder: `mutation cancelPurchaseOrder($_id: ID!, $id: ID!) {
+    cancelPurchaseOrder(_id: $_id, id: $id) {
+      _id status
+    }
+  }`,
+  receivePurchaseOrder: `mutation receivePurchaseOrder($_id: ID!, $id: ID!, $input: ReceivePurchaseOrderInput!) {
+    receivePurchaseOrder(_id: $_id, id: $id, input: $input) {
+      stockDocumentId
+      purchaseOrder {
+        _id status
+        lines { _id variantId sku quantityOrdered quantityReceived unitCostMinor }
+      }
+      receipt {
+        _id purchaseOrderId stockDocumentId concept
+        lines { purchaseOrderLineId variantId sku quantity unitCostMinor }
+      }
+    }
+  }`,
+  getPurchaseReceipts: `query getPurchaseReceipts($id: ID!, $purchaseOrderId: ID, $skip: Int, $limit: Int) {
+    getPurchaseReceipts(id: $id, purchaseOrderId: $purchaseOrderId, skip: $skip, limit: $limit) {
+      _id purchaseOrderId supplierId stockDocumentId concept userId createdAt
+      lines { purchaseOrderLineId variantId sku quantity unitCostMinor }
     }
   }`,
   // Servicios (catálogo independiente de productos)

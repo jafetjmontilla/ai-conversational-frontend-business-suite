@@ -1,3 +1,4 @@
+/** @deprecated Legacy InventoryItem. Use StockDocumentDialog / createStockDocument. */
 "use client";
 
 import { useState } from "react";
