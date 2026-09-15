@@ -51,6 +51,7 @@ export const TEACH_SOURCE_IDS = [
   "faqs",
   "glossary",
   "policies",
+  "documents",
   "tools",
   "case_studies",
 ] as const;

@@ -3,7 +3,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AutoResizeTextarea } from "@/components/ui/auto-resize-textarea";
-import type { KnowledgeSourceId } from "@/lib/knowledgeTypes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DOCUMENT_CATEGORIES, type KnowledgeSourceId } from "@/lib/knowledgeTypes";
 import { StringListEditor } from "@/components/knowledge/StringListEditor";
 
 export function parseKnowledgeItemPayload(payloadStr: string): Record<string, unknown> {
@@ -143,6 +150,88 @@ export function KnowledgeItemFormFields({ sourceId, value, onChange, disabled }:
             className="mt-1"
           />
         </div>
+      </div>
+    );
+  }
+
+  if (sourceId === "documents") {
+    const category = asString(value.category) || "documento";
+    return (
+      <div className="space-y-3">
+        <div>
+          <Label htmlFor="knowledge-doc-title">Título</Label>
+          <Input
+            id="knowledge-doc-title"
+            value={asString(value.title)}
+            onChange={(e) => set("title", e.target.value)}
+            disabled={disabled}
+            className="mt-1"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="knowledge-doc-category">Tipo</Label>
+            <Select
+              value={category}
+              onValueChange={(next) => set("category", next)}
+              disabled={disabled}
+            >
+              <SelectTrigger id="knowledge-doc-category" className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DOCUMENT_CATEGORIES.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="knowledge-doc-ref">Referencia</Label>
+            <Input
+              id="knowledge-doc-ref"
+              value={asString(value.reference)}
+              onChange={(e) => set("reference", e.target.value)}
+              disabled={disabled}
+              placeholder="ej. Res. 045/2024"
+              className="mt-1"
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="knowledge-doc-summary">Resumen</Label>
+          <AutoResizeTextarea
+            id="knowledge-doc-summary"
+            value={asString(value.summary)}
+            onChange={(e) => set("summary", e.target.value)}
+            disabled={disabled}
+            minRows={1}
+            maxRows={6}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor="knowledge-doc-content">Contenido</Label>
+          <AutoResizeTextarea
+            id="knowledge-doc-content"
+            value={asString(value.content)}
+            onChange={(e) => set("content", e.target.value)}
+            disabled={disabled}
+            minRows={4}
+            maxRows={16}
+            className="mt-1"
+          />
+        </div>
+        <StringListEditor
+          label="Keywords"
+          values={asStringList(value.keywords)}
+          onChange={(keywords) => set("keywords", keywords)}
+          placeholder="ej. normativa, entrega…"
+          disabled={disabled}
+          emptyHint="Sin keywords — agrega términos para mejorar la búsqueda"
+        />
       </div>
     );
   }

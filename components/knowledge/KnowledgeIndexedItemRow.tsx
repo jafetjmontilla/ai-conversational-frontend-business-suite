@@ -81,6 +81,14 @@ export function KnowledgeIndexedItemRow({
         {sourceId === "glossary" && parsed.definition ? (
           <p className="text-sm text-muted-foreground line-clamp-2">{String(parsed.definition)}</p>
         ) : null}
+        {sourceId === "documents" ? (
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {[parsed.category, parsed.reference, parsed.summary || parsed.content]
+              .filter((part) => part != null && String(part).trim())
+              .map((part) => String(part))
+              .join(" · ")}
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <p>
             Aprobado: {item.approvedAt ? new Date(item.approvedAt).toLocaleString() : "—"}

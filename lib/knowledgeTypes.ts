@@ -7,11 +7,22 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   { sourceId: "glossary", label: "Glosario", description: "Definiciones", priority: 5 },
   { sourceId: "faqs", label: "FAQs", description: "Preguntas comunes", priority: 4 },
   { sourceId: "policies", label: "Políticas", description: "Reglas NO romper", priority: 4 },
+  { sourceId: "documents", label: "Documentos", description: "Normativas, resoluciones y referencia general", priority: 4 },
   { sourceId: "tools", label: "Referencia de APIs", description: "Documentación indexada para el RAG (no ejecuta llamadas)", priority: 3 },
   { sourceId: "case_studies", label: "Casos de estudio", description: "Lecciones reales", priority: 3 },
 ] as const;
 
 export type KnowledgeSourceId = (typeof KNOWLEDGE_SOURCE_TYPES)[number]["sourceId"];
+
+export const DOCUMENT_CATEGORIES = [
+  { value: "normativa", label: "Normativa" },
+  { value: "resolucion", label: "Resolución" },
+  { value: "circular", label: "Circular" },
+  { value: "documento", label: "Documento" },
+  { value: "otro", label: "Otro" },
+] as const;
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number]["value"];
 
 /** sourceIds que ya tienen backend (flujo IA → aprobar → indexar) implementado */
 export const IMPLEMENTED_SOURCE_IDS: KnowledgeSourceId[] = [
@@ -19,6 +30,7 @@ export const IMPLEMENTED_SOURCE_IDS: KnowledgeSourceId[] = [
   "faqs",
   "glossary",
   "policies",
+  "documents",
   "tools",
   "case_studies",
 ];

@@ -33,7 +33,7 @@ import { KnowledgeDraftItemRow } from "@/components/knowledge/KnowledgeDraftItem
 import { InputSearch } from "@/components/InputSearch";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { cn } from "@/lib/utils";
-import { BookOpen, ArrowDownAZ, FilePenLine, Loader2, Sparkles, X } from "lucide-react";
+import { BookOpen, ArrowDownAZ, FilePenLine, Loader2, Sparkles, Upload, X } from "lucide-react";
 
 type KnowledgeItemSortField = "approvedAt" | "updatedAt";
 type KnowledgeItemSortOrder = "asc" | "desc";
@@ -79,9 +79,16 @@ type Props = {
   title: string;
   description: string;
   narrativePlaceholder: string;
+  composeMode?: "generate" | "upload";
 };
 
-export function KnowledgeGenericPage({ sourceId, title, description, narrativePlaceholder }: Props) {
+export function KnowledgeGenericPage({
+  sourceId,
+  title,
+  description,
+  narrativePlaceholder,
+  composeMode = "generate",
+}: Props) {
   const params = useParams();
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
@@ -157,10 +164,15 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
         type: "json",
         variables: { businessId, sourceId, content: narrative.trim() },
       });
-      toast.success("Texto enviado. El borrador se actualizará en tiempo real.");
+      toast.success(
+        composeMode === "upload"
+          ? "Documento cargado como borrador. Revísalo y aprueba para indexarlo."
+          : "Texto enviado. El borrador se actualizará en tiempo real."
+      );
       setNarrative("");
       setGenerateDialogOpen(false);
       setMobileDraftsOpen(true);
+      await loadLists();
     } catch (e: unknown) {
       toast.error((e as Error)?.message || "Error al enviar");
     } finally {
@@ -354,8 +366,12 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
         {canEdit && (
           <div className="flex justify-end">
             <Button onClick={() => setGenerateDialogOpen(true)}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generar conocimiento
+              {composeMode === "upload" ? (
+                <Upload className="h-4 w-4 mr-2" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              {composeMode === "upload" ? "Cargar documento" : "Generar conocimiento"}
             </Button>
           </div>
         )}
@@ -388,7 +404,11 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
           <p className="text-muted-foreground">Cargando…</p>
         ) : drafts.length === 0 ? (
           <p className="text-muted-foreground">
-            No hay borradores. Usa &quot;Generar conocimiento&quot; para enviar un texto a la IA.
+            {composeMode === "upload" ? (
+              <>No hay borradores. Usa &quot;Cargar documento&quot; para pegar el texto.</>
+            ) : (
+              <>No hay borradores. Usa &quot;Generar conocimiento&quot; para enviar un texto a la IA.</>
+            )}
           </p>
         ) : (
           <div className="space-y-3">
@@ -608,19 +628,22 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generar conocimiento — {title}</DialogTitle>
+            <DialogTitle>
+              {composeMode === "upload" ? `Cargar documento — ${title}` : `Generar conocimiento — ${title}`}
+            </DialogTitle>
             <DialogDescription>
-              Escribe un texto o narrativa y la IA extraerá un borrador estructurado de tipo &quot;{title}&quot;.
-              Revisa cada item en Borradores y aprueba individualmente para indexarlo.
+              {composeMode === "upload"
+                ? "Pega el texto de la normativa, resolución o documento. Se crea un borrador al instante para que lo revises y apruebes."
+                : `Escribe un texto o narrativa y la IA extraerá un borrador estructurado de tipo "${title}". Revisa cada item en Borradores y aprueba individualmente para indexarlo.`}
             </DialogDescription>
           </DialogHeader>
           <div>
-            <Label>Texto o narrativa</Label>
+            <Label>{composeMode === "upload" ? "Texto del documento" : "Texto o narrativa"}</Label>
             <Textarea
               placeholder={narrativePlaceholder}
               value={narrative}
               onChange={(e) => setNarrative(e.target.value)}
-              rows={6}
+              rows={composeMode === "upload" ? 12 : 6}
               className="mt-2"
               disabled={!canEdit || sending}
             />
@@ -633,8 +656,10 @@ export function KnowledgeGenericPage({ sourceId, title, description, narrativePl
               {sending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enviando…
+                  {composeMode === "upload" ? "Cargando…" : "Enviando…"}
                 </>
+              ) : composeMode === "upload" ? (
+                "Cargar y crear borrador"
               ) : (
                 "Enviar y generar borrador"
               )}
