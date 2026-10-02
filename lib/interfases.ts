@@ -316,6 +316,127 @@ export interface PaeSkillListResult {
   totalCount: number;
 }
 
+export interface PaeSubAgentRow {
+  id: string;
+  agentId: string;
+  name: string;
+  description: string;
+  builtIn: boolean;
+  enabled: boolean;
+  priority: number;
+  triggers: { intents: string[]; patterns: string[]; skillIds: string[] };
+  execution: {
+    mode: string;
+    graphId?: string | null;
+    allowedTools: string[];
+    planTemplate?: string | null;
+    webhookUrl?: string | null;
+    hasWebhookSecret: boolean;
+    requiresLocalRuntime: boolean;
+  };
+  policy: {
+    async: boolean;
+    maxToolSteps?: number | null;
+    maxCostUsd?: number | null;
+    maxDurationMs?: number | null;
+    requireApprovalFor: string[];
+  };
+  output: { summaryField: string; deliveryTemplate?: string | null };
+  /** builtin | tenant | personal (Fase 8.1). */
+  scope: string;
+  ownerUserId?: string | null;
+  instructions?: string | null;
+  callableAgents: string[];
+  version: number;
+  /** draft | published */
+  status: string;
+  promotedFrom?: string | null;
+  runsLast7d: number;
+  updatedAt?: string | null;
+}
+
+export interface PaeAgentCollaborationSettings {
+  enabled: boolean;
+  maxDelegationDepth: number;
+  allowPersonalAgents: boolean;
+  maxPersonalAgentsPerUser: number;
+  personalAllowedTools: string[];
+  maxTreeAgentCalls: number;
+  asyncMessagingEnabled: boolean;
+  asyncDefaultDeadlineMs: number;
+  availableTools: string[];
+  myPersonalAgentCount: number;
+}
+
+export interface PaeAgentTarget {
+  agentId: string;
+  name: string;
+  scope: string;
+  status: string;
+}
+
+export interface PaeAgentRunTreeSummary {
+  rootRunId: string;
+  rootAgentId: string;
+  userId?: string | null;
+  conversationId?: string | null;
+  task?: string | null;
+  status: string;
+  nodes: number;
+  activeNodes: number;
+  totalCostUsd: number;
+  createdAt?: string | null;
+  lastActivityAt?: string | null;
+}
+
+export interface PaeAgentRunNode {
+  runId: string;
+  rootRunId?: string | null;
+  parentRunId?: string | null;
+  depth: number;
+  agentId: string;
+  agentScope?: string | null;
+  callerAgentId?: string | null;
+  status: string;
+  task?: string | null;
+  resultSummary?: string | null;
+  errorMessage?: string | null;
+  costUsd?: number | null;
+  durationMs?: number | null;
+  definitionVersion?: number | null;
+  viaMessageId?: string | null;
+  createdAt?: string | null;
+  completedAt?: string | null;
+}
+
+export interface PaeAgentMessageRow {
+  messageId: string;
+  threadId: string;
+  replyTo?: string | null;
+  rootRunId: string;
+  fromAgentId: string;
+  toAgentId: string;
+  kind: string;
+  status: string;
+  payload?: string | null;
+  attempts: number;
+  deadlineAt?: string | null;
+  createdAt?: string | null;
+  processedAt?: string | null;
+}
+
+export interface PaeSubAgentCatalogResult {
+  items: PaeSubAgentRow[];
+  availableTools: string[];
+  intents: string[];
+  modes: string[];
+}
+
+export interface PaeSubAgentTriggerPreviewResult {
+  matches: Array<{ agentId: string; name: string; builtIn: boolean; score: number; reasons: string[] }>;
+  selectedAgentId?: string | null;
+}
+
 export interface PaeLocalDeviceRow {
   id: string;
   deviceId: string;

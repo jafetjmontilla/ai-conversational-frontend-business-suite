@@ -726,6 +726,200 @@ export const queries = {
   deletePaeSkill: `mutation deletePaeSkill($businessDocId: ID!, $skillId: ID!) {
     deletePaeSkill(businessDocId: $businessDocId, skillId: $skillId)
   }`,
+  getPaeSubAgentCatalog: `query getPaeSubAgentCatalog($businessDocId: ID!) {
+    getPaeSubAgentCatalog(businessDocId: $businessDocId) {
+      availableTools
+      intents
+      modes
+      items {
+      id
+      agentId
+      name
+      description
+      builtIn
+      enabled
+      priority
+      triggers { intents patterns skillIds }
+      execution { mode graphId allowedTools planTemplate webhookUrl hasWebhookSecret requiresLocalRuntime }
+      policy { async maxToolSteps maxCostUsd maxDurationMs requireApprovalFor }
+      output { summaryField deliveryTemplate }
+      scope
+      ownerUserId
+      instructions
+      callableAgents
+      version
+      status
+      promotedFrom
+      runsLast7d
+      updatedAt
+      }
+    }
+  }`,
+  previewPaeSubAgentTriggers: `query previewPaeSubAgentTriggers($businessDocId: ID!, $message: String!, $intent: String) {
+    previewPaeSubAgentTriggers(businessDocId: $businessDocId, message: $message, intent: $intent) {
+      selectedAgentId
+      matches { agentId name builtIn score reasons }
+    }
+  }`,
+  upsertPaeSubAgentDefinition: `mutation upsertPaeSubAgentDefinition($businessDocId: ID!, $input: PaeSubAgentDefinitionInput!) {
+    upsertPaeSubAgentDefinition(businessDocId: $businessDocId, input: $input) {
+      id
+      agentId
+      name
+      description
+      builtIn
+      enabled
+      priority
+      triggers { intents patterns skillIds }
+      execution { mode graphId allowedTools planTemplate webhookUrl hasWebhookSecret requiresLocalRuntime }
+      policy { async maxToolSteps maxCostUsd maxDurationMs requireApprovalFor }
+      output { summaryField deliveryTemplate }
+      scope
+      ownerUserId
+      instructions
+      callableAgents
+      version
+      status
+      promotedFrom
+      runsLast7d
+      updatedAt
+    }
+  }`,
+  deletePaeSubAgentDefinition: `mutation deletePaeSubAgentDefinition($businessDocId: ID!, $agentId: String!) {
+    deletePaeSubAgentDefinition(businessDocId: $businessDocId, agentId: $agentId)
+  }`,
+  setPaeSubAgentEnabled: `mutation setPaeSubAgentEnabled($businessDocId: ID!, $agentId: String!, $enabled: Boolean!) {
+    setPaeSubAgentEnabled(businessDocId: $businessDocId, agentId: $agentId, enabled: $enabled) {
+      agentId
+      enabled
+    }
+  }`,
+  getPaeAgentCollaboration: `query getPaeAgentCollaboration($businessDocId: ID!) {
+    getPaeAgentCollaboration(businessDocId: $businessDocId) {
+      enabled
+      maxDelegationDepth
+      allowPersonalAgents
+      maxPersonalAgentsPerUser
+      personalAllowedTools
+      maxTreeAgentCalls
+      asyncMessagingEnabled
+      asyncDefaultDeadlineMs
+      availableTools
+      myPersonalAgentCount
+    }
+  }`,
+  updatePaeAgentCollaboration: `mutation updatePaeAgentCollaboration($businessDocId: ID!, $input: PaeAgentCollaborationInput!) {
+    updatePaeAgentCollaboration(businessDocId: $businessDocId, input: $input) {
+      enabled
+      maxDelegationDepth
+      allowPersonalAgents
+      maxPersonalAgentsPerUser
+      personalAllowedTools
+      maxTreeAgentCalls
+      asyncMessagingEnabled
+      asyncDefaultDeadlineMs
+      availableTools
+      myPersonalAgentCount
+    }
+  }`,
+  paeAgents: `query paeAgents($businessDocId: ID!, $scope: String!) {
+    paeAgents(businessDocId: $businessDocId, scope: $scope) {
+      id
+      agentId
+      name
+      description
+      builtIn
+      enabled
+      priority
+      triggers { intents patterns skillIds }
+      execution { mode graphId allowedTools planTemplate webhookUrl hasWebhookSecret requiresLocalRuntime }
+      policy { async maxToolSteps maxCostUsd maxDurationMs requireApprovalFor }
+      output { summaryField deliveryTemplate }
+      scope
+      ownerUserId
+      instructions
+      callableAgents
+      version
+      status
+      promotedFrom
+      runsLast7d
+      updatedAt
+    }
+  }`,
+  paeAgentCallableTargets: `query paeAgentCallableTargets($businessDocId: ID!) {
+    paeAgentCallableTargets(businessDocId: $businessDocId) { agentId name scope status }
+  }`,
+  createPaeAgent: `mutation createPaeAgent($businessDocId: ID!, $input: PaePersonalAgentInput!) {
+    createPaeAgent(businessDocId: $businessDocId, input: $input) { agentId status version }
+  }`,
+  updatePaeAgent: `mutation updatePaeAgent($businessDocId: ID!, $agentId: String!, $input: PaePersonalAgentInput!) {
+    updatePaeAgent(businessDocId: $businessDocId, agentId: $agentId, input: $input) { agentId status version }
+  }`,
+  deletePaeAgent: `mutation deletePaeAgent($businessDocId: ID!, $agentId: String!) {
+    deletePaeAgent(businessDocId: $businessDocId, agentId: $agentId)
+  }`,
+  publishPaeAgent: `mutation publishPaeAgent($businessDocId: ID!, $agentId: String!) {
+    publishPaeAgent(businessDocId: $businessDocId, agentId: $agentId) { agentId status version }
+  }`,
+  promotePaeAgent: `mutation promotePaeAgent($businessDocId: ID!, $agentId: String!, $newAgentId: String!) {
+    promotePaeAgent(businessDocId: $businessDocId, agentId: $agentId, newAgentId: $newAgentId) { agentId status }
+  }`,
+  paeAgentRuns: `query paeAgentRuns($businessDocId: ID!, $limit: Int) {
+    paeAgentRuns(businessDocId: $businessDocId, limit: $limit) {
+      rootRunId
+      rootAgentId
+      userId
+      conversationId
+      task
+      status
+      nodes
+      activeNodes
+      totalCostUsd
+      createdAt
+      lastActivityAt
+    }
+  }`,
+  paeAgentRunTree: `query paeAgentRunTree($businessDocId: ID!, $rootRunId: ID!) {
+    paeAgentRunTree(businessDocId: $businessDocId, rootRunId: $rootRunId) {
+      runId
+      rootRunId
+      parentRunId
+      depth
+      agentId
+      agentScope
+      callerAgentId
+      status
+      task
+      resultSummary
+      errorMessage
+      costUsd
+      durationMs
+      definitionVersion
+      viaMessageId
+      createdAt
+      completedAt
+    }
+  }`,
+  paeAgentMessages: `query paeAgentMessages($businessDocId: ID!, $threadId: ID, $rootRunId: ID) {
+    paeAgentMessages(businessDocId: $businessDocId, threadId: $threadId, rootRunId: $rootRunId) {
+      messageId
+      threadId
+      replyTo
+      rootRunId
+      fromAgentId
+      toAgentId
+      kind
+      status
+      payload
+      attempts
+      deadlineAt
+      createdAt
+      processedAt
+    }
+  }`,
+  cancelPaeAgentRun: `mutation cancelPaeAgentRun($businessDocId: ID!, $rootRunId: ID!) {
+    cancelPaeAgentRun(businessDocId: $businessDocId, rootRunId: $rootRunId) { runsCancelled messagesCancelled }
+  }`,
   getPaeProactiveSettings: `query getPaeProactiveSettings($businessDocId: ID!) {
     getPaeProactiveSettings(businessDocId: $businessDocId) {
       defaultEngine

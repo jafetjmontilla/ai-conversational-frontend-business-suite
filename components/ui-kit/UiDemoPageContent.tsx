@@ -243,7 +243,7 @@ const COMPONENT_CATALOG: { folder: string; files: string[] }[] = [
     ],
   },
   { folder: 'ops/', files: ['CheckoutAuditContent', 'PromptLogsContent'] },
-  { folder: 'pae/', files: ['PaeContactsContent', 'PaeDevicesContent', 'PaeEpisodesContent', 'PaeProactiveContent', 'PaeSkillsContent', 'PaeWorkflowsContent'] },
+  { folder: 'pae/', files: ['PaeContactsContent', 'PaeDevicesContent', 'PaeEpisodesContent', 'PaeProactiveContent', 'PaeSkillsContent', 'PaeSubAgentsContent', 'PaeWorkflowsContent'] },
   { folder: 'profile/', files: ['ProfilePageContent'] },
   { folder: 'sitio-publico/', files: ['SitioPublicoPageContent'] },
   {

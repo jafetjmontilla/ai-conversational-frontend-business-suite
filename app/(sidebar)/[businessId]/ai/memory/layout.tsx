@@ -13,6 +13,8 @@ const MEMORY_TABS = [
   { id: "episodios", label: "Episodios" },
   { id: "contactos", label: "Contactos" },
   { id: "skills", label: "Skills" },
+  { id: "subagentes", label: "Sub-agentes" },
+  { id: "colaboracion", label: "Colaboración" },
   { id: "workflows", label: "Workflows" },
   { id: "rutinas", label: "Rutinas proactivas" },
   { id: "dispositivos", label: "Dispositivos" },
