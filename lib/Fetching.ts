@@ -106,6 +106,31 @@ const conector: CallableFunction = async ({ api, query = ``, variables = {}, typ
 };
 
 export const queries = {
+  cseProfiles: `query cseProfiles($businessDocId: ID!) {
+    cseProfiles(businessDocId: $businessDocId) {
+      profiles {
+        profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+      escalation { enabled onNoData } llm { model temperature } ready editUrl
+      }
+      availableTools { name description }
+      availableKnowledgeSources { sourceId name roles }
+    }
+  }`,
+  updateCseProfileDetail: `mutation updateCseProfileDetail($businessDocId: ID!, $profileId: String!, $input: CseProfileDetailInput!) {
+    updateCseProfileDetail(businessDocId: $businessDocId, profileId: $profileId, input: $input) {
+      profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+      escalation { enabled onNoData } llm { model temperature } ready editUrl
+    }
+  }`,
+  createCseProfile: `mutation createCseProfile($businessDocId: ID!, $name: String!) {
+    createCseProfile(businessDocId: $businessDocId, name: $name) {
+      profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+      escalation { enabled onNoData } llm { model temperature } ready editUrl
+    }
+  }`,
+  deleteCseProfile: `mutation deleteCseProfile($businessDocId: ID!, $profileId: String!) {
+    deleteCseProfile(businessDocId: $businessDocId, profileId: $profileId)
+  }`,
   getCustomClaims: `query getCustomClaims($uid: String!) {
     getCustomClaims(uid: $uid) {
       success
@@ -581,7 +606,9 @@ export const queries = {
         accessToken
         verifyToken
         callbackUrl
-        webhookSecret
+        hasWebhookSecret
+        requireSignature
+        defaultProfileId
       }
       installedApps {
         app_id
@@ -1164,7 +1191,7 @@ export const queries = {
       billingInternalFlow
       channels {
         channelId name type active agentEngine allowedPhoneNumbers
-        sessionId phoneNumber phoneNumberId accessToken verifyToken callbackUrl webhookSecret
+        sessionId phoneNumber phoneNumberId accessToken verifyToken callbackUrl hasWebhookSecret requireSignature defaultProfileId
       }
       installedApps {
         app_id status
@@ -1284,7 +1311,9 @@ export const queries = {
         accessToken
         verifyToken
         callbackUrl
-        webhookSecret
+        hasWebhookSecret
+        requireSignature
+        defaultProfileId
       }
     }
   }`,

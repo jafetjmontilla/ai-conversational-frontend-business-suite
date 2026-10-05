@@ -21,7 +21,11 @@ export type BusinessChannelInput = {
   accessToken?: string | null;
   verifyToken?: string | null;
   callbackUrl?: string | null;
+  /** Vacío conserva el secreto guardado. */
   webhookSecret?: string | null;
+  clearWebhookSecret?: boolean;
+  requireSignature?: boolean;
+  defaultProfileId?: string | null;
 };
 
 export type CreateBaileysSessionResult = {

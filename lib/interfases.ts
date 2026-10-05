@@ -573,6 +573,28 @@ export type BusinessConfigForUpdate = Omit<BusinessConfig, "llm"> & {
 export type ChannelType = "whatsapp_cloud" | "whatsapp_baileys" | "generic" | "voice";
 export type ChannelAgentEngine = "cse" | "pae";
 
+/** Perfil CSE: subconjunto de tools y fuentes de conocimiento (ver `cseProfiles` en la API). */
+export interface CseProfile {
+  profileId: string;
+  name: string;
+  active: boolean;
+  /** Si existe, name y active los gestiona el sistema externo (p. ej. call-ai). */
+  externalRef?: { source: string; id: string } | null;
+  customInstructions?: string | null;
+  tools: string[];
+  knowledgeSourceIds: string[];
+  escalation: { enabled: boolean; onNoData: boolean };
+  llm?: { model?: string | null; temperature?: number | null } | null;
+  ready: boolean;
+  editUrl?: string | null;
+}
+
+export interface CseProfilesPayload {
+  profiles: CseProfile[];
+  availableTools: Array<{ name: string; description?: string | null }>;
+  availableKnowledgeSources: Array<{ sourceId: string; name: string; roles: string[] }>;
+}
+
 export interface BusinessChannel {
   channelId: string;
   name: string;
@@ -586,7 +608,11 @@ export interface BusinessChannel {
   accessToken?: string | null;
   verifyToken?: string | null;
   callbackUrl?: string | null;
-  webhookSecret?: string | null;
+  /** El secreto nunca vuelve del servidor; solo se indica si existe. */
+  hasWebhookSecret?: boolean;
+  requireSignature?: boolean;
+  /** Perfil CSE por defecto del canal. */
+  defaultProfileId?: string | null;
 }
 
 /** Dirección física o de facturación. */

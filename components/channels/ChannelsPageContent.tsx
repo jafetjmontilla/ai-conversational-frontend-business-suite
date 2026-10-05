@@ -27,6 +27,11 @@ import {
   ChannelAgentEngineSelect,
 } from "@/components/channels/ChannelAgentEngineSelect";
 import type { BusinessChannel, ChannelAgentEngine, ChannelType } from "@/lib/interfases";
+import { useCseProfiles } from "@/lib/hooks/useCseProfiles";
+import {
+  ChannelIntegrationSettings,
+  type ChannelIntegrationPatch,
+} from "@/components/channels/ChannelIntegrationSettings";
 import {
   Plus,
   Trash2,
@@ -244,6 +249,7 @@ export function ChannelsPageContent() {
     createBaileysSession,
     isCreatingBaileys,
   } = useBusinessChannels(businessId);
+  const { data: cseProfilesData } = useCseProfiles(businessId);
 
   const [savingChannelId, setSavingChannelId] = useState<string | null>(null);
   const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
@@ -350,15 +356,15 @@ export function ChannelsPageContent() {
 
   const handleChannelFieldUpdate = async (
     channel: BusinessChannel,
-    patch: Partial<BusinessChannel>,
+    patch: Partial<BusinessChannel> & ChannelIntegrationPatch,
     options?: { silent?: boolean }
-  ) => {
+  ): Promise<boolean> => {
     const nextEngine = (patch.agentEngine ?? channel.agentEngine) as ChannelAgentEngine;
     if (patch.agentEngine && !assertAgentEngineAvailable(installedApps, nextEngine, businessId)) {
-      return;
+      return false;
     }
     if (patch.active === true && !assertAgentEngineAvailable(installedApps, nextEngine, businessId)) {
-      return;
+      return false;
     }
     setSavingChannelId(channel.channelId);
     try {
@@ -375,9 +381,12 @@ export function ChannelsPageContent() {
         accessToken: channel.accessToken,
         verifyToken: channel.verifyToken,
         callbackUrl: channel.callbackUrl,
-        webhookSecret: channel.webhookSecret,
+        ...(patch.webhookSecret ? { webhookSecret: patch.webhookSecret } : {}),
+        ...(patch.requireSignature !== undefined ? { requireSignature: patch.requireSignature } : {}),
+        ...(patch.defaultProfileId !== undefined ? { defaultProfileId: patch.defaultProfileId } : {}),
       });
       if (updated && !options?.silent) toast.success("Canal actualizado");
+      return !!updated;
     } finally {
       setSavingChannelId(null);
     }
@@ -829,6 +838,13 @@ export function ChannelsPageContent() {
                         onChange={(numbers) => void handleAllowlistChange(ch, numbers)}
                       />
                     )}
+                    <ChannelIntegrationSettings
+                      businessId={businessId}
+                      channel={ch}
+                      profiles={cseProfilesData.profiles}
+                      disabled={savingChannelId === ch.channelId}
+                      onUpdate={(patch) => handleChannelFieldUpdate(ch, patch)}
+                    />
                   </Card>
                 );
               })}

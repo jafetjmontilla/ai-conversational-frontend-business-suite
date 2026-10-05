@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWebSocketContext } from "@/contexts/WebSocketContext";
 import { businessQueryKeys } from "@/lib/queries/business";
+import { cseProfileQueryKeys } from "@/lib/queries/cseProfiles";
 import type { Business } from "@/lib/interfases";
 import type { BusinessUpdatedPayload } from "@/lib/types/businessRealtime";
 
@@ -43,6 +44,7 @@ export function useBusinessRealtimeSync(businessSlug: string | null) {
         });
       } else {
         queryClient.invalidateQueries({ queryKey: key });
+        queryClient.invalidateQueries({ queryKey: cseProfileQueryKeys.list(businessSlug) });
       }
 
       if (payload.actor === "agent" && payload.scope === "apps") {

@@ -20,6 +20,7 @@ import {
   Monitor,
   Warehouse,
   Truck,
+  UserCog,
 } from "lucide-react";
 
 /** Permiso requerido para mostrar un ítem del menú de negocio. */
@@ -262,6 +263,15 @@ export function buildBusinessNavGroups(
           label: "Auditoría conocimiento",
           icon: ScanSearch,
           permission: "negocio:editar",
+          matchPrefix: true,
+          requiredAnyApps: ["agente-atencion-cliente"],
+        },
+        {
+          id: "cse-profiles",
+          href: `${base}/ai/profiles`,
+          label: "Perfiles",
+          icon: UserCog,
+          permission: "negocio:ver",
           matchPrefix: true,
           requiredAnyApps: ["agente-atencion-cliente"],
         },
