@@ -1,0 +1,43 @@
+---
+description: "Animaciones y transiciones en el frontend (Framer Motion y CSS)"
+globs:
+  - "app/**"
+  - "components/**"
+---
+
+<!-- GENERADO por scripts/sync-agent-rules.mjs desde la fuente única (.cursor/rules/frontend-animations.mdc del repo raíz ai-conversational) — no editar aquí -->
+
+# Animaciones y transiciones
+
+## Responsabilidad
+
+- **Framer Motion** (^12.x): animaciones de entrada/salida, layout y gestos (montaje/desmontaje, modales, listas animadas).
+- **CSS / Tailwind**: transiciones simples (hover, focus, estados) con `transition-*`, `duration-*`.
+
+## Patrones Framer Motion
+
+- Usar `motion.div`, `motion.span`, etc., o `motion(Component)` para componentes propios.
+- Definir `initial`, `animate` y `exit`; usar **AnimatePresence** para animar salidas (modales, listas, rutas).
+- Usar `variants` para secuencias padre–hijo (ej. listas staggered: `container` + `item`).
+- Especificar `transition` con `duration` y `ease`; usar `layout` / `layoutId` solo cuando aporte valor.
+
+## Duraciones
+
+- Micro-interacciones: 150 ms.
+- Entrada/salida (toast, tooltip): 200 ms.
+- Modales/overlays: 250–300 ms.
+
+## Accesibilidad y rendimiento
+
+- Respetar **prefers-reduced-motion**: en Framer usar `useReducedMotion()`; en CSS `@media (prefers-reduced-motion: reduce)`.
+- Animar preferentemente **transform** y **opacity**; evitar animar `box-shadow` o muchas propiedades.
+- En listas largas usar `layout` con cuidado; considerar virtualización (TanStack Virtual).
+
+## Integración
+
+- Animaciones coherentes en shadcn (Dialog, Sheet, DropdownMenu) con AnimatePresence + motion.
+- Incluir ejemplos en la página interna de UI (`/ui`) para referencia visual.
+
+## Límite
+
+- Cada animación debe tener propósito (feedback, orientación, continuidad); evitar animaciones puramente decorativas.

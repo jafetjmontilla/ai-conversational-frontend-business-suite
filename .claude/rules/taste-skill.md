@@ -1,0 +1,91 @@
+---
+paths:
+  - "app/(public)/**"
+  - "app/(storefront)/**"
+  - "app/page.tsx"
+  - "components/auth/**"
+  - "components/sitio-publico/**"
+---
+<!-- GENERADO por scripts/sync-agent-rules.mjs desde la fuente única (.cursor/rules/taste-skill.mdc del repo raíz ai-conversational) — no editar aquí -->
+
+> Anti-slop design for landing, marketing, auth/public branded pages, and redesigns. Infer brief + dials; avoid AI-template aesthetics. NOT for dense product/dashboard UI (billing tables, ops, sidebar forms) — those follow frontend-conventions. Source distilled from Leonxlnx/taste-skill.
+
+# Taste (anti-slop) — versión proyecto
+
+## Prioridad y alcance
+
+1. **Producto / dashboard** (`(sidebar)`, tablas, formularios ops/billing, cards shadcn densas): mandan `frontend-conventions`, `frontend-animations` y el design system existente. Esta regla **no** aplica.
+2. **Público / marca:** `(storefront)` (tienda/carrito/checkout), `(public)` auth branding, landings — aplica esta regla + `soft-skill`. Si es **mejorar UI existente**, seguir además `redesign-skill` (Scan → Diagnose → Fix).
+3. Si hay conflicto con el stack del repo, **gana el stack** (sección siguiente).
+
+## Stack lock (compatible con el repo)
+
+| Tema | Usar en este proyecto | No imponer |
+|------|----------------------|------------|
+| CSS | **Tailwind v3** + tokens HSL en `globals.css` / `tailwind.config.js` | Tailwind v4, reinventar tokens |
+| UI kit | **shadcn/ui** en `components/ui/` + Radix + `cn()` + CVA | Fluent, Carbon, Material, GOV.UK, etc. |
+| Iconos | **`lucide-react`** (ya en el proyecto) | Banear Lucide / forzar Phosphor |
+| Motion | **`framer-motion`** (`import { motion } from "framer-motion"`) | Forzar `motion/react`, GSAP, Three.js |
+| Tipografía | **Manrope** (layout) salvo brief explícito | Inter default, Fraunces/Instrument Serif default |
+| Tema | `next-themes` + clases `dark:` + variables HSL | Paletas hex sueltas fuera de tokens |
+| Imports | Alias `@/` | Relativos largos |
+
+Antes de añadir una librería nueva: verificar `package.json`. No asumir Tailwind v4 ni GSAP.
+
+## 0. Design Read (antes de código)
+
+Una línea: *"Reading this as: \<kind> for \<audience>, \<vibe>, leaning toward shadcn + Tailwind tokens + \<nota>."*
+
+Si el brief es ambiguo, **una** pregunta. No preguntar si se puede inferir.
+
+Anti-defaults: púrpura/azul AI glow, hero centrado sobre mesh oscuro, 3 cards iguales, glassmorphism en todo, Inter + slate-900, copy tipo "Elevate / Seamless / Unleash".
+
+## 1. Dials (baseline `7 / 5 / 4` salvo brief)
+
+- `DESIGN_VARIANCE` 1–10 · `MOTION_INTENSITY` 1–10 · `VISUAL_DENSITY` 1–10
+
+| Señal | V | M | D |
+|-------|---|---|---|
+| minimal / Linear / calm | 5–6 | 3–4 | 2–3 |
+| premium / Apple-y | 7–8 | 5–6 | 3–4 |
+| playful / Awwwards | 9–10 | 7–9 | 3–4 |
+| trust / regulated / a11y | 3–4 | 2–3 | 4–5 |
+| redesign preserve | match | match+1 | match |
+
+En superficie de producto densa, bajar motion y no forzar variance asiméptica.
+
+## 2. Directivas (marketing)
+
+- **Color:** 1 acento, saturación moderada, neutrales del sistema (`background` / `foreground` / `muted` / `primary`). Evitar púrpura AI salvo brand. Un acento en toda la página.
+- **Layout:** si `VARIANCE > 4`, preferir split / asimétrico; centrado OK en manifesto/auth simple. Mobile `<768px`: `w-full`, stack, sin overlaps rotados.
+- **Viewport:** `min-h-[100dvh]`, nunca `h-screen` en heroes. Hero: ≤2 líneas headline, subtexto ≤20 palabras, CTA visible sin scroll, ≤4 elementos de texto (eyebrow opcional, headline, sub, CTAs).
+- **Eyebrows:** máx. 1 por cada 3 secciones; no numerar (`01 · Capabilities`).
+- **Cards:** solo si la elevación comunica jerarquía; en marketing preferir spacing/`divide-y`. En producto, usar `Card` shadcn sin inventar Double-Bezel en tablas/formularios.
+- **Imágenes:** gen-tool o placeholders semilla (`picsum` con seed descriptivo); no “fake screenshots” de divs.
+- **Copy:** verbos concretos; sin em-dash (`—` / `–` como floritura); sin “Quietly trusted by”, version stamps, scroll cues, locale/weather strips.
+- **CTAs:** contraste WCAG AA; un label por intención; no wrap a 2 líneas en desktop.
+- **Tema:** un modo de página (light/dark/auto); no invertir secciones a mitad de scroll salvo brief explícito.
+
+## 3. Motion (alineado a `frontend-animations`)
+
+- Producto: duraciones 150–300 ms (micro / toast / modal).
+- Marketing con `MOTION_INTENSITY > 4`: entrada suave, hover en CTAs, `whileInView` — motivado (jerarquía / feedback / transición), no decoración.
+- Solo `transform` + `opacity`. `useReducedMotion()`. Nunca `window.addEventListener('scroll')`.
+- Easing: cubic-bezier custom OK en marketing; en UI shadcn respetar patrones existentes.
+- Marquee: máx. 1 por página. No GSAP/Three salvo petición explícita e install verificado.
+
+## 4. Redesign
+
+Detectar: greenfield | preserve | overhaul. En preserve: auditar tokens (HSL existentes), IA, SEO; no cambiar slugs/nav/forms tracking sin pedirlo. Protocolo operativo: **`redesign-skill`**.
+
+## 5. Pre-flight (marketing)
+
+- [ ] Design Read + dials declarados
+- [ ] Stack: Tailwind 3 + shadcn + Lucide + framer-motion + tokens HSL
+- [ ] Sin em-dash floritura; sin tells de § AI (púrpura glow, 3 cards iguales, Jane Doe, Acme)
+- [ ] Hero cabe en viewport; eyebrow ration; un tema; un acento
+- [ ] Contraste CTAs/forms AA; mobile stack explícito
+- [ ] Motion claimed = motion shown; reduced-motion honorado
+- [ ] No rompe convenciones de formularios/RHF/Zod ni alias `@/`
+
+Si es UI de producto y no marketing: **cerrar esta regla** y seguir `frontend-conventions`.

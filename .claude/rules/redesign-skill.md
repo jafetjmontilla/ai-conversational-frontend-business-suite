@@ -1,0 +1,78 @@
+---
+paths:
+  - "app/(public)/**"
+  - "app/(storefront)/**"
+  - "app/page.tsx"
+  - "components/auth/**"
+  - "components/sitio-publico/**"
+---
+<!-- GENERADO por scripts/sync-agent-rules.mjs desde la fuente única (.cursor/rules/redesign-skill.mdc del repo raíz ai-conversational) — no editar aquí -->
+
+> Audit-and-upgrade protocol for existing public UI: (storefront), (public) auth branding, landings. Scan → Diagnose → Fix in priority order without rewriting the stack. NOT for (sidebar) product/dashboard. Complements taste-skill + soft-skill. Source distilled from Leonxlnx redesign-skill.
+
+# Redesign (existente) — versión proyecto
+
+## Cuándo
+
+- Mejorar UI **ya hecha** en `(storefront)` (tienda, carrito, checkout), `(public)` (login/register branding), landings.
+- **No** usar para rediseñar `(sidebar)`, ops, billing interno, tablas densas → `frontend-conventions`.
+- Craft visual: `taste-skill` + `soft-skill`. Esta regla es el **proceso** (auditoría + orden de fixes).
+
+## Stack lock (igual que taste/soft)
+
+Tailwind **v3** + tokens HSL + **shadcn** + **Lucide** + **framer-motion** + **Manrope** + `next-themes` + alias `@/`.
+
+- No migrar CSS framework ni tipografía “porque suena premium”.
+- No banear Lucide ni quitar `AppSidebar`.
+- Antes de importar librería: mirar `package.json`. Checkout/forms: mantener RHF + Zod + `Form` shadcn.
+
+## Secuencia
+
+1. **Scan** — framework, rutas afectadas, tokens/`globals.css`, componentes shadcn usados, patrones actuales.
+2. **Diagnose** — lista corta de problemas reales (no wishlist estética). Citar archivo/patrón.
+3. **Fix** — upgrades acotados sobre lo existente. Probar que flujos (añadir al carrito, checkout, auth) siguen vivos.
+
+## Auditoría rápida
+
+**Tipografía:** jerarquía débil; body sin `max-w-[65ch]`; solo 400/700 (añadir 500/600 si Manrope lo tiene); números de datos sin `tabular-nums`; orphans (`text-pretty` / `text-balance`).
+
+**Color / superficies:** `#000` puro; acentos gritones / >1 acento; mezcla warm+cool grays; púrpura AI; sombras negras; secciones que invertían tema a mitad de página; secciones planas sin profundidad (patrón/gradiente sutil con tokens, no hex sueltos).
+
+**Layout:** 3 cards iguales; `h-screen` → `min-h-[100dvh]`; flex-math raro → Grid; sin `max-w` (~1200–1400px); simetría forzada en marketing; whitespace ahogado; CTAs de cards a alturas distintas.
+
+**Estados:** sin hover/active (`scale-[0.98]`); sin focus ring; spinner genérico vs skeleton; empty/error débiles; `alert()`; sin nav activa; animar `top/left/width/height`.
+
+**Contenido:** Jane Doe / Acme / Lorem / “Elevate/Seamless”; Title Case en todo; `!` en success; “Oops!”.
+
+**A11y / cierre:** alt reales; skip-link si falta; links legales en storefront si aplica; back en flujos; no `z-[9999]` arbitrario; HTML semántico.
+
+## Prioridad de fix (máximo impacto / mínimo riesgo)
+
+1. Escala tipográfica y tracking (sin cambiar familia salvo brief)
+2. Limpieza de color contra tokens HSL / un acento
+3. Hover / active / focus
+4. Grid, max-width, rhythm de spacing
+5. Sustituir layouts genéricos (3-col equal) por variantes de taste/soft
+6. Loading / empty / error compuestos
+7. Pulido final (optical alignment, glass solo en fixed UI)
+
+## Técnicas OK vs no
+
+**OK en storefront/public:** spacing generoso, asimetría controlada, stagger `whileInView`, sombras tintadas, Double-Bezel en hero/feature (soft), glass con borde interior en nav/overlay fixed.
+
+**No por defecto:** parallax agressivo, broken-grid que rompa checkout, grain en scroll containers, new icon library, font swap Manrope→Geist, rehacer sidebar del admin.
+
+## Reglas
+
+- Mejorar, no reescribir. Diffs reviewables.
+- Un tema de página; tokens del proyecto.
+- Conflictos → gana stack + `frontend-conventions` / `frontend-animations` (150–300 ms en UI densa; motion más larga solo en marketing).
+- Tras cambios: smoke del flujo tocado (tienda → cart → checkout o login).
+
+## Pre-salida
+
+- [ ] Scope es storefront/public (no sidebar)
+- [ ] Diagnose listado antes de Fix
+- [ ] Sin cambiar stack/tipografía/iconos por defaults de la skill externa
+- [ ] Estados interactivos + empty/loading/error si faltaban
+- [ ] Funcionalidad intacta
