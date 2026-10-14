@@ -61,6 +61,7 @@ export const APP_CAPABILITIES: Record<string, Capability[]> = {
   "landing-page": [CAPABILITIES.LANDING_CMS],
   "catalogo-web": [CAPABILITIES.PRODUCT_SELLABLE, CAPABILITIES.CATALOG_PUBLISH],
   "finanzas-personales": [],
+  siscav: [],
 };
 
 export const CAPABILITY_REQUIRED_APPS: Partial<Record<Capability, AppSuiteAppId[]>> = {

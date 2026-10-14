@@ -21,6 +21,7 @@ import {
   Warehouse,
   Truck,
   UserCog,
+  Database,
 } from "lucide-react";
 
 /** Permiso requerido para mostrar un ítem del menú de negocio. */
@@ -283,6 +284,15 @@ export function buildBusinessNavGroups(
           permission: "negocio:editar",
           matchPrefix: true,
           requiredAnyApps: ["agente-atencion-cliente"],
+        },
+        {
+          id: "siscav",
+          href: `${base}/ai/siscav`,
+          label: "SISCAV",
+          icon: Database,
+          permission: "negocio:ver",
+          matchPrefix: true,
+          requiredAnyApps: ["siscav"],
         },
         {
           id: "memory",

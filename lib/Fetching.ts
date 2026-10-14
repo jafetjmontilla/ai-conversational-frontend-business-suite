@@ -131,6 +131,26 @@ export const queries = {
   deleteCseProfile: `mutation deleteCseProfile($businessDocId: ID!, $profileId: String!) {
     deleteCseProfile(businessDocId: $businessDocId, profileId: $profileId)
   }`,
+  siscavInstallation: `query siscavInstallation($businessDocId: ID!) {
+    siscavInstallation(businessDocId: $businessDocId) {
+      installationId status connected lastSeenAt connectedAt disconnectedAt pairedAt pairingExpiresAt
+      agent { agentVersion siscavBuild mysqlVersion database hostname missingTables }
+      agentServerUrl createdAt
+    }
+  }`,
+  startSiscavPairing: `mutation startSiscavPairing($businessDocId: ID!, $createProfiles: Boolean) {
+    startSiscavPairing(businessDocId: $businessDocId, createProfiles: $createProfiles) {
+      pairingCode expiresAt
+      installation {
+        installationId status connected lastSeenAt connectedAt disconnectedAt pairedAt pairingExpiresAt
+        agent { agentVersion siscavBuild mysqlVersion database hostname missingTables }
+        agentServerUrl createdAt
+      }
+    }
+  }`,
+  revokeSiscavInstallation: `mutation revokeSiscavInstallation($businessDocId: ID!) {
+    revokeSiscavInstallation(businessDocId: $businessDocId)
+  }`,
   getCustomClaims: `query getCustomClaims($uid: String!) {
     getCustomClaims(uid: $uid) {
       success

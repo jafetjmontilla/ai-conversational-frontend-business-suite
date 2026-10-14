@@ -12,6 +12,7 @@ import {
   Truck,
   Boxes,
   Package,
+  Database,
 } from "lucide-react";
 
 export type AppSuiteCategory = "All" | "IA" | "Negocios" | "Inventario" | "Finanzas";
@@ -303,6 +304,29 @@ export const APP_SUITE_MODULES: AppSuiteModule[] = [
       "Alertas cuando estás por exceder el tope de presupuesto",
       "Generación automática de gráficos de pastel intuitivos",
       "Sincronización multidispositivo con respaldo en la nube",
+    ],
+  },
+  {
+    id: "siscav",
+    title: "SISCAV",
+    tagline: "Tu asistente conectado al SISCAV de la tienda.",
+    description:
+      "Conecta el sistema SISCAV instalado en la PC del negocio. El asistente consulta productos, precios en dólares y bolívares, clientes, facturas y ventas, y puede registrar clientes o cambiar la tasa del dólar según el perfil de cada canal. Si la PC se apaga, responde con los últimos datos guardados.",
+    audience:
+      "Comercios que ya facturan con SISCAV (repuestos, quincalla, librería, bicicletas) y quieren atender por WhatsApp sin duplicar su inventario.",
+    category: "Inventario",
+    categoryLabel: "Inventario y Servicios",
+    rating: 4.7,
+    reviews: 12,
+    icon: Database,
+    iconGradient: "from-slate-600 to-indigo-700",
+    routePath: "/ai/siscav",
+    isBeta: true,
+    features: [
+      "Agente liviano en la PC: sin abrir puertos ni IP fija",
+      "Precios en Bs calculados con la tasa vigente",
+      "Perfiles para clientes, personal y administración",
+      "Cambios en cola cuando la PC está apagada",
     ],
   },
 ];

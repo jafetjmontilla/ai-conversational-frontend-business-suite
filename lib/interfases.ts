@@ -595,6 +595,35 @@ export interface CseProfilesPayload {
   availableKnowledgeSources: Array<{ sourceId: string; name: string; roles: string[] }>;
 }
 
+/** PC del negocio con el agente SISCAV (ver `siscavInstallation` en la API). */
+export interface SiscavInstallation {
+  installationId: string;
+  /** pending = esperando que el agente canjee el código; active = emparejada. */
+  status: "pending" | "active";
+  connected: boolean;
+  lastSeenAt: string | null;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  pairedAt: string | null;
+  pairingExpiresAt: string | null;
+  agent: {
+    agentVersion: string | null;
+    siscavBuild: string | null;
+    mysqlVersion: string | null;
+    database: string | null;
+    hostname: string | null;
+    missingTables: string[];
+  } | null;
+  agentServerUrl: string | null;
+  createdAt: string;
+}
+
+export interface SiscavPairingPayload {
+  installation: SiscavInstallation;
+  pairingCode: string;
+  expiresAt: string;
+}
+
 export interface BusinessChannel {
   channelId: string;
   name: string;
