@@ -57,6 +57,14 @@ export function ChannelIntegrationSettings({
   const isCse = channel.agentEngine === "cse";
   if (!isGeneric && !isCse) return null;
 
+  const selectedProfile = profiles.find((p) => p.profileId === channel.defaultProfileId);
+  const siscavWriteProfile =
+    selectedProfile &&
+    (selectedProfile.profileId === "siscav-staff" ||
+      selectedProfile.profileId === "siscav-admin" ||
+      selectedProfile.externalRole === "staff" ||
+      selectedProfile.externalRole === "admin");
+
   const handleRotate = async () => {
     const secret = generateSecret();
     setRotating(true);
@@ -97,6 +105,12 @@ export function ChannelIntegrationSettings({
               Gestionar perfiles
             </Link>
           </p>
+          {siscavWriteProfile ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Este perfil puede cambiar datos en SISCAV (clientes o tasa del dólar). Úsalo solo en
+              canales de confianza.
+            </p>
+          ) : null}
         </div>
       ) : null}
 

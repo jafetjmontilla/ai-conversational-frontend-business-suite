@@ -272,19 +272,25 @@ export function SiscavInstallationContent() {
                 </div>
               ) : null}
 
-              {installation.status === "active" ? (
-                <p className="text-xs text-muted-foreground">
-                  Elige qué perfil usa cada canal en{" "}
+              <ol className="list-decimal space-y-1 rounded-lg border bg-muted/30 p-3 pl-8 text-sm text-muted-foreground">
+                <li>
+                  Empareja la PC con el código (arriba o &quot;Generar otro código&quot; / &quot;Cambiar de PC&quot;).
+                </li>
+                <li>
+                  Asigna el perfil al canal en{" "}
                   <Link href={`/${businessSlug}/channels`} className="text-primary underline-offset-4 hover:underline">
                     Canales
                   </Link>{" "}
-                  y ajusta herramientas o instrucciones en{" "}
+                  (Clientes para WhatsApp público; Personal/Admin solo si debe escribir en SISCAV).
+                </li>
+                <li>
+                  Revisa tools e instrucciones en{" "}
                   <Link href={`/${businessSlug}/ai/profiles`} className="text-primary underline-offset-4 hover:underline">
                     Perfiles
                   </Link>
                   .
-                </p>
-              ) : null}
+                </li>
+              </ol>
             </div>
           )}
         </CardContent>

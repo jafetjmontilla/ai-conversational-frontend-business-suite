@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useBusinessApps } from "@/lib/hooks/useBusinessApps";
+import { getInventoryConflictHint } from "@/lib/app-suite/capabilities";
 import {
   APP_SUITE_CATEGORIES,
   APP_SUITE_MODULES,
@@ -26,7 +27,8 @@ export function AppSuitePageContent() {
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
   const { canViewCurrentBusiness, canEditCurrentBusiness } = useBusinessPermissions(businessRole);
-  const { hasApp, installApp, uninstallApp, effectiveInstalledApps } = useBusinessApps(businessId);
+  const { hasApp, installApp, uninstallApp, effectiveInstalledApps, installedApps } =
+    useBusinessApps(businessId);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState<AppSuiteCategory>("All");
@@ -81,11 +83,20 @@ export function AppSuitePageContent() {
         toast.error("No tienes permiso para instalar apps");
         return;
       }
+      const blocked = getInventoryConflictHint(installedApps, app.id);
+      if (blocked) {
+        toast.error(blocked);
+        return;
+      }
       setBusyAppId(app.id);
-      await installApp(app.id);
+      const ok = await installApp(app.id);
       setBusyAppId(null);
+      if (ok && app.id === "siscav") {
+        toast.success("SISCAV instalada. Empareja la PC del negocio.");
+        router.push(`/${businessId}/ai/siscav`);
+      }
     },
-    [canEditCurrentBusiness, installApp]
+    [businessId, canEditCurrentBusiness, installApp, installedApps, router]
   );
 
   const handleUninstall = useCallback(
@@ -197,6 +208,9 @@ export function AppSuitePageContent() {
               isSelected={selectedCardId === app.id}
               canManageApps={canEditCurrentBusiness()}
               installing={busyAppId === app.id}
+              installBlockedReason={
+                hasApp(app.id) ? null : getInventoryConflictHint(installedApps, app.id)
+              }
               onSelect={handleSelectCard}
               onOpenDetails={handleOpenDetails}
               onOpenModule={handleOpenModule}
@@ -213,6 +227,11 @@ export function AppSuitePageContent() {
         isInstalled={selectedApp ? hasApp(selectedApp.id) : false}
         canManageApps={canEditCurrentBusiness()}
         installing={selectedApp ? busyAppId === selectedApp.id : false}
+        installBlockedReason={
+          selectedApp && !hasApp(selectedApp.id)
+            ? getInventoryConflictHint(installedApps, selectedApp.id)
+            : null
+        }
         onOpenModule={handleOpenModule}
         onInstall={handleInstall}
         onUninstall={handleUninstall}

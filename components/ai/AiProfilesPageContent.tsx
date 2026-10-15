@@ -18,12 +18,29 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
 import { useCseProfiles } from "@/lib/hooks/useCseProfiles";
 import {
+  CSE_EXTERNAL_ROLES,
   cseProfileFormSchema,
   cseProfileToFormValues,
+  isSiscavSeededProfileId,
+  SISCAV_ROLE_TOOLS,
+  type CseExternalRole,
   type CseProfileFormValues,
 } from "@/lib/schemas/cseProfile";
 import type { CseProfile, CseProfilesPayload } from "@/lib/interfases";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const EXTERNAL_ROLE_LABELS: Record<CseExternalRole, string> = {
+  customer: "Cliente (catálogo y precios)",
+  staff: "Personal (clientes, ventas, caja)",
+  admin: "Administración (+ tasa del dólar)",
+};
 
 function toggleValue(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -176,6 +193,56 @@ function CseProfileEditor({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="externalRole"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Rol externo (SISCAV / MCP)</FormLabel>
+              <FormDescription>
+                El MCP usa este rol para autorizar tools. En perfiles SISCAV sembrados, al
+                cambiarlo se alinean las herramientas del perfil.
+              </FormDescription>
+              <Select
+                value={field.value || "__none__"}
+                disabled={!canEdit}
+                onValueChange={(v) => {
+                  const next = v === "__none__" ? "" : (v as CseExternalRole);
+                  field.onChange(next);
+                  if (
+                    next &&
+                    isSiscavSeededProfileId(profile.profileId) &&
+                    CSE_EXTERNAL_ROLES.includes(next)
+                  ) {
+                    const roleTools = SISCAV_ROLE_TOOLS[next];
+                    const available = new Set(options.availableTools.map((t) => t.name));
+                    form.setValue(
+                      "tools",
+                      roleTools.filter((name) => available.has(name)),
+                      { shouldDirty: true }
+                    );
+                  }
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin rol" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin rol</SelectItem>
+                  {CSE_EXTERNAL_ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {EXTERNAL_ROLE_LABELS[role]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -333,6 +400,7 @@ export function AiProfilesPageContent() {
         tools: values.tools,
         knowledgeSourceIds: values.knowledgeSourceIds,
         escalation: { enabled: values.escalationEnabled, onNoData: values.escalationOnNoData },
+        externalRole: values.externalRole.trim() || null,
         ...(selected.externalRef ? {} : { name: values.name, active: values.active }),
       },
     }).catch(() => null);

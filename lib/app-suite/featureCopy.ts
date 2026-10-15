@@ -2,10 +2,13 @@ import {
   CAPABILITY_REQUIRED_APPS,
   canUseOfferingsCatalogProduct,
   getAppTitle,
+  getInventoryConflictHint,
   hasCapability,
   type BusinessInstalledApp,
   type Capability,
 } from "@/lib/app-suite/capabilities";
+
+export { getInventoryConflictHint };
 
 function formatAppList(appIds: string[]): string {
   const titles = appIds.map(getAppTitle);

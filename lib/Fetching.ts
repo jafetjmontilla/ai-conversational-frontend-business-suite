@@ -109,7 +109,7 @@ export const queries = {
   cseProfiles: `query cseProfiles($businessDocId: ID!) {
     cseProfiles(businessDocId: $businessDocId) {
       profiles {
-        profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+        profileId name active externalRef { source id } externalRole customInstructions tools knowledgeSourceIds
       escalation { enabled onNoData } llm { model temperature } ready editUrl
       }
       availableTools { name description }
@@ -118,13 +118,13 @@ export const queries = {
   }`,
   updateCseProfileDetail: `mutation updateCseProfileDetail($businessDocId: ID!, $profileId: String!, $input: CseProfileDetailInput!) {
     updateCseProfileDetail(businessDocId: $businessDocId, profileId: $profileId, input: $input) {
-      profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+      profileId name active externalRef { source id } externalRole customInstructions tools knowledgeSourceIds
       escalation { enabled onNoData } llm { model temperature } ready editUrl
     }
   }`,
   createCseProfile: `mutation createCseProfile($businessDocId: ID!, $name: String!) {
     createCseProfile(businessDocId: $businessDocId, name: $name) {
-      profileId name active externalRef { source id } customInstructions tools knowledgeSourceIds
+      profileId name active externalRef { source id } externalRole customInstructions tools knowledgeSourceIds
       escalation { enabled onNoData } llm { model temperature } ready editUrl
     }
   }`,

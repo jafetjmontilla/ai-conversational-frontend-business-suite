@@ -139,6 +139,37 @@ export function isAppInstalled(
   return record != null && isActiveInstalledApp(record);
 }
 
+/** SISCAV (inventario externo) vs stack nativo de inventario/facturación. */
+export const SISCAV_APP_ID = "siscav";
+
+export const NATIVE_INVENTORY_APP_IDS = [
+  "productos-servicios",
+  "facturacion-inventario",
+  "gestion-insumos-materia-prima",
+  "procesadora-alimentos",
+] as const;
+
+const NATIVE_INVENTORY_APP_ID_SET = new Set<string>(NATIVE_INVENTORY_APP_IDS);
+
+/**
+ * Un negocio usa SISCAV o el inventario/facturación nativos, no ambos.
+ * Devuelve el id conflictivo o null si es compatible.
+ */
+export function findInventorySourceConflict(
+  installedApps: BusinessInstalledApp[] | null | undefined,
+  appId: string
+): string | null {
+  if (isAppInstalled(installedApps, appId)) return null;
+  const active = getEffectiveInstalledApps(installedApps);
+  if (appId === SISCAV_APP_ID) {
+    return active.find((id) => NATIVE_INVENTORY_APP_ID_SET.has(id)) ?? null;
+  }
+  if (NATIVE_INVENTORY_APP_ID_SET.has(appId)) {
+    return active.includes(SISCAV_APP_ID) ? SISCAV_APP_ID : null;
+  }
+  return null;
+}
+
 /** Producto en catálogo interno (no vendible en tienda ni insumo de producción). */
 export function canUseOfferingsCatalogProduct(
   installedApps: BusinessInstalledApp[] | null | undefined
@@ -148,6 +179,15 @@ export function canUseOfferingsCatalogProduct(
 
 export function getAppTitle(appId: string): string {
   return APP_SUITE_MODULES.find((m) => m.id === appId)?.title ?? appId;
+}
+
+export function getInventoryConflictHint(
+  installedApps: BusinessInstalledApp[] | null | undefined,
+  appId: string
+): string | null {
+  const conflict = findInventorySourceConflict(installedApps, appId);
+  if (!conflict) return null;
+  return `Incompatible con ${getAppTitle(conflict)}. Desinstálala primero.`;
 }
 
 export function getInstalledAppTitles(installedApps: BusinessInstalledApp[] | null | undefined): string[] {

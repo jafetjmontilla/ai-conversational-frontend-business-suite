@@ -13,6 +13,8 @@ type AppSuiteAppCardProps = {
   isSelected?: boolean;
   canManageApps: boolean;
   installing?: boolean;
+  /** Si hay valor, el botón Instalar queda deshabilitado (p. ej. incompatibilidad SISCAV). */
+  installBlockedReason?: string | null;
   onSelect: (app: AppSuiteModule) => void;
   onOpenDetails: (app: AppSuiteModule) => void;
   onOpenModule: (app: AppSuiteModule) => void;
@@ -25,6 +27,7 @@ export function AppSuiteAppCard({
   isSelected,
   canManageApps,
   installing,
+  installBlockedReason,
   onSelect,
   onOpenDetails,
   onOpenModule,
@@ -32,6 +35,7 @@ export function AppSuiteAppCard({
 }: AppSuiteAppCardProps) {
   const hasRoute = isAppAvailable(app);
   const Icon = app.icon;
+  const installBlocked = Boolean(installBlockedReason);
 
   return (
     <div
@@ -120,14 +124,20 @@ export function AppSuiteAppCard({
             </Button>
           )}
           {!isInstalled && (
-            <Button
-              size="sm"
-              disabled={!canManageApps || installing}
-              className="min-w-[100px] text-xs font-bold"
-              onClick={() => onInstall(app)}
-            >
-              {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : hasRoute ? "Instalar" : "Instalar (beta)"}
-            </Button>
+            <div className="flex max-w-[11rem] flex-col items-end gap-1">
+              <Button
+                size="sm"
+                disabled={!canManageApps || installing || installBlocked}
+                title={installBlockedReason ?? undefined}
+                className="min-w-[100px] text-xs font-bold"
+                onClick={() => onInstall(app)}
+              >
+                {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : hasRoute ? "Instalar" : "Instalar (beta)"}
+              </Button>
+              {installBlockedReason ? (
+                <p className="text-right text-[10px] leading-tight text-muted-foreground">{installBlockedReason}</p>
+              ) : null}
+            </div>
           )}
         </div>
       </div>

@@ -580,6 +580,8 @@ export interface CseProfile {
   active: boolean;
   /** Si existe, name y active los gestiona el sistema externo (p. ej. call-ai). */
   externalRef?: { source: string; id: string } | null;
+  /** Rol ante MCP anfitrión (p. ej. customer|staff|admin en SISCAV). */
+  externalRole?: string | null;
   customInstructions?: string | null;
   tools: string[];
   knowledgeSourceIds: string[];

@@ -22,6 +22,7 @@ type AppSuiteDetailDialogProps = {
   isInstalled: boolean;
   canManageApps: boolean;
   installing?: boolean;
+  installBlockedReason?: string | null;
   onOpenModule: (app: AppSuiteModule) => void;
   onInstall: (app: AppSuiteModule) => void;
   onUninstall: (app: AppSuiteModule) => void;
@@ -34,6 +35,7 @@ export function AppSuiteDetailDialog({
   isInstalled,
   canManageApps,
   installing,
+  installBlockedReason,
   onOpenModule,
   onInstall,
   onUninstall,
@@ -44,6 +46,7 @@ export function AppSuiteDetailDialog({
 
   const hasRoute = isAppAvailable(app);
   const Icon = app.icon;
+  const installBlocked = Boolean(installBlockedReason);
 
   const handleDetailOpenChange = (next: boolean) => {
     if (!next) setConfirmUninstallOpen(false);
@@ -161,12 +164,18 @@ export function AppSuiteDetailDialog({
                     {installing ? "Procesando…" : "Desinstalar"}
                   </Button>
                 ) : (
-                  <Button
-                    disabled={!canManageApps || installing}
-                    onClick={() => onInstall(app)}
-                  >
-                    {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : "Instalar módulo"}
-                  </Button>
+                  <div className="flex flex-col items-end gap-1">
+                    <Button
+                      disabled={!canManageApps || installing || installBlocked}
+                      title={installBlockedReason ?? undefined}
+                      onClick={() => onInstall(app)}
+                    >
+                      {installing ? "Instalando…" : app.isBeta ? "Instalar Beta" : "Instalar módulo"}
+                    </Button>
+                    {installBlockedReason ? (
+                      <p className="max-w-xs text-right text-xs text-muted-foreground">{installBlockedReason}</p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </DialogFooter>

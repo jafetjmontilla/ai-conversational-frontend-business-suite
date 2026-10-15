@@ -13,6 +13,7 @@ export type CseProfileDetailInput = {
   tools?: string[];
   knowledgeSourceIds?: string[];
   escalation?: { enabled: boolean; onNoData?: boolean };
+  externalRole?: string | null;
   name?: string;
   active?: boolean;
 };
