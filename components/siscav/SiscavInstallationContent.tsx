@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Database, KeyRound, Link2, PlugZap, RefreshCw, ShieldOff, TriangleAlert } from "lucide-react";
+import { Copy, Database, Download, KeyRound, Link2, PlugZap, RefreshCw, ShieldOff, TriangleAlert } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,8 +65,20 @@ function copy(text: string) {
   );
 }
 
+function CopyableCommand({ command }: { command: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <code className="break-all rounded bg-muted px-2 py-1 text-xs">{command}</code>
+      <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => copy(command)}>
+        <Copy className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 function PairingCard({ pairing, serverUrl }: { pairing: SiscavPairingPayload; serverUrl: string | null }) {
-  const command = `npm run pair -- ${pairing.pairingCode}`;
+  const installCommand = `powershell -ExecutionPolicy Bypass -File .\\install.ps1 -PairingCode ${pairing.pairingCode}`;
+  const repairCommand = `& "C:\\ProgramData\\SiscavAgent\\siscav-agent.cmd" pair ${pairing.pairingCode}`;
   return (
     <Card className="border border-primary/30 bg-primary/5 shadow-none">
       <CardHeader>
@@ -87,33 +99,36 @@ function PairingCard({ pairing, serverUrl }: { pairing: SiscavPairingPayload; se
         </div>
         <ol className="list-decimal space-y-2 pl-5 text-sm">
           <li>
-            En la PC donde corre SISCAV (la que tiene MySQL), copia las carpetas{" "}
-            <code className="text-xs">siscav-agent</code> y <code className="text-xs">siscav-protocol</code> e instala
-            Node.js 18 o superior.
-          </li>
-          <li>
-            En <code className="text-xs">siscav-agent/.env</code> pon{" "}
+            En la PC donde corre SISCAV (la que tiene MySQL),{" "}
             {serverUrl ? (
-              <code className="break-all text-xs">MCP_SISCAV_URL={serverUrl}</code>
+              <a
+                href={`${serverUrl.replace(/\/$/, "")}/agent/download`}
+                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline"
+              >
+                <Download className="h-3.5 w-3.5" />
+                descarga el instalador
+              </a>
             ) : (
               <span className="text-destructive">
-                la URL pública de mcp-siscav (falta MCP_SISCAV_PUBLIC_URL en la API)
+                descarga el instalador (falta MCP_SISCAV_PUBLIC_URL en la API)
               </span>
             )}{" "}
-            y el usuario de MySQL de solo lectura/escritura indicado en el README del agente.
+            y descomprímelo. Incluye todo lo necesario; no hace falta instalar Node.js.
           </li>
           <li className="space-y-1">
-            <span>Ejecuta:</span>
-            <div className="flex items-center gap-2">
-              <code className="rounded bg-muted px-2 py-1 text-xs">{command}</code>
-              <Button type="button" variant="ghost" size="icon" onClick={() => copy(command)}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
+            <span>
+              En esa carpeta, abre PowerShell <strong>como administrador</strong> y ejecuta (pide una vez la clave de
+              root de MySQL para crear un usuario con permisos mínimos; no la guarda):
+            </span>
+            <CopyableCommand command={installCommand} />
+          </li>
+          <li className="space-y-1">
+            <span>Si el agente ya está instalado en esa PC (por ejemplo, tras revocar), basta con:</span>
+            <CopyableCommand command={repairCommand} />
           </li>
           <li>
-            Deja el agente corriendo (<code className="text-xs">npm start</code> o como servicio de Windows). Esta
-            pantalla cambia a <strong>Conectada</strong> sola.
+            El agente queda como tarea de Windows, arranca solo y se actualiza solo. Esta pantalla cambia a{" "}
+            <strong>Conectada</strong> en unos segundos.
           </li>
         </ol>
       </CardContent>
