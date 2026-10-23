@@ -134,8 +134,20 @@ export const queries = {
   siscavInstallation: `query siscavInstallation($businessDocId: ID!) {
     siscavInstallation(businessDocId: $businessDocId) {
       installationId status connected lastSeenAt connectedAt disconnectedAt pairedAt pairingExpiresAt
-      agent { agentVersion siscavBuild mysqlVersion database hostname missingTables }
+      agent {
+        agentVersion siscavBuild mysqlVersion database hostname missingTables
+        optionalColumns { table column present featureHint }
+      }
+      lastError { code message at operation }
+      errorHistory { code message at operation }
       agentServerUrl createdAt
+    }
+  }`,
+  siscavCseReadiness: `query siscavCseReadiness($businessDocId: ID!) {
+    siscavCseReadiness(businessDocId: $businessDocId) {
+      siscavApp cseApp mcpProvider hasCustomerProfile
+      installationPaired installationConnected hasCseChannel channelHasDefaultProfile baileysConnected
+      blockers suggestedDefaultProfileId
     }
   }`,
   startSiscavPairing: `mutation startSiscavPairing($businessDocId: ID!, $createProfiles: Boolean) {
@@ -143,7 +155,12 @@ export const queries = {
       pairingCode expiresAt
       installation {
         installationId status connected lastSeenAt connectedAt disconnectedAt pairedAt pairingExpiresAt
-        agent { agentVersion siscavBuild mysqlVersion database hostname missingTables }
+        agent {
+          agentVersion siscavBuild mysqlVersion database hostname missingTables
+          optionalColumns { table column present featureHint }
+        }
+        lastError { code message at operation }
+        errorHistory { code message at operation }
         agentServerUrl createdAt
       }
     }
@@ -1299,8 +1316,8 @@ export const queries = {
       lastActivity
     }
   }`,
-  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String, $agentEngine: String) {
-    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber, agentEngine: $agentEngine) {
+  createBaileysSession: `mutation createBaileysSession($id: ID!, $sessionId: String!, $phoneNumber: String, $agentEngine: String, $defaultProfileId: String) {
+    createBaileysSession(id: $id, sessionId: $sessionId, phoneNumber: $phoneNumber, agentEngine: $agentEngine, defaultProfileId: $defaultProfileId) {
       success
       qrCode
       error

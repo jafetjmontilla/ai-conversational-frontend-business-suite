@@ -598,6 +598,20 @@ export interface CseProfilesPayload {
 }
 
 /** PC del negocio con el agente SISCAV (ver `siscavInstallation` en la API). */
+export interface SiscavOptionalColumn {
+  table: string;
+  column: string;
+  present: boolean;
+  featureHint: string;
+}
+
+export interface SiscavLastError {
+  code: string;
+  message: string;
+  at: string;
+  operation: string | null;
+}
+
 export interface SiscavInstallation {
   installationId: string;
   /** pending = esperando que el agente canjee el código; active = emparejada. */
@@ -615,7 +629,10 @@ export interface SiscavInstallation {
     database: string | null;
     hostname: string | null;
     missingTables: string[];
+    optionalColumns: SiscavOptionalColumn[];
   } | null;
+  lastError: SiscavLastError | null;
+  errorHistory: SiscavLastError[];
   agentServerUrl: string | null;
   createdAt: string;
 }
@@ -624,6 +641,21 @@ export interface SiscavPairingPayload {
   installation: SiscavInstallation;
   pairingCode: string;
   expiresAt: string;
+}
+
+/** Checklist de blockers para WhatsApp CSE + SISCAV. */
+export interface SiscavCseReadiness {
+  siscavApp: boolean;
+  cseApp: boolean;
+  mcpProvider: boolean;
+  hasCustomerProfile: boolean;
+  installationPaired: boolean;
+  installationConnected: boolean;
+  hasCseChannel: boolean;
+  channelHasDefaultProfile: boolean;
+  baileysConnected: boolean;
+  blockers: string[];
+  suggestedDefaultProfileId: string;
 }
 
 export interface BusinessChannel {

@@ -1,7 +1,7 @@
 import type { BusinessInstalledApp } from "@/lib/app-suite/capabilities";
 import type { BusinessChannel } from "@/lib/interfases";
 
-export type BusinessUpdatedScope = "apps" | "channels" | "config" | "all";
+export type BusinessUpdatedScope = "apps" | "channels" | "config" | "siscav" | "all";
 
 export type BusinessUpdatedActor = "user" | "agent" | "system";
 

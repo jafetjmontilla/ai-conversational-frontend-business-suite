@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Copy, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { BusinessChannel, CseProfile } from "@/lib/interfases";
 
 const NO_PROFILE = "__none__";
+const SISCAV_CUSTOMER_PROFILE_ID = "siscav-customer";
 
 export type ChannelIntegrationPatch = {
   webhookSecret?: string;
@@ -53,8 +54,20 @@ export function ChannelIntegrationSettings({
 }: ChannelIntegrationSettingsProps) {
   const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
   const [rotating, setRotating] = useState(false);
+  const suggestedApplied = useRef(false);
   const isGeneric = channel.type === "generic";
   const isCse = channel.agentEngine === "cse";
+  const siscavCustomer = profiles.find(
+    (p) => p.profileId === SISCAV_CUSTOMER_PROFILE_ID && p.active !== false
+  );
+
+  useEffect(() => {
+    if (!isCse || disabled || suggestedApplied.current) return;
+    if (channel.defaultProfileId || !siscavCustomer) return;
+    suggestedApplied.current = true;
+    void onUpdate({ defaultProfileId: siscavCustomer.profileId });
+  }, [isCse, disabled, channel.defaultProfileId, siscavCustomer, onUpdate]);
+
   if (!isGeneric && !isCse) return null;
 
   const selectedProfile = profiles.find((p) => p.profileId === channel.defaultProfileId);

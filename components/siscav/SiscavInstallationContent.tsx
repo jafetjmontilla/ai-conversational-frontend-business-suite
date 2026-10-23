@@ -4,7 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Database, Download, KeyRound, Link2, PlugZap, RefreshCw, ShieldOff, TriangleAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Copy,
+  Database,
+  Download,
+  KeyRound,
+  Link2,
+  Loader2,
+  PlugZap,
+  RefreshCw,
+  ShieldOff,
+  TriangleAlert,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBusinessPermissions, useBusinessRole } from "@/lib/hooks/useAllowed";
+import { useBusinessChannels } from "@/lib/hooks/useBusinessChannels";
 import { useSiscavInstallation } from "@/lib/hooks/useSiscavInstallation";
 import type { SiscavInstallation, SiscavPairingPayload } from "@/lib/interfases";
 import { cn } from "@/lib/utils";
@@ -141,22 +155,94 @@ export function SiscavInstallationContent() {
   const businessSlug = (params?.businessId as string) ?? null;
   const { businessRole } = useBusinessRole(businessSlug);
   const { canViewCurrentBusiness, canEditCurrentBusiness } = useBusinessPermissions(businessRole);
-  const { installation, pairing, loading, refreshing, refresh, startPairing, revoke, isStarting, isRevoking } =
-    useSiscavInstallation(businessSlug);
+  const {
+    installation,
+    pairing,
+    readiness,
+    loading,
+    refreshing,
+    refresh,
+    startPairing,
+    revoke,
+    isStarting,
+    isRevoking,
+  } = useSiscavInstallation(businessSlug);
+  const {
+    createBaileysSession,
+    isCreatingBaileys,
+    refetch: refetchChannels,
+  } = useBusinessChannels(businessSlug);
   const [createProfiles, setCreateProfiles] = useState(true);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [creatingChannel, setCreatingChannel] = useState(false);
   const generate = (withProfiles: boolean) => void startPairing(withProfiles).catch(() => undefined);
   const disconnect = () =>
     void revoke()
       .then(() => setConfirmRevoke(false))
       .catch(() => undefined);
 
+  const canEdit = canEditCurrentBusiness();
+  const createChannelHref = businessSlug
+    ? `/${businessSlug}/channels?create=baileys&engine=cse&sessionId=${encodeURIComponent(`siscav-${businessSlug}`)}`
+    : "#";
+
+  const handleCreateCseChannel = async () => {
+    if (!businessSlug || !canEdit) return;
+    if (readiness?.hasCseChannel) {
+      window.location.href = createChannelHref;
+      return;
+    }
+    setCreatingChannel(true);
+    try {
+      const sessionId = `siscav-${businessSlug}`.slice(0, 64);
+      const result = await createBaileysSession({
+        sessionId,
+        agentEngine: "cse",
+        defaultProfileId: readiness?.suggestedDefaultProfileId || "siscav-customer",
+      });
+      if (!result?.success) {
+        toast.error(result?.error || "No se pudo crear el canal WhatsApp");
+        return;
+      }
+      const qr = result.qrCode || result.session?.qrCode || null;
+      if (qr) setQrCode(qr);
+      else toast.success("Canal creado");
+      void refetchChannels();
+      void refresh();
+    } finally {
+      setCreatingChannel(false);
+    }
+  };
+
   if (!canViewCurrentBusiness()) {
     return <div className="p-6 text-muted-foreground">No tienes permiso para ver esta sección.</div>;
   }
-  const canEdit = canEditCurrentBusiness();
   const missingTables = installation?.agent?.missingTables ?? [];
+  const missingOptionalColumns = (installation?.agent?.optionalColumns ?? []).filter((c) => !c.present);
+  const lastError = installation?.lastError ?? null;
+  const errorHistory = installation?.errorHistory ?? [];
   const hasUnseenCode = Boolean(installation?.pairingExpiresAt && !pairing);
+  const readinessItems = readiness
+    ? [
+        { ok: readiness.siscavApp, label: "App SISCAV instalada" },
+        { ok: readiness.cseApp, label: "App Atención al Cliente instalada" },
+        { ok: readiness.mcpProvider, label: "Proveedor MCP cableado" },
+        { ok: readiness.hasCustomerProfile, label: "Perfil SISCAV · Clientes" },
+        { ok: readiness.installationPaired, label: "PC emparejada" },
+        { ok: readiness.installationConnected, label: "Agente conectado" },
+        { ok: readiness.hasCseChannel, label: "Canal con motor CSE" },
+        { ok: readiness.channelHasDefaultProfile, label: "Canal con perfil por defecto" },
+        { ok: readiness.baileysConnected, label: "WhatsApp vinculado (QR)" },
+      ]
+    : [];
+
+  const featureHintLabel = (hint: string) => {
+    if (hint === "stock_minimo") return "Stock mínimo / bajo inventario";
+    return hint;
+  };
+
+  const showCreateChannelCta = readiness && (!readiness.hasCseChannel || !readiness.baileysConnected);
 
   return (
     <div className="space-y-4 p-4">
@@ -178,6 +264,78 @@ export function SiscavInstallationContent() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {readinessItems.length ? (
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Listo para WhatsApp CSE</p>
+                {readiness && readiness.blockers.length === 0 ? (
+                  <Badge className="bg-emerald-600 hover:bg-emerald-600">Completo</Badge>
+                ) : (
+                  <Badge variant="secondary">Faltan pasos</Badge>
+                )}
+              </div>
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {readinessItems.map((item) => (
+                  <li key={item.label} className="flex items-center gap-2 text-sm">
+                    {item.ok ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    ) : (
+                      <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className={cn(!item.ok && "text-muted-foreground")}>{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+              {readiness && readiness.blockers.length > 0 ? (
+                <Alert>
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle>Pendiente</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {readiness.blockers.map((b) => (
+                        <li key={b}>{b}</li>
+                      ))}
+                    </ul>
+                    {showCreateChannelCta ? (
+                      <p className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!canEdit || creatingChannel || isCreatingBaileys}
+                          onClick={() => void handleCreateCseChannel()}
+                        >
+                          {creatingChannel || isCreatingBaileys ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          {!readiness.hasCseChannel ? "Crear canal y mostrar QR" : "Ir a Canales (QR)"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" asChild>
+                          <Link href={createChannelHref}>Abrir Canales</Link>
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Perfil {readiness.suggestedDefaultProfileId || "siscav-customer"}. Escanea el QR en el
+                          teléfono.
+                        </span>
+                      </p>
+                    ) : !readiness.channelHasDefaultProfile ? (
+                      <p className="mt-2">
+                        <Link
+                          href={`/${businessSlug}/channels`}
+                          className="font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          Ir a Canales
+                        </Link>
+                        {readiness.suggestedDefaultProfileId
+                          ? ` · perfil sugerido: ${readiness.suggestedDefaultProfileId}`
+                          : null}
+                      </p>
+                    ) : null}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          ) : null}
+
           {loading ? (
             <p className="text-sm text-muted-foreground">Cargando…</p>
           ) : !installation ? (
@@ -217,6 +375,44 @@ export function SiscavInstallationContent() {
                 </span>
               </div>
 
+              {installation.status === "active" && !installation.connected ? (
+                <Alert variant="destructive">
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle>Agente offline</AlertTitle>
+                  <AlertDescription>
+                    {lastError?.code === "agent_offline" || lastError?.code === "timeout"
+                      ? lastError.message
+                      : "La PC no envía latidos. Revisa que el servicio SiscavAgent esté en ejecución."}
+                    {lastError?.at ? (
+                      <span className="mt-1 block text-xs opacity-90">
+                        Último aviso {timeAgo(lastError.at)}
+                        {lastError.operation ? ` · ${lastError.operation}` : ""}
+                      </span>
+                    ) : null}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {installation.connected && lastError ? (
+                <Alert>
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle>
+                    {lastError.code === "mysql_error"
+                      ? "Error de MySQL en la PC"
+                      : lastError.code === "missing_table"
+                        ? "Falta una tabla en SISCAV"
+                        : `Último error (${lastError.code})`}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {lastError.message}
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {timeAgo(lastError.at)}
+                      {lastError.operation ? ` · tool ${lastError.operation}` : ""}
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
               <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Detail label="PC" value={installation.agent?.hostname} />
                 <Detail label="Versión del agente" value={installation.agent?.agentVersion} />
@@ -239,6 +435,43 @@ export function SiscavInstallationContent() {
                     este negocio; el resto funciona normal.
                   </AlertDescription>
                 </Alert>
+              ) : null}
+
+              {missingOptionalColumns.length ? (
+                <Alert>
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle>Columnas opcionales ausentes</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {missingOptionalColumns.map((c) => (
+                        <li key={`${c.table}.${c.column}`}>
+                          <span className="font-mono text-xs">
+                            {c.table}.{c.column}
+                          </span>
+                          {" — "}
+                          {featureHintLabel(c.featureHint)} no disponible en esta base.
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              {errorHistory.length > 1 ? (
+                <details className="rounded-lg border p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    Historial de errores ({errorHistory.length})
+                  </summary>
+                  <ul className="mt-2 max-h-48 space-y-2 overflow-y-auto text-muted-foreground">
+                    {errorHistory.map((e, i) => (
+                      <li key={`${e.at}-${e.code}-${i}`} className="border-t pt-2 first:border-0 first:pt-0">
+                        <span className="font-mono text-xs">{e.code}</span>
+                        {e.operation ? ` · ${e.operation}` : ""} — {e.message}
+                        <span className="mt-0.5 block text-xs">{timeAgo(e.at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               ) : null}
 
               {hasUnseenCode ? (
@@ -297,6 +530,34 @@ export function SiscavInstallationContent() {
       </Card>
 
       {pairing ? <PairingCard pairing={pairing} serverUrl={pairing.installation.agentServerUrl} /> : null}
+
+      <Dialog open={Boolean(qrCode)} onOpenChange={(open) => !open && setQrCode(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Escanea con WhatsApp</DialogTitle>
+            <DialogDescription>
+              Vincula el teléfono al canal CSE. Cuando el estado pase a conectado, el checklist se actualizará.
+            </DialogDescription>
+          </DialogHeader>
+          {qrCode ? (
+            <div className="flex flex-col items-center gap-3 py-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={
+                  qrCode.startsWith("data:")
+                    ? qrCode
+                    : `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCode)}`
+                }
+                alt="QR de WhatsApp"
+                className="h-48 w-48 rounded border object-contain"
+              />
+              <Button type="button" variant="outline" onClick={() => void refresh()}>
+                Actualizar estado
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={confirmRevoke} onOpenChange={setConfirmRevoke}>
         <DialogContent>

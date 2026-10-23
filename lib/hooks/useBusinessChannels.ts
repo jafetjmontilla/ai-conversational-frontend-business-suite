@@ -32,7 +32,7 @@ export type CreateBaileysSessionResult = {
   success: boolean;
   qrCode?: string | null;
   error?: string | null;
-  session?: { isConnected?: boolean; phoneNumber?: string };
+  session?: { isConnected?: boolean; phoneNumber?: string; qrCode?: string | null };
 };
 
 const EMPTY_CHANNELS: BusinessChannel[] = [];
@@ -115,6 +115,7 @@ export function useBusinessChannels(businessSlug: string | null) {
       sessionId: string;
       phoneNumber?: string;
       agentEngine: BusinessChannel["agentEngine"];
+      defaultProfileId?: string | null;
     }) => {
       if (!businessIdDoc) throw new Error("Negocio no cargado");
       return (await fetchApiV1({
@@ -125,6 +126,7 @@ export function useBusinessChannels(businessSlug: string | null) {
           sessionId: vars.sessionId,
           phoneNumber: vars.phoneNumber,
           agentEngine: vars.agentEngine,
+          defaultProfileId: vars.defaultProfileId ?? undefined,
         },
       })) as CreateBaileysSessionResult;
     },
@@ -169,6 +171,7 @@ export function useBusinessChannels(businessSlug: string | null) {
       sessionId: string;
       phoneNumber?: string;
       agentEngine: BusinessChannel["agentEngine"];
+      defaultProfileId?: string | null;
     }) => {
       if (!businessIdDoc) return null;
       try {

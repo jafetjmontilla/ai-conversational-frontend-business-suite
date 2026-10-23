@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -236,6 +236,7 @@ function getChannelDisplayPhone(
 export function ChannelsPageContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const businessId = params?.businessId as string;
   const { businessRole } = useBusinessRole(businessId);
   const { canEditCurrentBusiness } = useBusinessPermissions(businessRole);
@@ -250,6 +251,9 @@ export function ChannelsPageContent() {
     isCreatingBaileys,
   } = useBusinessChannels(businessId);
   const { data: cseProfilesData } = useCseProfiles(businessId);
+  const suggestedSiscavProfileId =
+    cseProfilesData?.profiles?.find((p) => p.profileId === "siscav-customer" && p.active !== false)?.profileId ??
+    null;
 
   const [savingChannelId, setSavingChannelId] = useState<string | null>(null);
   const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
@@ -258,8 +262,10 @@ export function ChannelsPageContent() {
   const [sessionId, setSessionId] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [baileysAgentEngine, setBaileysAgentEngine] = useState<"cse" | "pae">("cse");
+  const [addChannelTab, setAddChannelTab] = useState("baileys");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pendingQrSessionId, setPendingQrSessionId] = useState<string | null>(null);
+  const siscavPrefillDone = useRef(false);
 
   const [cloudName, setCloudName] = useState("");
   const [cloudPhoneNumberId, setCloudPhoneNumberId] = useState("");
@@ -309,10 +315,25 @@ export function ChannelsPageContent() {
     if (!business) return;
     const preferred = business.config?.agent?.defaultEngine === "pae" ? "pae" : "cse";
     const available = pickAvailableAgentEngine(business.installedApps, preferred);
-    setBaileysAgentEngine(available);
+    if (!siscavPrefillDone.current) setBaileysAgentEngine(available);
     setCloudAgentEngine(available);
     setGenericAgentEngine(available);
   }, [business]);
+
+  /** Prefill desde SISCAV: ?create=baileys&engine=cse&sessionId=siscav-{slug} */
+  useEffect(() => {
+    if (!business || siscavPrefillDone.current) return;
+    if (searchParams.get("create") !== "baileys") return;
+    siscavPrefillDone.current = true;
+    const requested = searchParams.get("engine") === "pae" ? "pae" : "cse";
+    const engine = pickAvailableAgentEngine(business.installedApps, requested);
+    const sid = (searchParams.get("sessionId") || "").trim();
+    setAddChannelTab("baileys");
+    setBaileysAgentEngine(engine);
+    if (sid) setSessionId(sid);
+    setMobileAddChannelOpen(true);
+    router.replace(`/${businessId}/channels`, { scroll: false });
+  }, [business, searchParams, businessId, router]);
 
   const channelsAllowlistKey = useMemo(
     () =>
@@ -425,6 +446,9 @@ export function ChannelsPageContent() {
       sessionId: trimmedSessionId,
       phoneNumber: phoneNumber.trim() || undefined,
       agentEngine: baileysAgentEngine,
+      ...(baileysAgentEngine === "cse" && suggestedSiscavProfileId
+        ? { defaultProfileId: suggestedSiscavProfileId }
+        : {}),
     });
     if (!result?.success) return;
     seedSessionStatus(trimmedSessionId, {
@@ -463,6 +487,9 @@ export function ChannelsPageContent() {
         phoneNumber: cloudPhoneNumber.trim(),
         accessToken: cloudAccessToken.trim(),
         verifyToken: cloudVerifyToken.trim(),
+        ...(cloudAgentEngine === "cse" && suggestedSiscavProfileId
+          ? { defaultProfileId: suggestedSiscavProfileId }
+          : {}),
       });
       if (updated) {
         toast.success("Canal Cloud API creado");
@@ -492,6 +519,9 @@ export function ChannelsPageContent() {
         allowedPhoneNumbers: [],
         callbackUrl: genericCallbackUrl.trim(),
         webhookSecret: genericWebhookSecret.trim() || undefined,
+        ...(genericAgentEngine === "cse" && suggestedSiscavProfileId
+          ? { defaultProfileId: suggestedSiscavProfileId }
+          : {}),
       });
       if (updated) {
         toast.success("Canal genérico creado");
@@ -560,7 +590,7 @@ export function ChannelsPageContent() {
         )}
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-y-auto">
-        <Tabs defaultValue="baileys" className="w-full">
+        <Tabs value={addChannelTab} onValueChange={setAddChannelTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="cloud">Cloud API</TabsTrigger>
             <TabsTrigger value="baileys">Baileys</TabsTrigger>

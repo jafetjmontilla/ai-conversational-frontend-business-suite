@@ -1,5 +1,5 @@
 // Service Worker Manual para PWA - Frontend Business Suite
-// Versión: 1.1.0 - Generado: 2026-08-18T17:37:55.304Z
+// Versión: 1.1.0 - Generado: 2026-10-23T20:27:08.006Z
 const CACHE_NAME = 'frontend-business-suite-v1-1-0';
 const IMAGE_CACHE = 'frontend-business-suite-images-v1-1-0';
 

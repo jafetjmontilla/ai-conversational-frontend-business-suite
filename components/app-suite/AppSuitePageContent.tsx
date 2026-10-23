@@ -92,7 +92,7 @@ export function AppSuitePageContent() {
       const ok = await installApp(app.id);
       setBusyAppId(null);
       if (ok && app.id === "siscav") {
-        toast.success("SISCAV instalada. Empareja la PC del negocio.");
+        toast.success("SISCAV y Atención al Cliente instalados. Empareja la PC del negocio.");
         router.push(`/${businessId}/ai/siscav`);
       }
     },
