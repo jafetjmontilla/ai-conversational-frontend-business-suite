@@ -1329,6 +1329,19 @@ export const queries = {
       }
     }
   }`,
+  reconnectBaileysSession: `mutation reconnectBaileysSession($id: ID!, $sessionId: String!) {
+    reconnectBaileysSession(id: $id, sessionId: $sessionId) {
+      success
+      qrCode
+      error
+      session {
+        id
+        isConnected
+        qrCode
+        phoneNumber
+      }
+    }
+  }`,
   removeBaileysNumber: `mutation removeBaileysNumber($id: ID!, $sessionId: String!, $disconnect: Boolean) {
     removeBaileysNumber(id: $id, sessionId: $sessionId, disconnect: $disconnect)
   }`,

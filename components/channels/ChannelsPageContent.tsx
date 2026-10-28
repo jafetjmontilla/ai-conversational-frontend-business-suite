@@ -43,9 +43,17 @@ import {
   Globe,
   Radio,
   Phone,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const CHANNEL_TYPE_LABEL: Record<ChannelType, string> = {
   whatsapp_cloud: "WhatsApp Cloud API",
@@ -248,6 +256,7 @@ export function ChannelsPageContent() {
     upsertChannel,
     deleteChannel,
     createBaileysSession,
+    reconnectBaileysSession,
     isCreatingBaileys,
   } = useBusinessChannels(businessId);
   const { data: cseProfilesData } = useCseProfiles(businessId);
@@ -265,6 +274,8 @@ export function ChannelsPageContent() {
   const [addChannelTab, setAddChannelTab] = useState("baileys");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pendingQrSessionId, setPendingQrSessionId] = useState<string | null>(null);
+  const [reconnectQrOpen, setReconnectQrOpen] = useState(false);
+  const [reconnectingSessionId, setReconnectingSessionId] = useState<string | null>(null);
   const siscavPrefillDone = useRef(false);
 
   const [cloudName, setCloudName] = useState("");
@@ -366,6 +377,7 @@ export function ChannelsPageContent() {
     if (entry && entry !== "loading" && entry.isConnected) {
       setQrCode(null);
       setPendingQrSessionId(null);
+      setReconnectQrOpen(false);
       setMobileAddChannelOpen(false);
       toast.success("WhatsApp conectado");
       return;
@@ -469,6 +481,50 @@ export function ChannelsPageContent() {
     }
     setSessionId("");
     setPhoneNumber("");
+  };
+
+  const handleReconnectBaileys = async (channel: BusinessChannel) => {
+    const sid = channel.sessionId?.trim();
+    if (!sid) {
+      toast.error("Este canal no tiene sessionId");
+      return;
+    }
+    setReconnectingSessionId(sid);
+    setQrCode(null);
+    setPendingQrSessionId(null);
+    setReconnectQrOpen(false);
+    try {
+      const result = await reconnectBaileysSession(sid);
+      if (!result?.success) {
+        toast.error(result?.error || "No se pudo reconectar WhatsApp");
+        return;
+      }
+      seedSessionStatus(sid, {
+        isConnected: result.session?.isConnected ?? false,
+        phoneNumber: result.session?.phoneNumber ?? channel.phoneNumber ?? null,
+        qrCode: result.qrCode ?? null,
+      });
+      if (result.session?.isConnected) {
+        toast.success("WhatsApp reconectado");
+        return;
+      }
+      if (result.qrCode) {
+        setPendingQrSessionId(sid);
+        setQrCode(result.qrCode);
+        setReconnectQrOpen(true);
+        toast.info("Escanea el código QR con WhatsApp");
+        return;
+      }
+      toast.success("Reconexión iniciada; espera unos segundos");
+    } finally {
+      setReconnectingSessionId(null);
+    }
+  };
+
+  const needsBaileysReconnect = (entry: BaileysStatusEntry | undefined): boolean => {
+    if (entry === undefined || entry === "loading") return false;
+    if (entry === null) return true;
+    return entry.isConnected !== true;
   };
 
   const handleCreateCloud = async () => {
@@ -825,6 +881,28 @@ export function ChannelsPageContent() {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
+                        {ch.type === "whatsapp_baileys" &&
+                        ch.sessionId &&
+                        needsBaileysReconnect(baileysSt) ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            disabled={
+                              reconnectingSessionId === ch.sessionId ||
+                              deletingChannelId === ch.channelId
+                            }
+                            onClick={() => void handleReconnectBaileys(ch)}
+                          >
+                            {reconnectingSessionId === ch.sessionId ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                            )}
+                            Reconectar
+                          </Button>
+                        ) : null}
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">Activo</span>
                           <Switch
@@ -945,6 +1023,46 @@ export function ChannelsPageContent() {
         loading={deletingChannelId === channelToDelete?.channelId}
         confirmButtonText="Eliminar canal"
       />
+
+      <Dialog
+        open={reconnectQrOpen && Boolean(qrCode && pendingQrSessionId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReconnectQrOpen(false);
+            setQrCode(null);
+            setPendingQrSessionId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular WhatsApp</DialogTitle>
+            <DialogDescription>
+              Escanea este código con WhatsApp en el teléfono del canal
+              {pendingQrSessionId ? (
+                <>
+                  {" "}
+                  <span className="font-mono text-xs">{pendingQrSessionId}</span>
+                </>
+              ) : null}
+              .
+            </DialogDescription>
+          </DialogHeader>
+          {qrCode ? (
+            <div className="flex justify-center py-2">
+              <img
+                src={
+                  qrCode.startsWith("data:")
+                    ? qrCode
+                    : `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCode)}`
+                }
+                alt="QR de WhatsApp"
+                className="h-56 w-56 object-contain border rounded"
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

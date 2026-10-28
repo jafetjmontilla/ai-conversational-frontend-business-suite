@@ -142,6 +142,20 @@ export function useBusinessChannels(businessSlug: string | null) {
     },
   });
 
+  const reconnectBaileysMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!businessIdDoc) throw new Error("Negocio no cargado");
+      return (await fetchApiV1({
+        query: queries.reconnectBaileysSession,
+        type: "json",
+        variables: { id: businessIdDoc, sessionId },
+      })) as CreateBaileysSessionResult;
+    },
+    onError: (e: unknown) => {
+      toast.error((e as { message?: string })?.message || "Error al reconectar WhatsApp");
+    },
+  });
+
   const upsertChannel = useCallback(
     async (input: BusinessChannelInput) => {
       if (!businessIdDoc) return null;
@@ -183,6 +197,18 @@ export function useBusinessChannels(businessSlug: string | null) {
     [businessIdDoc, createBaileysMutation]
   );
 
+  const reconnectBaileysSession = useCallback(
+    async (sessionId: string) => {
+      if (!businessIdDoc) return null;
+      try {
+        return await reconnectBaileysMutation.mutateAsync(sessionId);
+      } catch {
+        return null;
+      }
+    },
+    [businessIdDoc, reconnectBaileysMutation]
+  );
+
   return {
     business,
     businessIdDoc,
@@ -191,9 +217,11 @@ export function useBusinessChannels(businessSlug: string | null) {
     upsertChannel,
     deleteChannel,
     createBaileysSession,
+    reconnectBaileysSession,
     isUpserting: upsertMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isCreatingBaileys: createBaileysMutation.isPending,
+    isReconnectingBaileys: reconnectBaileysMutation.isPending,
     refetch: refreshBusiness,
     ...rest,
   };
