@@ -1,0 +1,48 @@
+---
+description: "Control plane (suite/Atlas) vs data plane por flota (mongo_ops local, worker, RAG, api-agent-ops). Business.runtime.fleetId, snapshots, seguridad Mongo, no mezclar URIs ni exponer 27017."
+globs:
+  - "lib/Fetching.ts"
+---
+
+<!-- GENERADO por scripts/sync-agent-rules.mjs desde la fuente única (.cursor/rules/fleets-data-plane.mdc del repo raíz ai-conversational) — no editar aquí -->
+
+# Flotas: control plane vs data plane
+
+Detalle operativo: [`docs/fleets.md`](docs/fleets.md) y [`ops/mongo-ops/README.md`](ops/mongo-ops/README.md).
+
+## Modelo
+
+| Plano | Dónde | Qué vive ahí |
+|-------|--------|----------------|
+| **Control** | `api-business-suite` + Atlas `ai-conversation` (`MONGO_URI`) | `businesses` (fuente de verdad), users, members, invitations, ERP, `Business.config` |
+| **Data (flota)** | mongo_ops local + worker + knowledge-RAG + session-gateway + `api-agent-ops` | conversaciones, PAE, memorias, promptlogs, knowledge items/drafts, `business_snapshots` / espejo `businesses` |
+
+Cada negocio tiene `Business.runtime: { fleetId, dataPlaneBaseUrl }`. Flota de este host: `fleet-shared-1` → `https://ops-shared-1.sistemasjaihom.com`.
+
+## Obligatorio al tocar código
+
+1. **No** apuntar worker / RAG / session-gateway a Atlas para colecciones ops. Usan `MONGODB_URI` de mongo_ops (`fleet_shared_1_ops`).
+2. Suite: `MONGO_URI` = gestión; `OPS_MONGO_URI` = ops. Modelos ops van por [`opsDatabase.ts`](api-business-suite/src/config/opsDatabase.ts) (`opsConnection`), no por la conexión default.
+3. Tras mutar `Business.config` / channels / runtime: sincronizar snapshot (`pushBusinessSnapshotToFleet` / seed `seedFleetShared1.ts`). El worker/RAG leen `business_snapshots` o espejo `businesses` en mongo_ops.
+4. Campo nuevo en `config.agent.pae.*`: sigue la regla `worker-multi-tenant` (worker + suite Business schema + seed). El snapshot debe incluirlo.
+5. Webhooks: encolar vía [`fleetRouter.ts`](webhooks/src/services/fleetRouter.ts) (Redis de la flota). Mapa multi-fleet: `FLEET_ROUTING_MAP_JSON`. Fail-closed: no mandar a la flota equivocada.
+6. Front: un solo panel (`frontend-business-suite`). Ops GraphQL hoy vía suite (BFF → mongo_ops). `runtime` / `dataPlaneBaseUrl` en queries de business para APIs de flota.
+
+## Seguridad mongo_ops
+
+- Solo `127.0.0.1:27017`. Nunca publicar Mongo ni DNS público para el puerto.
+- Auth SCRAM; usuarios least-privilege (`ops_worker`, `ops_rag`, `ops_agent_api`, `ops_session`, `ops_backup`).
+- Secrets en `ops/secrets/` (mode 600), **nunca** en git.
+- `api-agent-ops` `/internal/*`: solo localhost + `X-Control-Plane-Token`. Nginx ya deniega el resto.
+- No loguear connection strings ni tokens.
+
+## Prohibido
+
+- Asumir una sola DB monolítica `ai-conversation` para conversaciones/PAE/knowledge.
+- Escribir ops en Atlas “porque la suite está ahí”.
+- Exponer `27017` o credenciales root de mongo_ops a apps o al browser.
+- Hardcodear `fleet-shared-1` / URLs de un tenant en el worker (el worker sigue multi-tenant; la flota es infra).
+
+## Aislamiento dedicado
+
+Shared vs dedicated = mismo contrato (`runtime.fleetId`). Dedicated = otra instancia mongo_ops + stack + DNS `ops-<fleetId>.…`. Checklist: `ops/mongo-ops/assign-tenant-fleet.sh`.

@@ -6,6 +6,8 @@ Las reglas de `.cursor/rules/` y este índice se generan desde la fuente única 
 <!-- BEGIN:agent-rules-index (generado por scripts/sync-agent-rules.mjs, no editar a mano) -->
 - **[app-suite-capabilities](.cursor/rules/app-suite-capabilities.mdc)** — Apps instaladas, capacidades del negocio y FeatureGate (Suite de aplicaciones)
   - Aplica a: `lib/app-suite/**`, `lib/data/appSuiteApps.ts`, `lib/hooks/useBusinessApps.ts`, `components/app-suite/**`, `lib/navigation/businessNav.ts`, `lib/queries/business.ts`, `contexts/BusinessProvider.tsx`, `lib/hooks/useBusinessRealtimeSync.ts`
+- **[fleets-data-plane](.cursor/rules/fleets-data-plane.mdc)** — Control plane (suite/Atlas) vs data plane por flota (mongo_ops local, worker, RAG, api-agent-ops). Business.runtime.fleetId, snapshots, seguridad Mongo, no mezclar URIs ni exponer 27017.
+  - Aplica a: `lib/Fetching.ts`
 - **[frontend-animations](.cursor/rules/frontend-animations.mdc)** — Animaciones y transiciones en el frontend (Framer Motion y CSS)
   - Aplica a: `app/**`, `components/**`
 - **[frontend-conventions](.cursor/rules/frontend-conventions.mdc)** — Convenciones y patrones del frontend

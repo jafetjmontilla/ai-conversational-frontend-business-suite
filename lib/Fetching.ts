@@ -521,6 +521,10 @@ export const queries = {
       billingExchangeRateSource
       billingCustomExchangeRate
       billingInternalFlow
+      runtime {
+        fleetId
+        dataPlaneBaseUrl
+      }
       config {
         conversationTimeout
         messageLimit
